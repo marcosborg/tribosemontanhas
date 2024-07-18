@@ -34,12 +34,6 @@
                                         {{ trans('cruds.contractVat.fields.percent') }}
                                     </th>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.tips') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.contractVat.fields.contract_type') }}
-                                    </th>
-                                    <th>
                                         &nbsp;
                                     </th>
                                 </tr>
@@ -58,12 +52,6 @@
                                         </td>
                                         <td>
                                             {{ $contractVat->percent ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $contractVat->tips ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $contractVat->contract_type->name ?? '' }}
                                         </td>
                                         <td>
                                             @can('contract_vat_show')

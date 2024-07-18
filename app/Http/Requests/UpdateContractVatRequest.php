@@ -25,14 +25,6 @@ class UpdateContractVatRequest extends FormRequest
                 'numeric',
                 'required',
             ],
-            'tips' => [
-                'numeric',
-                'required',
-            ],
-            'contract_type_id' => [
-                'required',
-                'integer',
-            ],
         ];
     }
 }

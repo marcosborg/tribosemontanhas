@@ -47,115 +47,24 @@
                         <tbody>
                             <tr>
                                 <th>UBER</th>
-                                <td>{{ $total_earnings_uber }}€</td>
-                                @if ($driver || $team_results)
-                                <td>{{ $contract_type_rank ? $contract_type_rank->percent : '0' }}%</td>
-                                <td>{{ $total_uber }}€</td>
-                                @endif
+                                <td>{{ $uber_gross }}€</td>
                             </tr>
                             <tr>
                                 <th>BOLT</th>
-                                <td>{{ $total_earnings_bolt }}€</td>
-                                @if ($driver || $team_results)
-                                <td>{{ $contract_type_rank ? $contract_type_rank->percent : '0' }}%</td>
-                                <td>{{ $total_bolt }}€</td>
-                                @endif
+                                <td>{{ $bolt_gross }}€</td>
                             </tr>
-                            <tr>
-                                <th>Gorjeta UBER</th>
-                                <td>{{ $total_tips_uber }}€</td>
-                                @if ($driver || $team_results)
-                                <td>{{ number_format($uber_tip_percent, 2) }}%</td>
-                                <td>{{ number_format($uber_tip_after_vat, 2) }}€</td>
-                                @endif
-                            </tr>
-                            <tr>
-                                <th>Gorjeta BOLT</th>
-                                <td>{{ $total_tips_bolt }}€</td>
-                                @if ($driver || $team_results)
-                                <td>{{ number_format($bolt_tip_percent, 2) }}%</td>
-                                <td>{{ number_format($bolt_tip_after_vat, 2) }}€</td>
-                                @endif
-                            </tr>
-                            @if ($team_results)
-                            @foreach ($team_results as $team_result)
-                            <tr>
-                                <th>{{ $team_result->driver->name }}</th>
-                                <td>{{ number_format($team_result->gross_credits, 2) }}€</td>
-                                @if ($driver || $team_results)
-                                <td>{{ number_format($driver->contract_type->contract_type_ranks[0]->percent, 2) }}%</td>
-                                <td>{{ $team_result->total_after_vat }}€</td>
-                                @endif
-                            </tr>
-                            @endforeach
-                            @endif
                             <tr>
                                 <th>Totais</th>
-                                <td>{{ number_format($total_earnings, 2) }}€</td>
+                                <td>{{ number_format($total, 2) }}€</td>
                                 @if ($driver || $team_results)
                                 <td></td>
-                                <td>{{ number_format($total_after_vat, 2) }}€</td>
+                                <td>{{ number_format($earnings_after_discount, 2) }}€</td>
                                 @endif
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            @if (($electric_expenses && $electric_expenses->value > 0) || ($combustion_expenses &&
-            $combustion_expenses->value > 0))
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    Abastecimento
-                </div>
-                <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-5">
-                            <table class="table table-striped">
-                                <tbody>
-                                    <tr>
-                                        <th></th>
-                                        <th style="text-align: right;">Quantidade</th>
-                                        <th style="text-align: right;">Custo</th>
-                                    </tr>
-                                    @if ($electric_expenses)
-                                    <tr>
-                                        <th>Gastos</th>
-                                        <td>{{ $electric_expenses->amount }}</td>
-                                        <td>{{ $electric_expenses->total }}</td>
-                                    </tr>
-                                    @endif
-                                    @if ($combustion_expenses)
-                                    <tr>
-                                        <th>Gastos</th>
-                                        <td>{{ $combustion_expenses->amount }}</td>
-                                        <td>{{ $combustion_expenses->total }}</td>
-                                    </tr>
-                                    @endif
-                                </tbody>
-                            </table>
-                            @if ($electric_expenses)
-                            <h1 class="text-center" style="font-size: 40px; font-weight: 800;">{{
-                                number_format($electric_racio, 2) }}%
-                            </h1>
-                            @endif
-                            @if ($combustion_expenses)
-                            <h1 class="text-center" style="font-size: 40px; font-weight: 800;">{{
-                                number_format($combustion_racio, 2) }}%
-                            </h1>
-                            @endif
-                        </div>
-                        <div class="col-md-7">
-                            @if ($electric_expenses)
-                            <canvas id="electric_racio" style="height: 200px;"></canvas>
-                            @endif
-                            @if ($combustion_expenses)
-                            <canvas id="combustion_racio" style="height: 200px;"></canvas>
-                            @endif
-                        </div>
-                    </div>
-                </div>
-            </div>
-            @endif
         </div>
         <div class="col-md-7">
             <div class="panel panel-default">
@@ -175,72 +84,15 @@
                             </tr>
                             <tr>
                                 <th>Ganhos</th>
-                                <td>{{ number_format($total_earnings_no_tip, 2) }}€</td>
-                                @if ($driver)
-                                <td>- {{ number_format($total_earnings_no_tip - $total_earnings_after_vat, 2) }}€</td>
-                                <td>{{ number_format($total_earnings_after_vat, 2) }}€</td>
-                                @endif
+                                <td>{{ number_format($earnings_after_discount, 2) }}€</td>
+                                <td>{{ number_format(50, 2) }}</td>
                             </tr>
-                            <tr>
-                                <th>Gorjetas</th>
-                                <td>{{ number_format($total_tips, 2) }}€</td>
-                                @if ($driver)
-                                <td>- {{ number_format($total_tips - $total_tip_after_vat, 2) }}€</td>
-                                <td>{{ number_format($total_tip_after_vat, 2) }}€</td>
-                                @endif
-                            </tr>
-                            @if ($electric_expenses && $electric_expenses->value > 0)
-                            <tr>
-                                <th>Abastecimento elétrico</th>
-                                <td></td>
-                                @if ($driver)
-                                <td>- {{ $electric_expenses->total }}</td>
-                                <td></td>
-                                @endif
-                            </tr>
-                            @endif
-                            @if ($combustion_expenses && $combustion_expenses->value > 0)
-                            <tr>
-                                <th>Abastecimento combustivel</th>
-                                <td></td>
-                                @if ($driver)
-                                <td>- {{ $combustion_expenses->total }}</td>
-                                <td></td>
-                                @endif
-                            </tr>
-                            @endif
-                            @if ($adjustments)
-                            @foreach ($adjustments as $adjustment)
-                            <tr>
-                                <th>{{ $adjustment->name }}</th>
-                                <td>{{ $adjustment->type == 'refund' ? '' . $adjustment->amount . '€' : '' }}</td>
-                                <td>{{ $adjustment->type == 'deduct' ? '- ' . $adjustment->amount . '€' : '' }}</td>
-                                <td></td>
-                            </tr>
-                            @endforeach
-                            @endif
-                            @if ($txt_admin > 0)
-                            <tr>
-                                <th>Taxa administrativa</th>
-                                <td></td>
-                                <td>- {{ number_format($txt_admin, 2) }}€</td>
-                                <td></td>
-                            </tr>
-                            @endif
-                            @if ($team_final_total)
-                            <tr>
-                                <th>Equipa</th>
-                                <td style="text-align: right;">{{ number_format($team_liquid_credits, 2) }}€</td>
-                                <td style="text-align: right;">- {{ number_format($team_final_total, 2) }}€</td>
-                                <td style="text-align: right;">{{ number_format($team_final_result, 2) }}€</td>
-                            </tr>
-                            @endif
                             <tr>
                                 <th>Totais</th>
-                                <th style="text-align: right;">{{ number_format($gross_credits, 2) }}€</th>
+                                <th style="text-align: right;">0€</th>
                                 @if ($driver)
-                                <th style="text-align: right;">- {{ number_format($gross_debts, 2) }}€</th>
-                                <th style="text-align: right;">{{ number_format($final_total, 2) }}€</th>
+                                <th style="text-align: right;">- 0€</th>
+                                <th style="text-align: right;">0€</th>
                                 @endif
                             </tr>
                         </tbody>
@@ -320,142 +172,6 @@
 @endsection
 @section('scripts')
 @parent
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    const team_earnings = {!! $team_earnings !!};
-    const labels = [];
-    const data = [];
-    const backgrounds = [];
-    team_earnings.forEach(element => {
-        labels.push(element.driver);
-        data.push(element.earnings);
-        if(element.own){
-            backgrounds.push('#605ca8');
-        } else {
-            backgrounds.push('#00a65a94');
-        }
-    });
-    const ctx1 = document.getElementById('team_earnings');
-    new Chart(ctx1, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [{
-          label: 'Valor faturado',
-          data: data,
-          borderWidth: 1,
-          backgroundColor: backgrounds
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        },
-      }
-    });
-</script>
-<script>
-    const ctx2 = document.getElementById('driver_earnings');
-    new Chart(ctx2, {
-      type: 'doughnut',
-      data: {
-        labels: ['UBER', 'BOLT', 'GORJETAS'],
-        datasets: [{
-          label: 'Valor faturado',
-          data: [{!! $total_earnings_uber !!}, {!! $total_earnings_bolt !!}, {!! $total_tips !!}],
-          borderWidth: 1
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-      }
-    });
-</script>
-<script>
-    const ctx3 = document.getElementById('electric_racio');
-    const combustion_racio = {{ $combustion_racio ? $combustion_racio : 0 }};
-    const combustion_racio_difference = 100 - combustion_racio;
-    const electric_racio = {{ $electric_racio ? $electric_racio : 0 }};
-    const electric_racio_difference = 100 - electric_racio;
-    new Chart(ctx3, {
-      type: 'bar',
-      data: {
-        labels: ['Rácio'],
-        datasets: [
-            {
-            label: 'Rácio',
-            data: [electric_racio],
-            backgroundColor: 'lightblue',
-            },
-            {
-            label: '',
-            data: [electric_racio_difference],
-            backgroundColor: 'transparent',
-            },
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Rácio de rentabilidade'
-            },
-        },
-        scales: {
-            x: {
-                stacked: true,
-            },
-            y: {
-                stacked: true
-            }
-        }
-      }
-    });
-</script>
-<script>
-    const ctx4 = document.getElementById('combustion_racio');
-    new Chart(ctx4, {
-      type: 'bar',
-      data: {
-        labels: ['Rácio'],
-        datasets: [
-            {
-            label: 'Rácio',
-            data: [combustion_racio],
-            backgroundColor: 'lightblue',
-            },
-            {
-            label: '',
-            data: [combustion_racio_difference],
-            backgroundColor: 'transparent',
-            },
-        ]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-            title: {
-                display: true,
-                text: 'Rácio de rentabilidade'
-            },
-        },
-        scales: {
-            x: {
-                stacked: true,
-            },
-            y: {
-                stacked: true
-            }
-        }
-      }
-    });
-</script>
 <script src="https://malsup.github.io/jquery.form.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js">

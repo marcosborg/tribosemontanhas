@@ -18,7 +18,7 @@ class ContractVatController extends Controller
     {
         abort_if(Gate::denies('contract_vat_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $contractVats = ContractVat::with(['contract_type'])->get();
+        $contractVats = ContractVat::get();
 
         return view('admin.contractVats.index', compact('contractVats'));
     }
@@ -27,9 +27,7 @@ class ContractVatController extends Controller
     {
         abort_if(Gate::denies('contract_vat_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $contract_types = ContractType::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
-        return view('admin.contractVats.create', compact('contract_types'));
+        return view('admin.contractVats.create');
     }
 
     public function store(StoreContractVatRequest $request)
@@ -43,11 +41,7 @@ class ContractVatController extends Controller
     {
         abort_if(Gate::denies('contract_vat_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $contract_types = ContractType::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
-        $contractVat->load('contract_type');
-
-        return view('admin.contractVats.edit', compact('contractVat', 'contract_types'));
+        return view('admin.contractVats.edit', compact('contractVat'));
     }
 
     public function update(UpdateContractVatRequest $request, ContractVat $contractVat)
@@ -60,8 +54,6 @@ class ContractVatController extends Controller
     public function show(ContractVat $contractVat)
     {
         abort_if(Gate::denies('contract_vat_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $contractVat->load('contract_type');
 
         return view('admin.contractVats.show', compact('contractVat'));
     }

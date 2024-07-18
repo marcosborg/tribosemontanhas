@@ -41,22 +41,6 @@
                                         {{ $contractVat->percent }}
                                     </td>
                                 </tr>
-                                <tr>
-                                    <th>
-                                        {{ trans('cruds.contractVat.fields.tips') }}
-                                    </th>
-                                    <td>
-                                        {{ $contractVat->tips }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>
-                                        {{ trans('cruds.contractVat.fields.contract_type') }}
-                                    </th>
-                                    <td>
-                                        {{ $contractVat->contract_type->name ?? '' }}
-                                    </td>
-                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

@@ -25,10 +25,6 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'required',
             ],
-            'contract_type_id' => [
-                'required',
-                'integer',
-            ],
             'contract_vat_id' => [
                 'required',
                 'integer',

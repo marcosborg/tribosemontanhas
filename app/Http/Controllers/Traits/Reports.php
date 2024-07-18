@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Traits;
 use App\Models\Adjustment;
 use App\Models\CombustionTransaction;
 use App\Models\ContractTypeRank;
+use App\Models\ContractVat;
 use App\Models\Driver;
 use App\Models\DriversBalance;
 use App\Models\ElectricTransaction;
@@ -48,6 +49,8 @@ trait Reports
         $total_fleet_management = [];
         $total_drivers = [];
         $total_company_adjustments = [];
+        $total_vat_value = [];
+        
 
         foreach ($drivers as $driver) {
 
@@ -59,9 +62,8 @@ trait Reports
             ])
                 ->get();
 
-            $uber_total_earnings = $uber_activities->sum('net');
-            $uber_tips = $uber_activities->sum('gross');
-            $uber_earnings = $uber_total_earnings - $uber_tips;
+            $uber_gross = $uber_activities->sum('gross');
+            $uber_net = $uber_activities->sum('net');
 
             $bolt_activities = TvdeActivity::where([
                 'company_id' => $company_id,
@@ -71,46 +73,29 @@ trait Reports
             ])
                 ->get();
 
-            $bolt_total_earnings = $bolt_activities->sum('net');
-            $bolt_tips = $bolt_activities->sum('gross');
-            $bolt_earnings = $bolt_total_earnings - $bolt_tips;
+            $bolt_gross = $bolt_activities->sum('gross');
+            $bolt_net = $bolt_activities->sum('net');
 
             //EARNINGS
 
             $uber = collect([
-                'total_earnings' => $uber_total_earnings,
-                'tips' => $uber_tips,
-                'earnings' => $uber_earnings
+                'uber_gross' => $uber_gross,
+                'uber_net' => $uber_net,
             ]);
 
             $bolt = collect([
-                'total_earnings' => $bolt_total_earnings,
-                'tips' => $bolt_tips,
-                'earnings' => $bolt_earnings
+                'bolt_gross' => $bolt_gross,
+                'bolt_net' => $bolt_net,
             ]);
 
-            $total_earnings = $bolt_total_earnings + $uber_total_earnings;
-            $total_earnings_no_tips = $uber_earnings + $bolt_earnings;
-            $total_tips = $uber_tips + $bolt_tips;
+            $gross_total = $uber_gross + $bolt_gross;
 
-            //CONTRACT
+            //CONTRACT VAT
 
-            $contract_type_rank = ContractTypeRank::where([
-                'contract_type_id' => $driver->contract_type_id
-            ])
-                ->where('from', '<=', $total_earnings)
-                ->where('to', '>=', $total_earnings)
-                ->first();
-
-            if ($contract_type_rank) {
-                $percent = $contract_type_rank->percent;
-            } else {
-                $percent = 0;
-            }
-
-            $earnings_after_discount = ($total_earnings_no_tips * $percent) / 100;
-
-            $tips_after_discount = ($total_tips * (100 - $driver->contract_vat->tips)) / 100;
+            $vat = $driver->contract_vat->percent;
+            $vat_factor = ($vat / 100) + 1; 
+            $earnings_after_discount = ($gross_total / $vat_factor);
+            $vat_value = $gross_total - $earnings_after_discount;
 
             //FUEL
 
@@ -202,13 +187,9 @@ trait Reports
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
-                'total' => $total_earnings,
-                'total_tips' => $total_tips,
-                'percent' => $contract_type_rank->percent ?? 0,
-                'tips_percent' => $driver->contract_vat->tips,
-                'total_no_tips' => $total_earnings_no_tips,
+                'total' => $gross_total,
                 'earnings_after_discount' => $earnings_after_discount,
-                'tips_after_discount' => $tips_after_discount,
+                'vat_value' => $vat_value,
             ]);
 
             $driver->earnings = $earnings;
@@ -220,14 +201,14 @@ trait Reports
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
-            $driver->total = $earnings_after_discount + $tips_after_discount - $fuel_transactions + $adjustments - $fleet_management;
+            $driver->total = $earnings_after_discount - $fuel_transactions + $adjustments - $fleet_management;
 
-            $total_uber[] = $uber_total_earnings;
-            $total_bolt[] = $bolt_total_earnings;
-            $total_operators[] = $total_earnings;
+            $total_uber[] = $uber_gross;
+            $total_bolt[] = $bolt_gross;
+            $total_operators[] = $gross_total;
             $total_earnings_after_discount[] = $earnings_after_discount;
-            $total_tips_after_discount[] = $tips_after_discount;
             $total_drivers[] = $driver->total;
+            $total_vat_value[] = $vat_value;
 
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
@@ -240,8 +221,6 @@ trait Reports
                 $driver->current_account = false;
             }
 
-
-
         }
 
         $totals = collect([
@@ -249,12 +228,12 @@ trait Reports
             'total_bolt' => array_sum($total_bolt),
             'total_operators' => array_sum($total_operators),
             'total_earnings_after_discount' => array_sum($total_earnings_after_discount),
-            'total_tips_after_discount' => array_sum($total_tips_after_discount),
             'total_fuel_transactions' => array_sum($total_fuel_transactions),
             'total_adjustments' => array_sum($total_adjustments),
             'total_fleet_management' => array_sum($total_fleet_management),
             'total_drivers' => array_sum($total_drivers),
             'total_company_adjustments' => array_sum($total_company_adjustments),
+            'total_vat_value' => array_sum(($total_vat_value))
         ]);
 
         return [
@@ -269,7 +248,6 @@ trait Reports
         $tvde_week = TvdeWeek::find($tvde_week_id);
 
         $driver = Driver::find($driver_id)->load([
-            'contract_type',
             'contract_vat'
         ]);
 

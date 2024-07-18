@@ -28,26 +28,6 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.contractVat.fields.percent_helper') }}</span>
                         </div>
-                        <div class="form-group {{ $errors->has('tips') ? 'has-error' : '' }}">
-                            <label class="required" for="tips">{{ trans('cruds.contractVat.fields.tips') }}</label>
-                            <input class="form-control" type="number" name="tips" id="tips" value="{{ old('tips', $contractVat->tips) }}" step="0.01" required>
-                            @if($errors->has('tips'))
-                                <span class="help-block" role="alert">{{ $errors->first('tips') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.contractVat.fields.tips_helper') }}</span>
-                        </div>
-                        <div class="form-group {{ $errors->has('contract_type') ? 'has-error' : '' }}">
-                            <label class="required" for="contract_type_id">{{ trans('cruds.contractVat.fields.contract_type') }}</label>
-                            <select class="form-control select2" name="contract_type_id" id="contract_type_id" required>
-                                @foreach($contract_types as $id => $entry)
-                                    <option value="{{ $id }}" {{ (old('contract_type_id') ? old('contract_type_id') : $contractVat->contract_type->id ?? '') == $id ? 'selected' : '' }}>{{ $entry }}</option>
-                                @endforeach
-                            </select>
-                            @if($errors->has('contract_type'))
-                                <span class="help-block" role="alert">{{ $errors->first('contract_type') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.contractVat.fields.contract_type_helper') }}</span>
-                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

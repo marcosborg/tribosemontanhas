@@ -56,28 +56,6 @@
             data: {
                 data: data,
             },
-            success: () => {
-                Swal.fire('Atualizado com sucesso').then(() => {
-                    location.reload();
-                });
-            },
-            error: (error) => {
-                console.log(error);
-            }
-        });
-    }
-
-    revalidateData = (driver_id, tvde_week_id) => {
-        let data = {
-            driver_id: driver_id,
-            tvde_week_id: tvde_week_id
-        };
-        $.post({
-            url: '/admin/company-reports/revalidate-data',
-            headers: {
-                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            data: data,
             success: (resp) => {
                 Swal.fire('Atualizado com sucesso').then(() => {
                     location.reload();
@@ -85,11 +63,9 @@
             },
             error: (error) => {
                 console.log(error);
-                location.reload();
             }
         });
     }
-
 
     // Função para selecionar todos os checkboxes que não estão marcados e não estão desativados
     function selectAll() {
@@ -186,11 +162,10 @@
                         <th style="text-align: right;">Uber</th>
                         <th style="text-align: right;">Bolt</th>
                         <th style="text-align: right;">Operadores</th>
-                        <th style="text-align: right;">Ganhos</th>
-                        <th style="text-align: right;">Gorjetas</th>
+                        <th style="text-align: right;">IVA</th>
+                        <th style="text-align: right;">Total</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
-                        <th style="text-align: right;">P. frota</th>
                         <th style="text-align: right;">Saldo</th>
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
@@ -202,24 +177,21 @@
                     @if ($driver->earnings)
                     <tr>
                         <td>{{ $driver->name }}</td>
-                        <td style="text-align: right;">{{ number_format($driver->earnings['uber']['total_earnings'] ??
+                        <td style="text-align: right;">{{ number_format($driver->earnings['uber']['uber_gross'] ??
                             0, 2) }} <small>€</small></td>
-                        <td style="text-align: right;">{{ number_format($driver->earnings['bolt']['total_earnings'] ??
+                        <td style="text-align: right;">{{ number_format($driver->earnings['bolt']['bolt_gross'] ??
                             0, 2) }} <small>€</small></td>
                         <td style="text-align: right;">{{ number_format($driver->earnings['total'] ?? 0, 2) }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right;"><small>({{ $driver->earnings['percent'] ?? 0 }}%)</small> {{
-                            number_format($driver->earnings['earnings_after_discount'] ??
-                            0, 2) }} <small>€</small></td>
-                        <td style="text-align: right;"><small>({{ $driver->earnings['tips_percent'] ?? 0 }})%</small> {{
-                            number_format($driver->earnings['tips_after_discount'] ?? 0, 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->earnings['vat_value'], 2) }} <small>€</small>
+                        </td>
+                        <td style="text-align: right">{{ number_format($driver->earnings['earnings_after_discount'], 2) }} <small>€</small>
+                        </td>
                         <td style="text-align: right;">{{ number_format($driver->fuel, 2) }}
                             <small>€</small>
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->fleet_management, 2) }} <small>€</small>
-                        </td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                         <td style="text-align: right">
@@ -230,13 +202,6 @@
                                         class="glyphicon glyphicon-ok green-checkmark {{ $driver->current_account ? 'verified' : 'unverified' }}"></span>
                                 </label>
                             </div>
-                        </td>
-                        <td style="text-align: right;">
-                            @if ($driver->current_account)
-                            <button class="btn btn-sm" onclick="revalidateData({{ $driver->id }}, {{ $tvde_week_id }})">
-                                <i class="fa-fw fas fa-sync-alt"></i>
-                            </button>
-                            @endif
                         </td>
                     </tr>
                     @endif
@@ -252,10 +217,10 @@
                         <th style="text-align: right;">{{ number_format($totals['total_operators'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_earnings_after_discount'], 2) }}
+                        <th style="text-align: right;">{{ number_format($totals['total_vat_value'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_tips_after_discount'], 2) }}
+                        <th style="text-align: right;">{{ number_format($totals['total_earnings_after_discount'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_fuel_transactions'], 2) }}
@@ -279,3 +244,6 @@
 @endif
 </div>
 @endsection
+<script>
+    console.log({!! $totals !!})
+</script>

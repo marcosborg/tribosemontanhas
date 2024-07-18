@@ -31,7 +31,7 @@ class DriverController extends Controller
         abort_if(Gate::denies('driver_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = Driver::with(['user', 'card', 'electric', 'tool_card', 'local', 'contract_type', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
+            $query = Driver::with(['user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -71,10 +71,6 @@ class DriverController extends Controller
             
             $table->addColumn('local_name', function ($row) {
                 return $row->local ? $row->local->name : '';
-            });
-
-            $table->addColumn('contract_type_name', function ($row) {
-                return $row->contract_type ? $row->contract_type->name : '';
             });
 
             $table->addColumn('contract_vat_name', function ($row) {
@@ -147,7 +143,7 @@ class DriverController extends Controller
                 return $row->company ? $row->company->name : '';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'user', 'card', 'electric', 'local', 'contract_type', 'contract_vat', 'state', 'company']);
+            $table->rawColumns(['actions', 'placeholder', 'user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company']);
 
             return $table->make(true);
         }
@@ -169,15 +165,13 @@ class DriverController extends Controller
 
         $locals = Local::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $contract_types = ContractType::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
         $contract_vats = ContractVat::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $states = State::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.drivers.create', compact('cards', 'companies', 'contract_types', 'contract_vats', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
+        return view('admin.drivers.create', compact('cards', 'companies', 'contract_vats', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
     }
 
     public function store(StoreDriverRequest $request)
@@ -201,17 +195,15 @@ class DriverController extends Controller
 
         $locals = Local::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $contract_types = ContractType::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
         $contract_vats = ContractVat::all();
 
         $states = State::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $driver->load('user', 'card', 'electric', 'local', 'contract_type', 'contract_vat', 'state', 'company');
+        $driver->load('user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company');
 
-        return view('admin.drivers.edit', compact('cards', 'companies', 'contract_types', 'contract_vats', 'driver', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
+        return view('admin.drivers.edit', compact('cards', 'companies', 'contract_vats', 'driver', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
     }
 
     public function update(UpdateDriverRequest $request, Driver $driver)
@@ -225,7 +217,7 @@ class DriverController extends Controller
     {
         abort_if(Gate::denies('driver_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_type', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts');
+        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts');
 
         return view('admin.drivers.show', compact('driver'));
     }

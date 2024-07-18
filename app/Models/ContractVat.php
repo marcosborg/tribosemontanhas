@@ -22,8 +22,6 @@ class ContractVat extends Model
     protected $fillable = [
         'name',
         'percent',
-        'tips',
-        'contract_type_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -33,9 +31,5 @@ class ContractVat extends Model
     {
         return $date->format('Y-m-d H:i:s');
     }
-
-    public function contract_type()
-    {
-        return $this->belongsTo(ContractType::class, 'contract_type_id');
-    }
+    
 }

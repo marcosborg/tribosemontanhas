@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 use App\Models\CurrentAccount;
 use App\Models\DriversBalance;
 use App\Models\Driver;
-use Illuminate\Support\Facades\Notification;
-use App\Notifications\ActivityLaunchesSend;
 
 class CompanyReportController extends Controller
 {
@@ -49,14 +47,13 @@ class CompanyReportController extends Controller
 
     public function validateData(Request $request)
     {
-        foreach ($request->data as $data) {
 
-            $data = $this->getDriverWeekReport($data['driver']['id'], $data['driver']['company_id'], $data['tvde_week_id']);
+        foreach ($request->data as $data) {
 
             $current_account = new CurrentAccount;
             $current_account->tvde_week_id = $data['tvde_week_id'];
             $current_account->driver_id = $data['driver']['id'];
-            $current_account->data = json_encode($data);
+            $current_account->data = json_encode($data['driver']['earnings']);
             $current_account->save();
 
             $last_balance = DriversBalance::where([
@@ -67,9 +64,9 @@ class CompanyReportController extends Controller
             $driver_balance = new DriversBalance;
             $driver_balance->driver_id = $data['driver']['id'];
             $driver_balance->tvde_week_id = $data['tvde_week_id'];
-            $driver_balance->value = $data['final_total'];
-            $driver_balance->balance = $last_balance ? $last_balance->balance + $data['final_total'] : $data['final_total'];
-            $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['final_total'] : $data['final_total'];
+            $driver_balance->value = $data['driver']['total'];
+            $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
+            $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
             $driver_balance->save();
 
             /*
@@ -78,7 +75,7 @@ class CompanyReportController extends Controller
             
             Notification::route('mail', $email)
                 ->notify(new ActivityLaunchesSend());
-            */ 
+            */
 
         }
     }
@@ -88,8 +85,7 @@ class CompanyReportController extends Controller
         $driver_id = $request->driver_id;
         $company_id = Driver::find($driver_id)->company_id;
         $tvde_week_id = $request->tvde_week_id;
-
-        $data = $this->getDriverWeekReport($driver_id, $company_id, $tvde_week_id);
+        $data = $request->data;
 
         $current_account = CurrentAccount::where([
             'tvde_week_id' => $tvde_week_id,
@@ -109,11 +105,11 @@ class CompanyReportController extends Controller
             ->orderBy('tvde_week_id', 'desc')->first();
 
         $driver_balance = new DriversBalance;
-        $driver_balance->driver_id = $driver_id;
-        $driver_balance->tvde_week_id = $tvde_week_id;
-        $driver_balance->value = $data['final_total'];
-        $driver_balance->balance = $last_balance ? $last_balance->balance + $data['final_total'] : $data['final_total'];
-        $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['final_total'] : $data['final_total'];
+        $driver_balance->driver_id = $data['driver']['id'];
+        $driver_balance->tvde_week_id = $data['tvde_week_id'];
+        $driver_balance->value = $data['driver']['total'];
+        $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
+        $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
         $driver_balance->save();
 
     }

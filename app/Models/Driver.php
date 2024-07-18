@@ -30,7 +30,6 @@ class Driver extends Model
         'electric_id',
         'tool_card_id',
         'local_id',
-        'contract_type_id',
         'contract_vat_id',
         'start_date',
         'end_date',
