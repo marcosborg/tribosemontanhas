@@ -59,8 +59,8 @@ trait Reports
             ])
                 ->get();
 
-            $uber_total_earnings = $uber_activities->sum('earnings_two');
-            $uber_tips = $uber_activities->sum('earnings_one');
+            $uber_total_earnings = $uber_activities->sum('net');
+            $uber_tips = $uber_activities->sum('gross');
             $uber_earnings = $uber_total_earnings - $uber_tips;
 
             $bolt_activities = TvdeActivity::where([
@@ -71,8 +71,8 @@ trait Reports
             ])
                 ->get();
 
-            $bolt_total_earnings = $bolt_activities->sum('earnings_two');
-            $bolt_tips = $bolt_activities->sum('earnings_one');
+            $bolt_total_earnings = $bolt_activities->sum('net');
+            $bolt_tips = $bolt_activities->sum('gross');
             $bolt_earnings = $bolt_total_earnings - $bolt_tips;
 
             //EARNINGS
@@ -313,7 +313,7 @@ trait Reports
                         $refund = $refund + $adjustment->amount;
                     }
                     if ($adjustment->percent) {
-                        $total = $bolt_activities->sum('earnings_two') + $uber_activities->sum('earnings_two');
+                        $total = $bolt_activities->sum('net') + $uber_activities->sum('net');
                         $percent = $adjustment->percent;
                         $amount = ($total * $percent) / 100;
                         $refund = $refund + $amount;
@@ -325,7 +325,7 @@ trait Reports
                         $deduct = $deduct + $adjustment->amount;
                     }
                     if ($adjustment->percent) {
-                        $total = $bolt_activities->sum('earnings_two') + $uber_activities->sum('earnings_two');
+                        $total = $bolt_activities->sum('net') + $uber_activities->sum('net');
                         $percent = $adjustment->percent;
                         $amount = ($total * $percent) / 100;
                         $deduct = $deduct + $amount;
@@ -371,13 +371,13 @@ trait Reports
             ]);
         }
 
-        $total_earnings_bolt = number_format($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one'), 2, '.', '');
-        $total_tips_bolt = number_format($bolt_activities->sum('earnings_one'), 2);
-        $total_earnings_uber = number_format($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one'), 2, '.', '');
-        $total_tips_uber = number_format($uber_activities->sum('earnings_one'), 2);
+        $total_earnings_bolt = number_format($bolt_activities->sum('net') - $bolt_activities->sum('gross'), 2, '.', '');
+        $total_tips_bolt = number_format($bolt_activities->sum('gross'), 2);
+        $total_earnings_uber = number_format($uber_activities->sum('net') - $uber_activities->sum('gross'), 2, '.', '');
+        $total_tips_uber = number_format($uber_activities->sum('gross'), 2);
         $total_tips = $total_tips_uber + $total_tips_bolt;
-        $total_earnings = $bolt_activities->sum('earnings_two') + $uber_activities->sum('earnings_two');
-        $total_earnings_no_tip = ($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one')) + ($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one'));
+        $total_earnings = $bolt_activities->sum('net') + $uber_activities->sum('net');
+        $total_earnings_no_tip = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) + ($uber_activities->sum('net') - $uber_activities->sum('gross'));
 
         //CHECK PERCENT
         $contract_type_ranks = $driver ? ContractTypeRank::where('contract_type_id', $driver->contract_type_id)->get() : [];
@@ -390,13 +390,13 @@ trait Reports
 
         //
 
-        $total_bolt = ($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0);
-        $total_uber = ($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0);
+        $total_bolt = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0);
+        $total_uber = ($uber_activities->sum('net') - $uber_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0);
 
         $total_earnings_after_vat = $total_bolt + $total_uber;
 
-        $total_bolt = number_format(($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2);
-        $total_uber = number_format(($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2);
+        $total_bolt = number_format(($bolt_activities->sum('net') - $bolt_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2);
+        $total_uber = number_format(($uber_activities->sum('net') - $uber_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2);
 
         $bolt_tip_percent = $driver ? 100 - $driver->contract_vat->tips : 100;
         $uber_tip_percent = $driver ? 100 - $driver->contract_vat->tips : 100;
@@ -682,7 +682,7 @@ trait Reports
                     'company_id' => $company->id,
                     'tvde_week_id' => $tvde_week_id,
                 ])
-                    ->sum('earnings_two');
+                    ->sum('net');
 
                 if ($fleet_consultancy && $fleet_consultancy->value && $earnings) {
                     $fleet_consultancies[] = ($earnings * $fleet_consultancy->value) / 100;

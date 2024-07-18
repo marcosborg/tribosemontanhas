@@ -61,10 +61,10 @@
                                     {{ trans('cruds.tvdeActivity.fields.driver_code') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.tvdeActivity.fields.earnings_one') }}
+                                    {{ trans('cruds.tvdeActivity.fields.gross') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.tvdeActivity.fields.earnings_two') }}
+                                    {{ trans('cruds.tvdeActivity.fields.net') }}
                                 </th>
                                 <th>
                                     &nbsp;
@@ -130,8 +130,8 @@
 { data: 'tvde_operator_name', name: 'tvde_operator.name' },
 { data: 'company_name', name: 'company.name' },
 { data: 'driver_code', name: 'driver_code' },
-{ data: 'earnings_one', name: 'earnings_one' },
-{ data: 'earnings_two', name: 'earnings_two' },
+{ data: 'gross', name: 'gross' },
+{ data: 'net', name: 'net' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

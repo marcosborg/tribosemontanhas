@@ -55,21 +55,21 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.tvdeActivity.fields.driver_code_helper') }}</span>
                         </div>
-                        <div class="form-group {{ $errors->has('earnings_one') ? 'has-error' : '' }}">
-                            <label for="earnings_one">{{ trans('cruds.tvdeActivity.fields.earnings_one') }}</label>
-                            <input class="form-control" type="number" name="earnings_one" id="earnings_one" value="{{ old('earnings_one', '') }}" step="0.01">
-                            @if($errors->has('earnings_one'))
-                                <span class="help-block" role="alert">{{ $errors->first('earnings_one') }}</span>
+                        <div class="form-group {{ $errors->has('gross') ? 'has-error' : '' }}">
+                            <label for="gross">{{ trans('cruds.tvdeActivity.fields.gross') }}</label>
+                            <input class="form-control" type="number" name="gross" id="gross" value="{{ old('gross', '') }}" step="0.01">
+                            @if($errors->has('gross'))
+                                <span class="help-block" role="alert">{{ $errors->first('gross') }}</span>
                             @endif
-                            <span class="help-block">{{ trans('cruds.tvdeActivity.fields.earnings_one_helper') }}</span>
+                            <span class="help-block">{{ trans('cruds.tvdeActivity.fields.gross_helper') }}</span>
                         </div>
-                        <div class="form-group {{ $errors->has('earnings_two') ? 'has-error' : '' }}">
-                            <label for="earnings_two">{{ trans('cruds.tvdeActivity.fields.earnings_two') }}</label>
-                            <input class="form-control" type="number" name="earnings_two" id="earnings_two" value="{{ old('earnings_two', '') }}" step="0.01">
-                            @if($errors->has('earnings_two'))
-                                <span class="help-block" role="alert">{{ $errors->first('earnings_two') }}</span>
+                        <div class="form-group {{ $errors->has('net') ? 'has-error' : '' }}">
+                            <label for="net">{{ trans('cruds.tvdeActivity.fields.net') }}</label>
+                            <input class="form-control" type="number" name="net" id="net" value="{{ old('net', '') }}" step="0.01">
+                            @if($errors->has('net'))
+                                <span class="help-block" role="alert">{{ $errors->first('net') }}</span>
                             @endif
-                            <span class="help-block">{{ trans('cruds.tvdeActivity.fields.earnings_two_helper') }}</span>
+                            <span class="help-block">{{ trans('cruds.tvdeActivity.fields.net_helper') }}</span>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">

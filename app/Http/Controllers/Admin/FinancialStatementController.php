@@ -149,14 +149,14 @@ class FinancialStatementController extends Controller
                 'tvde_operator_id' => 2,
                 'driver_code' => $d->bolt_name
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_uber_earnings = TvdeActivity::where([
                 'tvde_week_id' => $tvde_week_id,
                 'tvde_operator_id' => 1,
                 'driver_code' => $d->uber_uuid
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {
@@ -341,13 +341,13 @@ class FinancialStatementController extends Controller
             ]);
         }
 
-        $total_earnings_bolt = number_format($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one'), 2, '.', '');
-        $total_tips_bolt = number_format($bolt_activities->sum('earnings_one'), 2);
-        $total_earnings_uber = number_format($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one'), 2, '.', '');
-        $total_tips_uber = number_format($uber_activities->sum('earnings_one'), 2);
+        $total_earnings_bolt = number_format($bolt_activities->sum('net') - $bolt_activities->sum('gross'), 2, '.', '');
+        $total_tips_bolt = number_format($bolt_activities->sum('gross'), 2);
+        $total_earnings_uber = number_format($uber_activities->sum('net') - $uber_activities->sum('gross'), 2, '.', '');
+        $total_tips_uber = number_format($uber_activities->sum('gross'), 2);
         $total_tips = $total_tips_uber + $total_tips_bolt;
-        $total_earnings = $bolt_activities->sum('earnings_two') + $uber_activities->sum('earnings_two');
-        $total_earnings_no_tip = ($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one')) + ($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one'));
+        $total_earnings = $bolt_activities->sum('net') + $uber_activities->sum('net');
+        $total_earnings_no_tip = ($bolt_activities->sum('net') - $bolt_activities->sum('gross')) + ($uber_activities->sum('net') - $uber_activities->sum('gross'));
 
         //CHECK PERCENT
         $contract_type_ranks = $driver ? ContractTypeRank::where('contract_type_id', $driver->contract_type_id)->get() : [];
@@ -359,8 +359,8 @@ class FinancialStatementController extends Controller
         }
         //
 
-        $total_bolt = number_format(($bolt_activities->sum('earnings_two') - $bolt_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
-        $total_uber = number_format(($uber_activities->sum('earnings_two') - $uber_activities->sum('earnings_one')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
+        $total_bolt = number_format(($bolt_activities->sum('net') - $bolt_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
+        $total_uber = number_format(($uber_activities->sum('net') - $uber_activities->sum('gross')) * ($contract_type_rank ? $contract_type_rank->percent / 100 : 0), 2, '.', '');
 
         $total_earnings_after_vat = $total_bolt + $total_uber;
 
@@ -422,14 +422,14 @@ class FinancialStatementController extends Controller
                 'tvde_operator_id' => 2,
                 'driver_code' => $d->bolt_name
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_uber_earnings = TvdeActivity::where([
                 'tvde_week_id' => $tvde_week_id,
                 'tvde_operator_id' => 1,
                 'driver_code' => $d->uber_uuid
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {

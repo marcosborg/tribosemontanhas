@@ -95,14 +95,14 @@ class HomeController
                 'tvde_operator_id' => 2,
                 'driver_code' => $d->bolt_name
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_uber_earnings = TvdeActivity::where([
                 'tvde_week_id' => $tvde_week_id,
                 'tvde_operator_id' => 1,
                 'driver_code' => $d->uber_uuid
             ])
-                ->get()->sum('earnings_two');
+                ->get()->sum('net');
 
             $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
             if ($driver) {

@@ -72,11 +72,11 @@ class TvdeActivityController extends Controller
             $table->editColumn('driver_code', function ($row) {
                 return $row->driver_code ? $row->driver_code : '';
             });
-            $table->editColumn('earnings_one', function ($row) {
-                return $row->earnings_one ? $row->earnings_one : '';
+            $table->editColumn('gross', function ($row) {
+                return $row->gross ? $row->gross : '';
             });
-            $table->editColumn('earnings_two', function ($row) {
-                return $row->earnings_two ? $row->earnings_two : '';
+            $table->editColumn('net', function ($row) {
+                return $row->net ? $row->net : '';
             });
 
             $table->rawColumns(['actions', 'placeholder', 'tvde_week', 'tvde_operator', 'company']);

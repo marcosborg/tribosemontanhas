@@ -59,18 +59,18 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.tvdeActivity.fields.earnings_one') }}
+                                        {{ trans('cruds.tvdeActivity.fields.gross') }}
                                     </th>
                                     <td>
-                                        {{ $tvdeActivity->earnings_one }}
+                                        {{ $tvdeActivity->gross }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.tvdeActivity.fields.earnings_two') }}
+                                        {{ trans('cruds.tvdeActivity.fields.net') }}
                                     </th>
                                     <td>
-                                        {{ $tvdeActivity->earnings_two }}
+                                        {{ $tvdeActivity->net }}
                                     </td>
                                 </tr>
                             </tbody>
