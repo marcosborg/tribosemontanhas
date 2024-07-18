@@ -95,14 +95,14 @@ class FinancialStatementController extends Controller
 
                 if ($current) {
                     $data = json_decode($current->data);
-                    $total_earnings_uber[] = $data->total_earnings_uber;
-                    $total_earnings_bolt[] = $data->total_earnings_bolt;
-                    $total_tips_uber[] = $data->total_tips_uber;
-                    $total_tips_bolt[] = $data->total_tips_bolt;
-                    $total_earnings[] = $data->total_earnings;
-                    $total_earnings_no_tip[] = $data->total_earnings_no_tip;
-                    $total_tips[] = $data->total_tips;
-                    $gross_credits[] = $data->gross_credits;
+                    $total_earnings_uber[] = 0;
+                    $total_earnings_bolt[] = 0;
+                    $total_tips_uber[] = 0;
+                    $total_tips_bolt[] = 0;
+                    $total_earnings[] = 0;
+                    $total_earnings_no_tip[] = 0;
+                    $total_tips[] = 0;
+                    $gross_credits[] = 0;
                 }
             }
 
