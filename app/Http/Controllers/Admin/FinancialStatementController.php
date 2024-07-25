@@ -50,6 +50,8 @@ class FinancialStatementController extends Controller
             session()->put('company_id', $company_id);
         }
 
+
+
         if ($driver_id != 0) {
 
             $driver = Driver::find($driver_id)->load([
@@ -76,95 +78,8 @@ class FinancialStatementController extends Controller
             }
 
         } else {
-            $driver = null;
-            //COLLECT ALL DRIVER RESULTS
-            $total_earnings_uber = [];
-            $total_earnings_bolt = [];
-            $total_tips_uber = [];
-            $total_tips_bolt = [];
-            $total_earnings = [];
-            $total_earnings_no_tip = [];
-            $total_tips = [];
-            $gross_credits = [];
-
-            foreach ($drivers as $driver) {
-                $current = CurrentAccount::where([
-                    'tvde_week_id' => $tvde_week_id,
-                    'driver_id' => $driver->id
-                ])->first();
-
-                if ($current) {
-                    $data = json_decode($current->data);
-                    $total_earnings_uber[] = 0;
-                    $total_earnings_bolt[] = 0;
-                    $total_tips_uber[] = 0;
-                    $total_tips_bolt[] = 0;
-                    $total_earnings[] = 0;
-                    $total_earnings_no_tip[] = 0;
-                    $total_tips[] = 0;
-                    $gross_credits[] = 0;
-                }
-            }
-
-            $total_earnings_uber = array_sum($total_earnings_uber);
-            $total_earnings_bolt = array_sum($total_earnings_bolt);
-            $total_tips_uber = array_sum($total_tips_uber);
-            $total_tips_bolt = array_sum($total_tips_bolt);
-            $total_earnings = array_sum($total_earnings);
-            $total_earnings_no_tip = array_sum($total_earnings_no_tip);
-            $total_tips = array_sum($total_tips);
-            $gross_credits = array_sum($gross_credits);
-        }
-
-        $total_earnings = isset($results) ? $results->total : $total_earnings ?? 0;
-        $total_after_vat = isset($results) ? $results->earnings_after_discount : 0;
-        //$gross_debts = isset($results) ? $results->gross_debts : 0;
-        //$gross_credits = isset($results) ? $results->gross_credits : $gross_credits ?? 0;
-        $final_total = isset($results) ? $results->total : 0;
-
-        $team_gross_credits = $results->team_gross_credits ?? 0;
-        $team_liquid_credits = $results->team_liquid_credits ?? 0;
-        $team_final_total = $results->team_final_total ?? 0;
-        $team_final_result = $results->team_final_result ?? 0;
-        $team_results = $results->team_results ?? [];
-
-        if ($team_gross_credits > 0) {
-            $total_earnings = $total_earnings + $team_gross_credits;
-            $total_after_vat = $total_after_vat + $team_liquid_credits;
-            $gross_debts = $gross_debts + $team_final_total;
-            $gross_credits = $gross_credits + $team_liquid_credits;
-            $team_final_result = $team_liquid_credits - $team_final_total;
-            $final_total = $gross_credits - $gross_debts;
-        }
-
-        //GRAFICOS
-
-        $team_earnings = collect();
-
-        foreach ($drivers as $key => $d) {
-            $team_driver_bolt_earnings = TvdeActivity::where([
-                'tvde_week_id' => $tvde_week_id,
-                'tvde_operator_id' => 2,
-                'driver_code' => $d->bolt_name
-            ])
-                ->get()->sum('net');
-
-            $team_driver_uber_earnings = TvdeActivity::where([
-                'tvde_week_id' => $tvde_week_id,
-                'tvde_operator_id' => 1,
-                'driver_code' => $d->uber_uuid
-            ])
-                ->get()->sum('net');
-
-            $team_driver_earnings = $team_driver_bolt_earnings + $team_driver_uber_earnings;
-            if ($driver) {
-                $entry = collect([
-                    'driver' => $driver->uber_uuid == $d->uber_uuid || $driver->bolt_name == $d->bolt_name ? $driver->name : 'Motorista ' . $key + 1,
-                    'earnings' => sprintf("%.2f", $team_driver_earnings),
-                    'own' => $driver->uber_uuid == $d->uber_uuid || $driver->bolt_name == $d->bolt_name
-                ]);
-                $team_earnings->add($entry);
-            }
+            session()->put('driver_id', 539);
+            return redirect()->back();
         }
 
         $driver_balance = DriversBalance::where([
@@ -185,13 +100,13 @@ class FinancialStatementController extends Controller
             'uber_gross' => isset($results) ? $results->uber->uber_gross : 0,
             'bolt_gross' => isset($results) ? $results->bolt->bolt_gross : 0,
             //'adjustments' => isset($results) ? $results->adjustments : null,
-            'total' => isset($results) ? $results->total : 0,
-            'total_after_vat' => $total_after_vat,
+            //'total' => isset($results) ? $results->total : 0,
+            //'total_after_vat' => $total_after_vat,
             //'gross_credits' => $gross_credits,
             //'gross_debts' => $gross_debts,
-            'final_total' => $final_total,
+            //'final_total' => $final_total,
             'driver' => isset($driver) ? $driver : null,
-            'team_earnings' => $team_earnings,
+            //'team_earnings' => $team_earnings,
             //'electric_expenses' => isset($results) ? $results->electric_expenses : 0,
             //'combustion_expenses' => isset($results) ? $results->combustion_expenses : 0,
             //'combustion_racio' => isset($results) ? $results->combustion_racio : 0,
@@ -199,10 +114,7 @@ class FinancialStatementController extends Controller
             'earnings_after_discount' => isset($results) ? $results->earnings_after_discount : 0,
             //'txt_admin' => isset($results) ? $results->txt_admin : 0,
             'driver_balance' => $driver_balance ?? null,
-            'team_results' => $team_results ?? null,
-            'team_final_total' => $team_final_total,
-            'team_liquid_credits' => $team_liquid_credits,
-            'team_final_result' => $team_final_result
+            'results' => $results
         ]);
     }
 

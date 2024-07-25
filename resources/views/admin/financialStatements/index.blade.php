@@ -46,22 +46,41 @@
                     <table class="table table-striped">
                         <tbody>
                             <tr>
+                                <th></th>
+                                <th style="text-align: right;">Bruto</th>
+                                <th style="text-align: right;">Líquido</th>
+                            </tr>
+                            <tr>
                                 <th>UBER</th>
-                                <td>{{ $uber_gross }}€</td>
+                                <td>{{ number_format($results->uber->uber_gross, 2) }}€</td>
+                                <td>{{ number_format($results->uber->uber_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>BOLT</th>
-                                <td>{{ $bolt_gross }}€</td>
+                                <td>{{ number_format($results->bolt->bolt_gross, 2) }}€</td>
+                                <td>{{ number_format($results->bolt->bolt_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
-                                <td>{{ number_format($total, 2) }}€</td>
-                                @if ($driver || $team_results)
-                                <td></td>
-                                <td>{{ number_format($earnings_after_discount, 2) }}€</td>
+                                <td>{{ number_format($results->total_gross, 2) }}€</td>
+                                @if ($driver)
+                                <td>{{ number_format($results->total_net, 2) }}€</td>
                                 @endif
                             </tr>
                         </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    IVA
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <tr>
+                            <th>IVA</th>
+                            <td style="color: red;">- {{ number_format($results->vat_value, 2) }}€</td>
+                        </tr>
                     </table>
                 </div>
             </div>
@@ -85,7 +104,7 @@
                             <tr>
                                 <th>Ganhos</th>
                                 <td>{{ number_format($earnings_after_discount, 2) }}€</td>
-                                <td>{{ number_format(50, 2) }}</td>
+                                <td style="color: red;">- {{ number_format(50, 2) }}</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
@@ -103,7 +122,7 @@
             <div class="panel panel-default">
                 <div class="panel-body">
                     <h3 class="pull-left">Valor a pagar: <span style="font-weight: 800;">{{
-                            number_format($final_total, 2) }}</span>€</h3>
+                            number_format($results->earnings_after_discount, 2) }}</span>€</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i
                                 class="fa fa-file-pdf-o"></i></a>
@@ -119,8 +138,8 @@
                         <div class="form-inline">
                             <div class="input-group">
                                 <div class="input-group-addon">Saldo (€)</div>
-                                <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}"
-                                    name="balance">
+                                <input type="text" class="form-control"
+                                    value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
                     </form>
@@ -128,28 +147,6 @@
                 @endif
             </div>
             @endif
-        </div>
-    </div>
-    <div class="row">
-        <div class="col-md-4">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    Origem dos ganhos
-                </div>
-                <div class="panel-body">
-                    <canvas id="driver_earnings" style="height: 400px"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-8">
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    Ranking de faturação semanal por motoristas
-                </div>
-                <div class="panel-body">
-                    <canvas id="team_earnings" style="height: 400px"></canvas>
-                </div>
-            </div>
         </div>
     </div>
     @endif
@@ -211,6 +208,3 @@
     });
 </script>
 @endsection
-<script>
-    {!! json_encode($team_results) !!}
-</script>
