@@ -11,4 +11,3 @@
     </select>
 </li>
 @endif
-<script>console.log({!! $companies !!})</script>

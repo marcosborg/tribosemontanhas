@@ -83,6 +83,3 @@
     }
 </style>
 @endsection
-<script>
-    console.log({!! $company !!})
-</script>

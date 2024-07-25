@@ -50,7 +50,7 @@ trait Reports
         $total_drivers = [];
         $total_company_adjustments = [];
         $total_vat_value = [];
-        
+
 
         foreach ($drivers as $driver) {
 
@@ -89,11 +89,12 @@ trait Reports
             ]);
 
             $gross_total = $uber_gross + $bolt_gross;
+            $net_total = $uber_net + $bolt_net;
 
             //CONTRACT VAT
 
             $vat = $driver->contract_vat->percent;
-            $vat_factor = ($vat / 100) + 1; 
+            $vat_factor = ($vat / 100) + 1;
             $earnings_after_discount = ($gross_total / $vat_factor);
             $vat_value = $gross_total - $earnings_after_discount;
 
@@ -187,7 +188,8 @@ trait Reports
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
-                'total' => $gross_total,
+                'total_gross' => $gross_total,
+                'total_net' => $net_total,
                 'earnings_after_discount' => $earnings_after_discount,
                 'vat_value' => $vat_value,
             ]);
@@ -203,9 +205,12 @@ trait Reports
 
             $driver->total = $earnings_after_discount - $fuel_transactions + $adjustments - $fleet_management;
 
-            $total_uber[] = $uber_gross;
-            $total_bolt[] = $bolt_gross;
+            $gross_uber[] = $uber_gross;
+            $gross_bolt[] = $bolt_gross;
             $total_operators[] = $gross_total;
+            $total_net_operators[] = $net_total;
+            $net_uber[] = $uber_net;
+            $net_bolt[] = $bolt_net;
             $total_earnings_after_discount[] = $earnings_after_discount;
             $total_drivers[] = $driver->total;
             $total_vat_value[] = $vat_value;
@@ -224,8 +229,10 @@ trait Reports
         }
 
         $totals = collect([
-            'total_uber' => array_sum($total_uber),
-            'total_bolt' => array_sum($total_bolt),
+            'gross_uber' => array_sum($gross_uber),
+            'gross_bolt' => array_sum($gross_bolt),
+            'net_uber' => array_sum($net_uber),
+            'net_bolt' => array_sum($net_bolt),
             'total_operators' => array_sum($total_operators),
             'total_earnings_after_discount' => array_sum($total_earnings_after_discount),
             'total_fuel_transactions' => array_sum($total_fuel_transactions),
@@ -233,7 +240,8 @@ trait Reports
             'total_fleet_management' => array_sum($total_fleet_management),
             'total_drivers' => array_sum($total_drivers),
             'total_company_adjustments' => array_sum($total_company_adjustments),
-            'total_vat_value' => array_sum(($total_vat_value))
+            'total_vat_value' => array_sum($total_vat_value),
+            'total_net_operators' => array_sum($total_net_operators),
         ]);
 
         return [
