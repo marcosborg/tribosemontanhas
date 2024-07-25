@@ -50,6 +50,7 @@ trait Reports
         $total_drivers = [];
         $total_company_adjustments = [];
         $total_vat_value = [];
+        $total_earnings_after_vat = [];
 
 
         foreach ($drivers as $driver) {
@@ -97,6 +98,8 @@ trait Reports
             $vat_factor = ($vat / 100) + 1;
             $earnings_after_discount = ($gross_total / $vat_factor);
             $vat_value = $gross_total - $earnings_after_discount;
+
+            $total_after_vat = $net_total - $vat_value;
 
             //FUEL
 
@@ -192,6 +195,7 @@ trait Reports
                 'total_net' => $net_total,
                 'earnings_after_discount' => $earnings_after_discount,
                 'vat_value' => $vat_value,
+                'total_after_vat' => $total_after_vat,
             ]);
 
             $driver->earnings = $earnings;
@@ -203,7 +207,7 @@ trait Reports
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
-            $driver->total = $earnings_after_discount - $fuel_transactions + $adjustments - $fleet_management;
+            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management;
 
             $gross_uber[] = $uber_gross;
             $gross_bolt[] = $bolt_gross;
@@ -214,6 +218,7 @@ trait Reports
             $total_earnings_after_discount[] = $earnings_after_discount;
             $total_drivers[] = $driver->total;
             $total_vat_value[] = $vat_value;
+            $total_earnings_after_vat[] = $total_after_vat;
 
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
@@ -242,6 +247,7 @@ trait Reports
             'total_company_adjustments' => array_sum($total_company_adjustments),
             'total_vat_value' => array_sum($total_vat_value),
             'total_net_operators' => array_sum($total_net_operators),
+            'total_earnings_after_vat' => array_sum($total_earnings_after_vat)
         ]);
 
         return [
