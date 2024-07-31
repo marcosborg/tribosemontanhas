@@ -264,6 +264,14 @@
                                 </a>
                             </li>
                             @endcan
+                            @can('periods_of_the_year_access')
+                                <li class="{{ request()->is("admin/periods-of-the-years") || request()->is("admin/periods-of-the-years/*") ? "active" : "" }}">
+                                    <a href="{{ route("admin.periods-of-the-years.index") }}">
+                                        <i class="fa-fw far fa-calendar"></i>
+                                        <span>{{ trans('cruds.periodsOfTheYear.title') }}</span>
+                                    </a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
                     @endcan
@@ -350,13 +358,13 @@
                         </a>
                     </li>
                     @endcan
-                    @can('team_access')
-                            <li class="{{ request()->is("admin/teams") || request()->is("admin/teams/*") ? "active" : "" }}">
-                                <a href="{{ route("admin.teams.index") }}">
-                                    <i class="fa-fw fas fa-users">
+                    @can('weekly_vehicle_expense_access')
+                            <li class="{{ request()->is("admin/weekly-vehicle-expenses") || request()->is("admin/weekly-vehicle-expenses/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.weekly-vehicle-expenses.index") }}">
+                                    <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>{{ trans('cruds.team.title') }}</span>
+                                    <span>{{ trans('cruds.weeklyVehicleExpense.title') }}</span>
 
                                 </a>
                             </li>

@@ -499,6 +499,16 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('recruitment-forms/ckmedia', 'RecruitmentFormController@storeCKEditorImages')->name('recruitment-forms.storeCKEditorImages');
     Route::resource('recruitment-forms', 'RecruitmentFormController');
 
+    // Weekly Vehicle Expenses
+    Route::delete('weekly-vehicle-expenses/destroy', 'WeeklyVehicleExpensesController@massDestroy')->name('weekly-vehicle-expenses.massDestroy');
+    Route::post('weekly-vehicle-expenses/parse-csv-import', 'WeeklyVehicleExpensesController@parseCsvImport')->name('weekly-vehicle-expenses.parseCsvImport');
+    Route::post('weekly-vehicle-expenses/process-csv-import', 'WeeklyVehicleExpensesController@processCsvImport')->name('weekly-vehicle-expenses.processCsvImport');
+    Route::resource('weekly-vehicle-expenses', 'WeeklyVehicleExpensesController');
+
+    // Periods Of The Year
+    Route::delete('periods-of-the-years/destroy', 'PeriodsOfTheYearController@massDestroy')->name('periods-of-the-years.massDestroy');
+    Route::resource('periods-of-the-years', 'PeriodsOfTheYearController');
+
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
