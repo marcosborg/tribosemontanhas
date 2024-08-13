@@ -28,6 +28,7 @@ class VehicleItem extends Model implements HasMedia
 
     protected $fillable = [
         'company_id',
+        'driver_id',
         'vehicle_brand_id',
         'vehicle_model_id',
         'year',
@@ -76,5 +77,10 @@ class VehicleItem extends Model implements HasMedia
     public function registo_entrada_veiculos()
     {
         return $this->hasMany(RegistoEntradaVeiculo::class);
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class, 'driver_id');
     }
 }

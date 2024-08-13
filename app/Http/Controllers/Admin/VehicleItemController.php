@@ -15,6 +15,7 @@ use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
+use App\Models\Driver;
 
 class VehicleItemController extends Controller
 {
@@ -24,7 +25,7 @@ class VehicleItemController extends Controller
     {
         abort_if(Gate::denies('vehicle_item_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model', 'media'])->get();
+        $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model', 'media', 'driver'])->get();
 
         return view('admin.vehicleItems.index', compact('vehicleItems'));
     }
@@ -39,7 +40,9 @@ class VehicleItemController extends Controller
 
         $vehicle_models = VehicleModel::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.vehicleItems.create', compact('companies', 'vehicle_brands', 'vehicle_models'));
+        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.vehicleItems.create', compact('companies', 'vehicle_brands', 'vehicle_models', 'drivers'));
     }
 
     public function store(StoreVehicleItemRequest $request)
@@ -67,9 +70,11 @@ class VehicleItemController extends Controller
 
         $vehicle_models = VehicleModel::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model');
+        $vehicleItem->load('company', 'vehicle_brand', 'vehicle_model', 'driver');
 
-        return view('admin.vehicleItems.edit', compact('companies', 'vehicleItem', 'vehicle_brands', 'vehicle_models'));
+        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.vehicleItems.edit', compact('companies', 'vehicleItem', 'vehicle_brands', 'vehicle_models', 'drivers'));
     }
 
     public function update(UpdateVehicleItemRequest $request, VehicleItem $vehicleItem)

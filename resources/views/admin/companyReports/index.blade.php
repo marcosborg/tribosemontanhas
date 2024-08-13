@@ -160,14 +160,14 @@
                 <thead>
                     <tr>
                         <th>Condutor</th>
-                        <th style="text-align: right; background: #eeeeee;">Bruto Uber</th>
-                        <th style="text-align: right; background: #eeeeee;">Bruto Bolt</th>
-                        <th style="text-align: right; background: #eeeeee;">Bruto operadores</th>
+                        <th style="text-align: right; background: #eeeeee; display: none;">Bruto Uber</th>
+                        <th style="text-align: right; background: #eeeeee; display: none;">Bruto Bolt</th>
+                        <th style="text-align: right; background: #eeeeee; display: none;">Bruto operadores</th>
                         <th style="text-align: right;">Líquido Uber</th>
                         <th style="text-align: right;">Líquido Bolt</th>
-                        <th style="text-align: right;">Líquido operadores</th>
+                        <th style="text-align: right; display: none;">Líquido operadores</th>
                         <th style="text-align: right;">IVA</th>
-                        <th style="text-align: right;">Depois do IVA</th>
+                        <th style="text-align: right; display: none;">Depois do IVA</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Saldo</th>
@@ -181,13 +181,13 @@
                     @if ($driver->earnings)
                     <tr>
                         <td>{{ $driver->name }}</td>
-                        <td style="text-align: right; background: #eeeeee;">{{
+                        <td style="text-align: right; background: #eeeeee; display: none;">{{
                             number_format($driver->earnings['uber']['uber_gross'] ??
                             0, 2) }} <small>€</small></td>
-                        <td style="text-align: right; background: #eeeeee;">{{
+                        <td style="text-align: right; background: #eeeeee; display: none;">{{
                             number_format($driver->earnings['bolt']['bolt_gross'] ??
                             0, 2) }} <small>€</small></td>
-                        <td style="text-align: right; background: #eeeeee;">{{
+                        <td style="text-align: right; background: #eeeeee; display: none;">{{
                             number_format($driver->earnings['total_gross'] ?? 0, 2) }}
                             <small>€</small>
                         </td>
@@ -197,14 +197,14 @@
                         <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ??
                             0, 2) }} <small>€</small>
                         </td>
-                        <td style="text-align: right">{{ number_format($driver->earnings['total_net'] ??
+                        <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_net'] ??
                             0, 2) }} <small>€</small>
                         </td>
                         <td style="text-align: right; color: red;">- {{ number_format($driver->earnings['vat_value'], 2)
                             }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right;">{{ number_format($driver->earnings['total_after_vat'], 2)
+                        <td style="text-align: right; display: none;">{{ number_format($driver->earnings['total_after_vat'], 2)
                             }}
                             <small>€</small>
                         </td>
@@ -230,13 +230,13 @@
                 <tfoot>
                     <tr>
                         <th>Totais</th>
-                        <th style="text-align: right; background: #eeeeee;">{{ number_format($totals['gross_uber'], 2)
+                        <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_uber'], 2)
                             }} <small>€</small>
                         </th>
-                        <th style="text-align: right; background: #eeeeee;">{{ number_format($totals['gross_bolt'], 2)
+                        <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['gross_bolt'], 2)
                             }} <small>€</small>
                         </th>
-                        <th style="text-align: right; background: #eeeeee;">{{ number_format($totals['total_operators'],
+                        <th style="text-align: right; background: #eeeeee; display: none;">{{ number_format($totals['total_operators'],
                             2) }}
                             <small>€</small>
                         </th>
@@ -246,13 +246,13 @@
                         <th style="text-align: right;">{{ number_format($totals['net_bolt'], 2)
                             }} <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_net_operators'], 2)
+                        <th style="text-align: right; display: none;">{{ number_format($totals['total_net_operators'], 2)
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right; color: red;">- {{ number_format($totals['total_vat_value'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_earnings_after_vat'], 2)
+                        <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2)
                             }} <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_fuel_transactions'], 2) }}

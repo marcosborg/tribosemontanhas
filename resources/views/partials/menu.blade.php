@@ -369,6 +369,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('car_track_access')
+                        <li class="{{ request()->is("admin/car-tracks") || request()->is("admin/car-tracks/*") ? "active" : "" }}">
+                            <a href="{{ route("admin.car-tracks.index") }}">
+                                <i class="fa-fw fas fa-globe-africa">
+
+                                </i>
+                                <span>{{ trans('cruds.carTrack.title') }}</span>
+
+                            </a>
+                        </li>
+                    @endcan
                 </ul>
             </li>
             @endcan

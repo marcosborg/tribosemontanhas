@@ -35,6 +35,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleItem.fields.driver') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->driver->name ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.vehicle_brand') }}
                                     </th>
                                     <td>

@@ -24,6 +24,18 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.company_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
+                            <label for="driver_id">{{ trans('cruds.vehicleItem.fields.driver') }}</label>
+                            <select class="form-control select2" name="driver_id" id="driver_id">
+                                @foreach($drivers as $id => $entry)
+                                    <option value="{{ $id }}" {{ (old('driver_id') ? old('driver_id') : $vehicleItem->driver->id ?? '') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('driver'))
+                                <span class="help-block" role="alert">{{ $errors->first('driver') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.driver_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('vehicle_brand') ? 'has-error' : '' }}">
                             <label class="required" for="vehicle_brand_id">{{ trans('cruds.vehicleItem.fields.vehicle_brand') }}</label>
                             <select class="form-control select2" name="vehicle_brand_id" id="vehicle_brand_id" required>

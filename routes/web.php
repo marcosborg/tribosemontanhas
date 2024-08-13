@@ -509,6 +509,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('periods-of-the-years/destroy', 'PeriodsOfTheYearController@massDestroy')->name('periods-of-the-years.massDestroy');
     Route::resource('periods-of-the-years', 'PeriodsOfTheYearController');
 
+    // Car Track
+    Route::delete('car-tracks/destroy', 'CarTrackController@massDestroy')->name('car-tracks.massDestroy');
+    Route::post('car-tracks/parse-csv-import', 'CarTrackController@parseCsvImport')->name('car-tracks.parseCsvImport');
+    Route::post('car-tracks/process-csv-import', 'CarTrackController@processCsvImport')->name('car-tracks.processCsvImport');
+    Route::resource('car-tracks', 'CarTrackController');
+
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
