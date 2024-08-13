@@ -50,8 +50,6 @@ class FinancialStatementController extends Controller
             session()->put('company_id', $company_id);
         }
 
-
-
         if ($driver_id != 0) {
 
             $driver = Driver::find($driver_id)->load([
@@ -78,7 +76,7 @@ class FinancialStatementController extends Controller
             }
 
         } else {
-            session()->put('driver_id', 539);
+            session()->put('driver_id', 540);
             return redirect()->back();
         }
 

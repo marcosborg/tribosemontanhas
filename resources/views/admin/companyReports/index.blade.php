@@ -170,7 +170,7 @@
                         <th style="text-align: right; display: none;">Depois do IVA</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
-                        <th style="text-align: right;">Cartrack</th>
+                        <th style="text-align: right;">Via verde</th>
                         <th style="text-align: right;">Saldo</th>
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
