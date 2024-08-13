@@ -142,4 +142,9 @@ class Driver extends Model
         return $this->hasMany(Team::class);
     }
 
+    public function vehicle()
+    {
+        return $this->hasOne(VehicleItem::class);
+    }
+
 }

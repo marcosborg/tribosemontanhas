@@ -52,20 +52,18 @@
                             </tr>
                             <tr>
                                 <th>UBER</th>
-                                <td>{{ number_format($results->uber->uber_gross, 2) }}€</td>
-                                <td>{{ number_format($results->uber->uber_net, 2) }}€</td>
+                                <td>{{ number_format($uber_gross, 2) }}€</td>
+                                <td>{{ number_format($uber_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>BOLT</th>
-                                <td>{{ number_format($results->bolt->bolt_gross, 2) }}€</td>
-                                <td>{{ number_format($results->bolt->bolt_net, 2) }}€</td>
+                                <td>{{ number_format($bolt_gross, 2) }}€</td>
+                                <td>{{ number_format($bolt_net, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
-                                <td>{{ number_format($results->total_gross, 2) }}€</td>
-                                @if ($driver)
-                                <td>{{ number_format($results->total_net, 2) }}€</td>
-                                @endif
+                                <td>{{ number_format($total_gross, 2) }}€</td>
+                                <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
                         </tbody>
                     </table>
@@ -79,7 +77,7 @@
                     <table class="table table-striped">
                         <tr>
                             <th>IVA</th>
-                            <td style="color: red;">- {{ number_format($results->vat_value, 2) }}€</td>
+                            <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
                         </tr>
                     </table>
                 </div>
@@ -96,33 +94,52 @@
                             <tr>
                                 <th></th>
                                 <th style="text-align: right;">Créditos</th>
-                                @if ($driver)
                                 <th style="text-align: right;">Débitos</th>
                                 <th style="text-align: right;">Totais</th>
-                                @endif
                             </tr>
                             <tr>
                                 <th>Ganhos</th>
-                                <td>{{ number_format($earnings_after_discount, 2) }}€</td>
-                                <td style="color: red;">- {{ number_format(50, 2) }}</td>
+                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td></td>
+                                <td>{{ number_format($total_net, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Car track</th>
+                                <td></td>
+                                <td>- {{ number_format($car_track, 2) }}€</td>
+                                <td>- {{ number_format($car_track, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Abastecimento</th>
+                                <td></td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}€</td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Acertos</th>
+                                <td></td>
+                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <td>{{ number_format($adjustments, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>IVA</th>
+                                <td></td>
+                                <td>- {{ number_format($vat_value, 2) }}€</td>
+                                <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
-                                <th style="text-align: right;">0€</th>
-                                @if ($driver)
-                                <th style="text-align: right;">- 0€</th>
-                                <th style="text-align: right;">0€</th>
-                                @endif
+                                <th style="text-align: right;">{{ number_format($total_net, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format(($total - $total_net), 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($total, 2) }}€</th>
                             </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
-            @if ($driver)
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Valor a pagar: <span style="font-weight: 800;">{{
-                            number_format($results->earnings_after_discount, 2) }}</span>€</h3>
+                    <h3 class="pull-left">Valor a pagar: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i
                                 class="fa fa-file-pdf-o"></i></a>
@@ -146,7 +163,6 @@
                 </div>
                 @endif
             </div>
-            @endif
         </div>
     </div>
     @endif

@@ -9,6 +9,7 @@ use App\Models\ContractVat;
 use App\Models\Driver;
 use App\Models\DriversBalance;
 use App\Models\ElectricTransaction;
+use App\Models\TollPayment;
 use App\Models\TvdeActivity;
 use App\Models\TvdeWeek;
 use App\Models\CurrentAccount;
@@ -21,6 +22,7 @@ use App\Models\CompanyPark;
 use App\Models\Consultancy;
 use App\Models\Company;
 use App\Models\CompanyData;
+use App\Models\CarTrack;
 
 trait Reports
 {
@@ -37,6 +39,7 @@ trait Reports
                 'contract_vat',
                 'card',
                 'electric',
+                'vehicle'
             ]);
 
         $total_uber = [];
@@ -51,6 +54,7 @@ trait Reports
         $total_company_adjustments = [];
         $total_vat_value = [];
         $total_earnings_after_vat = [];
+        $total_car_track = [];
 
 
         foreach ($drivers as $driver) {
@@ -188,14 +192,22 @@ trait Reports
 
             $total_company_adjustments[] = array_sum($company_expense);
 
+            //CAR TRACK
+            $car_track = CarTrack::where([
+                'license_plate' => $driver->vehicle ? $driver->vehicle->license_plate : '',
+                'tvde_week_id' => $tvde_week_id
+            ])->sum('value');
+
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
                 'total_gross' => $gross_total,
                 'total_net' => $net_total,
-                'earnings_after_discount' => $earnings_after_discount,
+                'car_track' => $car_track ?? 0,
                 'vat_value' => $vat_value,
                 'total_after_vat' => $total_after_vat,
+                'adjustments' => $adjustments,
+                'fuel_transactions' => $fuel_transactions
             ]);
 
             $driver->earnings = $earnings;
@@ -207,7 +219,9 @@ trait Reports
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
-            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management;
+            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management - $driver->earnings['car_track'];
+
+            $earnings['total'] = $driver->total;
 
             $gross_uber[] = $uber_gross;
             $gross_bolt[] = $bolt_gross;
@@ -219,6 +233,7 @@ trait Reports
             $total_drivers[] = $driver->total;
             $total_vat_value[] = $vat_value;
             $total_earnings_after_vat[] = $total_after_vat;
+            $total_car_track[] = $driver->earnings['car_track'];
 
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
@@ -247,7 +262,8 @@ trait Reports
             'total_company_adjustments' => array_sum($total_company_adjustments),
             'total_vat_value' => array_sum($total_vat_value),
             'total_net_operators' => array_sum($total_net_operators),
-            'total_earnings_after_vat' => array_sum($total_earnings_after_vat)
+            'total_earnings_after_vat' => array_sum($total_earnings_after_vat),
+            'total_car_track' => array_sum($total_car_track),
         ]);
 
         return [

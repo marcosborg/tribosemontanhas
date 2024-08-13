@@ -170,6 +170,7 @@
                         <th style="text-align: right; display: none;">Depois do IVA</th>
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
+                        <th style="text-align: right;">Cartrack</th>
                         <th style="text-align: right;">Saldo</th>
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
@@ -191,8 +192,8 @@
                             number_format($driver->earnings['total_gross'] ?? 0, 2) }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right"> <small>{{ number_format($driver->earnings['uber']['uber_net'] ??
-                                0, 2) }} €</small>
+                        <td style="text-align: right">{{ number_format($driver->earnings['uber']['uber_net'] ??
+                                0, 2) }}<small> €</small>
                         </td>
                         <td style="text-align: right">{{ number_format($driver->earnings['bolt']['bolt_net'] ??
                             0, 2) }} <small>€</small>
@@ -212,6 +213,7 @@
                             <small>€</small>
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                         <td style="text-align: right">
@@ -261,8 +263,10 @@
                         <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_fleet_management'], 2) }}
+                        <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
                             <small>€</small>
+                        </th>
+                        <th style="text-align: right;">
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_drivers'], 2) }} <small>€</small>
                         </th>
