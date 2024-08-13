@@ -52,7 +52,7 @@ class FinancialStatementController extends Controller
 
         if ($driver_id != 0) {
 
-            $driver = Driver::find($driver_id)->load([
+            $driver = Driver::find(540)->load([
                 'contract_vat',
                 'team.drivers'
             ]);
