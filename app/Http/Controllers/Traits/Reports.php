@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Traits;
 
 use App\Models\Adjustment;
+use App\Models\CarHire;
 use App\Models\CombustionTransaction;
 use App\Models\ContractTypeRank;
 use App\Models\ContractVat;
@@ -55,6 +56,7 @@ trait Reports
         $total_vat_value = [];
         $total_earnings_after_vat = [];
         $total_car_track = [];
+        $total_car_hire = [];
 
 
         foreach ($drivers as $driver) {
@@ -137,6 +139,21 @@ trait Reports
 
             $total_fuel_transactions[] = $fuel_transactions;
 
+            //CAR HIRE
+
+            $car_hire = CarHire::where([
+                'driver_id' => $driver->id,
+            ])
+            ->where(function ($query) use ($tvde_week) {
+                $query->where('start_date', '<=', $tvde_week->start_date)
+                    ->orWhereNull('start_date');
+            })
+            ->where(function ($query) use ($tvde_week) {
+                $query->where('end_date', '>=', $tvde_week->end_date)
+                    ->orWhereNull('end_date');
+            })
+            ->first();
+
             //ADJUSTMENTS
             $adjustments = Adjustment::whereHas('drivers', function ($query) use ($driver) {
                 $query->where('id', $driver->id);
@@ -207,7 +224,8 @@ trait Reports
                 'vat_value' => $vat_value,
                 'total_after_vat' => $total_after_vat,
                 'adjustments' => $adjustments,
-                'fuel_transactions' => $fuel_transactions
+                'fuel_transactions' => $fuel_transactions,
+                'car_hire' => $car_hire ? $car_hire->amount : 0
             ]);
 
             $driver->earnings = $earnings;
@@ -219,7 +237,7 @@ trait Reports
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
-            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management - $driver->earnings['car_track'];
+            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
 
             $earnings['total'] = $driver->total;
 
@@ -234,6 +252,7 @@ trait Reports
             $total_vat_value[] = $vat_value;
             $total_earnings_after_vat[] = $total_after_vat;
             $total_car_track[] = $driver->earnings['car_track'];
+            $total_car_hire[] = $car_hire ? $car_hire->amount : 0;
 
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
@@ -264,6 +283,7 @@ trait Reports
             'total_net_operators' => array_sum($total_net_operators),
             'total_earnings_after_vat' => array_sum($total_earnings_after_vat),
             'total_car_track' => array_sum($total_car_track),
+            'total_car_hire' => array_sum($total_car_hire),
         ]);
 
         return [

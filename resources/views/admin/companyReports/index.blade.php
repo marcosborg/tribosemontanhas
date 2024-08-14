@@ -171,6 +171,7 @@
                         <th style="text-align: right;">Abastecimento</th>
                         <th style="text-align: right;">Ajustes</th>
                         <th style="text-align: right;">Via verde</th>
+                        <th style="text-align: right;">Aluguer</th>
                         <th style="text-align: right;">Saldo</th>
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
@@ -214,6 +215,7 @@
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                         <td style="text-align: right">
@@ -264,6 +266,9 @@
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
+                            <small>€</small>
+                        </th>
+                        <th style="text-align: right;">{{ number_format($totals['total_car_hire'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">

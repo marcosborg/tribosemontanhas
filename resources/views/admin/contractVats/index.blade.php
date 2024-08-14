@@ -34,6 +34,12 @@
                                         {{ trans('cruds.contractVat.fields.percent') }}
                                     </th>
                                     <th>
+                                        {{ trans('cruds.contractVat.fields.rf') }}
+                                    </th>
+                                    <th>
+                                        {{ trans('cruds.contractVat.fields.iva') }}
+                                    </th>
+                                    <th>
                                         &nbsp;
                                     </th>
                                 </tr>
@@ -52,6 +58,12 @@
                                         </td>
                                         <td>
                                             {{ $contractVat->percent ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ $contractVat->rf ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ $contractVat->iva ?? '' }}
                                         </td>
                                         <td>
                                             @can('contract_vat_show')

@@ -6,12 +6,12 @@
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    {{ trans('global.show') }} {{ trans('cruds.contractVat.title') }}
+                    {{ trans('global.show') }} {{ trans('cruds.carHire.title') }}
                 </div>
                 <div class="panel-body">
                     <div class="form-group">
                         <div class="form-group">
-                            <a class="btn btn-default" href="{{ route('admin.contract-vats.index') }}">
+                            <a class="btn btn-default" href="{{ route('admin.car-hires.index') }}">
                                 {{ trans('global.back_to_list') }}
                             </a>
                         </div>
@@ -19,48 +19,56 @@
                             <tbody>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.id') }}
+                                        {{ trans('cruds.carHire.fields.id') }}
                                     </th>
                                     <td>
-                                        {{ $contractVat->id }}
+                                        {{ $carHire->id }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.name') }}
+                                        {{ trans('cruds.carHire.fields.name') }}
                                     </th>
                                     <td>
-                                        {{ $contractVat->name }}
+                                        {{ $carHire->name }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.percent') }}
+                                        {{ trans('cruds.carHire.fields.amount') }}
                                     </th>
                                     <td>
-                                        {{ $contractVat->percent }}
+                                        {{ $carHire->amount }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.rf') }}
+                                        {{ trans('cruds.carHire.fields.start_date') }}
                                     </th>
                                     <td>
-                                        {{ $contractVat->rf }}
+                                        {{ $carHire->start_date }}
                                     </td>
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.contractVat.fields.iva') }}
+                                        {{ trans('cruds.carHire.fields.end_date') }}
                                     </th>
                                     <td>
-                                        {{ $contractVat->iva }}
+                                        {{ $carHire->end_date }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.carHire.fields.driver') }}
+                                    </th>
+                                    <td>
+                                        {{ $carHire->driver->name ?? '' }}
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
                         <div class="form-group">
-                            <a class="btn btn-default" href="{{ route('admin.contract-vats.index') }}">
+                            <a class="btn btn-default" href="{{ route('admin.car-hires.index') }}">
                                 {{ trans('global.back_to_list') }}
                             </a>
                         </div>

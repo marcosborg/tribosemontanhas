@@ -104,7 +104,13 @@
                                 <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>Car track</th>
+                                <th>Aluguer</th>
+                                <td></td>
+                                <td>- {{ number_format($car_hire, 2) }}€</td>
+                                <td>- {{ number_format($car_hire, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Via Verde</th>
                                 <td></td>
                                 <td>- {{ number_format($car_track, 2) }}€</td>
                                 <td>- {{ number_format($car_track, 2) }}€</td>

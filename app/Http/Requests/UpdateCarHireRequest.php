@@ -2,16 +2,16 @@
 
 namespace App\Http\Requests;
 
-use App\Models\ContractVat;
+use App\Models\CarHire;
 use Gate;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Response;
 
-class UpdateContractVatRequest extends FormRequest
+class UpdateCarHireRequest extends FormRequest
 {
     public function authorize()
     {
-        return Gate::allows('contract_vat_edit');
+        return Gate::allows('car_hire_edit');
     }
 
     public function rules()
@@ -21,17 +21,20 @@ class UpdateContractVatRequest extends FormRequest
                 'string',
                 'required',
             ],
-            'percent' => [
-                'numeric',
+            'amount' => [
                 'required',
             ],
-            'rf' => [
-                'numeric',
+            'start_date' => [
                 'required',
+                'date_format:' . config('panel.date_format'),
             ],
-            'iva' => [
-                'numeric',
+            'end_date' => [
                 'required',
+                'date_format:' . config('panel.date_format'),
+            ],
+            'driver_id' => [
+                'required',
+                'integer',
             ],
         ];
     }

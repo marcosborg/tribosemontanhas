@@ -25,6 +25,14 @@ class StoreContractVatRequest extends FormRequest
                 'numeric',
                 'required',
             ],
+            'rf' => [
+                'numeric',
+                'required',
+            ],
+            'iva' => [
+                'numeric',
+                'required',
+            ],
         ];
     }
 }

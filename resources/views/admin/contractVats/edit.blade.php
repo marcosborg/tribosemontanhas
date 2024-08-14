@@ -28,6 +28,22 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.contractVat.fields.percent_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('rf') ? 'has-error' : '' }}">
+                            <label class="required" for="rf">{{ trans('cruds.contractVat.fields.rf') }}</label>
+                            <input class="form-control" type="number" name="rf" id="rf" value="{{ old('rf', $contractVat->rf) }}" step="0.01" required>
+                            @if($errors->has('rf'))
+                                <span class="help-block" role="alert">{{ $errors->first('rf') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.contractVat.fields.rf_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('iva') ? 'has-error' : '' }}">
+                            <label class="required" for="iva">{{ trans('cruds.contractVat.fields.iva') }}</label>
+                            <input class="form-control" type="number" name="iva" id="iva" value="{{ old('iva', $contractVat->iva) }}" step="0.01" required>
+                            @if($errors->has('iva'))
+                                <span class="help-block" role="alert">{{ $errors->first('iva') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.contractVat.fields.iva_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

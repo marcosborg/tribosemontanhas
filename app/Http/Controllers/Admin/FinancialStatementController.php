@@ -105,6 +105,7 @@ class FinancialStatementController extends Controller
             'total' => isset($results) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
+            'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             //'electric_expenses' => isset($results) ? $results->electric_expenses : 0,
             //'combustion_expenses' => isset($results) ? $results->combustion_expenses : 0,

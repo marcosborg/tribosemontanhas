@@ -380,6 +380,17 @@
                             </a>
                         </li>
                     @endcan
+                    @can('car_hire_access')
+                            <li class="{{ request()->is("admin/car-hires") || request()->is("admin/car-hires/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.car-hires.index") }}">
+                                    <i class="fa-fw fas fa-car">
+
+                                    </i>
+                                    <span>{{ trans('cruds.carHire.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                 </ul>
             </li>
             @endcan

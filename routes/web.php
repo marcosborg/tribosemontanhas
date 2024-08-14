@@ -480,7 +480,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     });
 
     // Form Communication
-    Route::prefix('form-communications')->group(function(){
+    Route::prefix('form-communications')->group(function () {
         Route::get('/', 'FormCommunicationController@index')->name('form-communications.index');
         Route::get('form/{form_id}', 'FormCommunicationController@form');
     });
@@ -514,6 +514,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('car-tracks/parse-csv-import', 'CarTrackController@parseCsvImport')->name('car-tracks.parseCsvImport');
     Route::post('car-tracks/process-csv-import', 'CarTrackController@processCsvImport')->name('car-tracks.processCsvImport');
     Route::resource('car-tracks', 'CarTrackController');
+
+    // Car Hire
+    Route::delete('car-hires/destroy', 'CarHireController@massDestroy')->name('car-hires.massDestroy');
+    Route::post('car-hires/parse-csv-import', 'CarHireController@parseCsvImport')->name('car-hires.parseCsvImport');
+    Route::post('car-hires/process-csv-import', 'CarHireController@processCsvImport')->name('car-hires.processCsvImport');
+    Route::resource('car-hires', 'CarHireController');
 
 });
 

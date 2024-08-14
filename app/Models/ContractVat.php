@@ -22,6 +22,8 @@ class ContractVat extends Model
     protected $fillable = [
         'name',
         'percent',
+        'rf',
+        'iva',
         'created_at',
         'updated_at',
         'deleted_at',
