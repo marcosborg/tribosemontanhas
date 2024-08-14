@@ -130,7 +130,6 @@ class ReceiptController extends Controller
 
         //AtualDriversBalance
         $driver_id = $request->driver_id;
-        $tvde_week_id = $request->tvde_week_id;
         $value = $request->value;
         $drivers_balance = DriversBalance::where([
             'driver_id' => $driver_id,
