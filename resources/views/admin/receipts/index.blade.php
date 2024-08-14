@@ -33,13 +33,7 @@
                                     {{ trans('cruds.receipt.fields.id') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.company.title_singular') }}
-                                </th>
-                                <th>
                                     {{ trans('cruds.receipt.fields.driver') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.code') }}
                                 </th>
                                 <th>
                                     {{ trans('cruds.receipt.fields.value') }}
@@ -48,10 +42,19 @@
                                     Saldo
                                 </th>
                                 <th>
-                                    {{ trans('cruds.receipt.fields.file') }}
+                                    IVA
+                                </th>
+                                <th>
+                                    RF
                                 </th>
                                 <th>
                                     Valor do recibo
+                                </th>
+                                <th>
+                                    {{ trans('cruds.receipt.fields.file') }}
+                                </th>
+                                <th>
+                                    Valor da semana
                                 </th>
                                 <th>
                                     {{ trans('cruds.receipt.fields.verified') }}
@@ -77,18 +80,14 @@
                                 <td>
                                     <select class="search">
                                         <option value>{{ trans('global.all') }}</option>
-                                        @foreach($companies as $key => $item)
+                                        @foreach($drivers as $key => $item)
                                         <option value="{{ $item->name }}">{{ $item->name }}</option>
                                         @endforeach
                                     </select>
                                 </td>
                                 <td>
-                                    <select class="search">
-                                        <option value>{{ trans('global.all') }}</option>
-                                        @foreach($drivers as $key => $item)
-                                        <option value="{{ $item->name }}">{{ $item->name }}</option>
-                                        @endforeach
-                                    </select>
+                                </td>
+                                <td>
                                 </td>
                                 <td>
                                 </td>
@@ -167,11 +166,12 @@
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
-{ data: 'company_name', name: 'driver.company.name' },
 { data: 'driver_name', name: 'driver.name' },
-{ data: 'driver.code', name: 'driver.code' },
 { data: 'value', name: 'value' },
 { data: 'balance', name: 'balance' },
+{ data: 'iva', name: 'iva' },
+{ data: 'rf', name: 'rf' },
+{ data: 'final', name: 'final' },
 { data: 'file', name: 'file', sortable: false, searchable: false },
 { data: 'receipt_value', name: 'receipt_value', sortable: false, searchable: false },
 { data: 'verified', name: 'verified' },

@@ -59,23 +59,41 @@ class ReceiptController extends Controller
                 return $row->id ? $row->id : '';
             });
 
-            $table->addColumn('company_name', function ($row) {
-                return $row->driver->company ? $row->driver->company->name : '';
-            });
-
             $table->addColumn('driver_name', function ($row) {
                 return $row->driver ? $row->driver->name : '';
             });
 
-            $table->editColumn('driver.code', function ($row) {
-                return $row->driver ? (is_string($row->driver) ? $row->driver : $row->driver->code) : '';
-            });
             $table->editColumn('value', function ($row) {
                 return $row->value ? $row->value : '';
             });
             $table->editColumn('balance', function ($row) {
                 return $row->balance ? $row->balance : '';
             });
+
+            $table->editColumn('iva', function ($row) {
+                $driver = Driver::find($row->driver->id)->load('contract_vat');
+                $factor = $driver->contract_vat->iva / 100;
+                $value = number_format(($row->value * $factor), 2, '.');
+                return $driver ? $value : '';
+            });
+
+            $table->editColumn('rf', function ($row) {
+                $driver = Driver::find($row->driver->id)->load('contract_vat');
+                $factor = $driver->contract_vat->rf / 100;
+                $value = number_format(-($row->value * $factor), 2, '.');
+                return $driver ? $value : '';
+            });
+
+            $table->editColumn('final', function ($row) {
+                $driver = Driver::find($row->driver->id)->load('contract_vat');
+                $factor_iva = $driver->contract_vat->iva / 100;
+                $value_iva = $row->value * $factor_iva;
+                $factor_rf = $driver->contract_vat->rf / 100;
+                $value_rf = $row->value * $factor_rf;
+                $final = number_format($row->value + $value_iva - $value_rf, 2);
+                return $driver ? $final : '';
+            });
+
             $table->editColumn('file', function ($row) {
                 return $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : '';
             });
