@@ -24,10 +24,6 @@ class ReceiptController extends Controller
     public function index(Request $request)
     {
 
-        $tvde_week_id = session()->get('tvde_week_id');
-
-        return $tvde_week_id;
-
         abort_if(Gate::denies('receipt_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
@@ -120,7 +116,7 @@ class ReceiptController extends Controller
     public function store(StoreReceiptRequest $request)
     {
 
-        
+        $tvde_week_id = session()->get('tvde_week_id');
 
         $receipt = Receipt::create($request->all());
 
