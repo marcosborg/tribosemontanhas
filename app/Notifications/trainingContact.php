@@ -44,7 +44,7 @@ class trainingContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido de contacto em Formação.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/training-forms'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/training-forms'))
                     ->line('Nome: ' . $this->trainingForm->name)
                     ->line('Email: ' . $this->trainingForm->email)
                     ->line('Telefone: ' . $this->trainingForm->phone);

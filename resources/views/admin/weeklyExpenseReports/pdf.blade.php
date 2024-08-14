@@ -197,7 +197,7 @@
         </tbody>
     </table>
     <footer>
-        ExpertCom ©
+        Tribos&Montanhas ©
         <?php echo date("Y");?>
     </footer>
 </body>

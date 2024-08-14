@@ -44,7 +44,7 @@ class courierContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido de contacto em Estafetas.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/courier-forms'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/courier-forms'))
                     ->line('Nome: ' . $this->CourierForm->name)
                     ->line('Email: ' . $this->CourierForm->email)
                     ->line('Telefone: ' . $this->CourierForm->phone);

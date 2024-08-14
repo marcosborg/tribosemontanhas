@@ -44,7 +44,7 @@ class carRentalContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido de contacto em Aluguer de viaturas.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/car-rental-contact-requests'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/car-rental-contact-requests'))
                     ->line('Nome: ' . $this->CarRentalContactRequest->name)
                     ->line('Email: ' . $this->CarRentalContactRequest->email)
                     ->line('Telefone: ' . $this->CarRentalContactRequest->phone);

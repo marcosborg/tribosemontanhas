@@ -44,7 +44,7 @@ class consultingContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido de Consultadora TVDE.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/consulting-forms'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/consulting-forms'))
                     ->line('Nome: ' . $this->ConsultingForm->name)
                     ->line('Email: ' . $this->ConsultingForm->email)
                     ->line('Telefone: ' . $this->ConsultingForm->phone);

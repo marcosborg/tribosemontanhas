@@ -123,7 +123,7 @@
             EM "CONTRATOS/DECLARAÇÃO DE RESPONSABILIDADE".</strong></p>
     @endif
     <footer>
-        ExpertCom ©
+        Tribos&Montanhas ©
         <?php echo date("Y");?>
     </footer>
 </body>

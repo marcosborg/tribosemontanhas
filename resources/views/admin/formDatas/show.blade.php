@@ -67,7 +67,7 @@
                                         @php
                                         $item = json_decode($item, true);
                                         if (isset($item[1])) {
-                                        $item = '<a href="https://expertcom.pt/storage/' . $item[1] . '" target="_new"><img src="https://expertcom.pt/storage/' . $item[1] . '" class="img-thumbnail" width="100"></a>';
+                                        $item = '<a href="https://Tribos&Montanhas.pt/storage/' . $item[1] . '" target="_new"><img src="https://Tribos&Montanhas.pt/storage/' . $item[1] . '" class="img-thumbnail" width="100"></a>';
                                         } else {
                                         $item = '';
                                         }

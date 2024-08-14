@@ -53,7 +53,7 @@ class RecruitmentFormNotification extends Notification
             ->line('<strong>Realizada?: </strong>' . $this->recruitmentForm->done == 1 ? 'Sim' : 'Não')
             ->line('<strong>Observações: </strong>' . $this->recruitmentForm->comments)
             ->action('Curriculum vitae', url($this->recruitmentForm->cv && $this->recruitmentForm->cv->original_url ? $this->recruitmentForm->cv->original_url : ''))
-            ->line('Obrigado por utilizar os serviçoes da Expertcom!');
+            ->line('Obrigado por utilizar os serviçoes da Tribos&Montanhas!');
     }
 
     /**

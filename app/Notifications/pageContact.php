@@ -44,7 +44,7 @@ class pageContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido de contacto.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/page-forms'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/page-forms'))
                     ->line('Nome: ' . $this->PageForm->name)
                     ->line('Email: ' . $this->PageForm->email)
                     ->line('Telefone: ' . $this->PageForm->phone);

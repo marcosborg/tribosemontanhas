@@ -8,7 +8,7 @@
         <div class="col-md-6">
             <div class="error-template">
                 <h1>
-                    ExpertCom</h1>
+                    Tribos&Montanhas</h1>
                 <h2>
                     Temporariamente em manutenção</h2>
                 <h1>

@@ -44,7 +44,7 @@ class standCarContact extends Notification
     {
         return (new MailMessage)
                     ->line('Existe um pedido em Stand.')
-                    ->action('Ir para pedido', url('http://expertcom.pt/admin/stand-car-forms'))
+                    ->action('Ir para pedido', url('http://Tribos&Montanhas.pt/admin/stand-car-forms'))
                     ->line('Nome: ' . $this->TransferForm->name)
                     ->line('Email: ' . $this->TransferForm->email)
                     ->line('Telefone: ' . $this->TransferForm->phone);
