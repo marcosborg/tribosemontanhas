@@ -46,16 +46,11 @@ class FinancialStatementController extends Controller
         $driver_id = session()->get('driver_id') ? session()->get('driver_id') : $driver_id = 0;
 
         if (!session()->has('company_id')) {
-            $company_id = auth()->user()->company->id;
+            $company_id = 27;
             session()->put('company_id', $company_id);
         }
 
         if ($driver_id != 0) {
-
-            $driver = Driver::find(540)->load([
-                'contract_vat',
-                'team.drivers'
-            ]);
 
             $results = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
@@ -64,15 +59,6 @@ class FinancialStatementController extends Controller
 
             if ($results) {
                 $results = json_decode($results->data);
-            } else {
-                $total_earnings_uber = 0;
-                $total_earnings_bolt = 0;
-                $total_tips_uber = 0;
-                $total_tips_bolt = 0;
-                $total_earnings = 0;
-                $total_earnings_no_tip = 0;
-                $total_tips = 0;
-                $gross_credits = 0;
             }
 
         } else {
@@ -107,12 +93,6 @@ class FinancialStatementController extends Controller
             'car_track' => isset($results) ? $results->car_track : 0,
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
-            //'electric_expenses' => isset($results) ? $results->electric_expenses : 0,
-            //'combustion_expenses' => isset($results) ? $results->combustion_expenses : 0,
-            //'combustion_racio' => isset($results) ? $results->combustion_racio : 0,
-            //'electric_racio' => isset($results) ? $results->electric_racio : 0,
-            //'earnings_after_discount' => isset($results) ? $results->earnings_after_discount : 0,
-            //'txt_admin' => isset($results) ? $results->txt_admin : 0,
             'driver_balance' => $driver_balance ?? null,
         ]);
     }

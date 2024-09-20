@@ -2,8 +2,6 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\Driver;
-use App\Models\TvdeActivity;
 use App\Http\Controllers\Traits\Reports;
 use App\Models\CurrentAccount;
 use App\Models\DriversBalance;
@@ -13,6 +11,7 @@ use App\Http\Controllers\Traits\MediaUploadingTrait;
 use Illuminate\Http\Request;
 use App\Models\CompanyInvoice;
 use App\Models\CompanyData;
+use App\Models\Driver;
 
 class HomeController
 {
@@ -22,8 +21,62 @@ class HomeController
 
     public function index()
     {
+        $filter = $this->filter();
+        $tvde_week_id = $filter['tvde_week_id'];
+        $tvde_years = $filter['tvde_years'];
+        $tvde_year_id = $filter['tvde_year_id'];
+        $tvde_months = $filter['tvde_months'];
+        $tvde_month_id = $filter['tvde_month_id'];
+        $tvde_weeks = $filter['tvde_weeks'];
+        $drivers = $filter['drivers'];
 
-        return view('home');
+        $driver = Driver::where('user_id', auth()->user()->id)->first();
+
+        if(!$driver) {
+            return redirect('/admin/financial-statements');
+        }
+
+        $driver_id = $driver->id;
+        $company_id = $driver->company_id;
+
+        $results = CurrentAccount::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $driver_id
+        ])->first();
+
+        if ($results) {
+            $results = json_decode($results->data);
+        }
+
+        $driver_balance = DriversBalance::where([
+            'driver_id' => $driver_id,
+            'tvde_week_id' => $tvde_week_id
+        ])->first();
+
+        return view('home')->with([
+            'company_id' => $company_id,
+            'tvde_year_id' => $tvde_year_id,
+            'tvde_years' => $tvde_years,
+            'tvde_months' => $tvde_months,
+            'tvde_month_id' => $tvde_month_id,
+            'tvde_weeks' => $tvde_weeks,
+            'tvde_week_id' => $tvde_week_id,
+            'drivers' => $drivers,
+            'driver_id' => $driver_id,
+            'uber_gross' => isset($results) ? $results->uber->uber_gross : 0,
+            'bolt_gross' => isset($results) ? $results->bolt->bolt_gross : 0,
+            'uber_net' => isset($results) ? $results->uber->uber_net : 0,
+            'bolt_net' => isset($results) ? $results->bolt->bolt_net : 0,
+            'total_gross' => isset($results) ? $results->total_gross : 0,
+            'total_net' => isset($results) ? $results->total_net : 0,
+            'adjustments' => isset($results) ? $results->adjustments : 0,
+            'total' => isset($results) ? $results->total : 0,
+            'vat_value' => isset($results) ? $results->vat_value : 0,
+            'car_track' => isset($results) ? $results->car_track : 0,
+            'car_hire' => isset($results) ? $results->car_hire : 0,
+            'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
+            'driver_balance' => $driver_balance ?? null,
+        ]);
     }
 
     public function selectCompany($company_id)
@@ -119,5 +172,4 @@ class HomeController
         $company_invoice->addMedia(storage_path('tmp/uploads/' . $fileName))->toMediaCollection('payment_receipt');
         return redirect()->back();
     }
-
 }

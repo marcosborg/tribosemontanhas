@@ -543,7 +543,7 @@ trait Reports
 
     public function filter()
     {
-        $company_id = session()->get('company_id') ?? $company_id = session()->get('company_id');
+        $company_id = 27;
         $tvde_year_id = session()->get('tvde_year_id') ? session()->get('tvde_year_id') : $tvde_year_id = TvdeYear::orderBy('name', 'desc')->first()->id;
         if (session()->has('tvde_month_id')) {
             $tvde_month_id = session()->get('tvde_month_id');
