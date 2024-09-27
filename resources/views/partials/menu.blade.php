@@ -504,6 +504,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('drivers_payment_access')
+                            <li class="{{ request()->is("admin/drivers-payments") || request()->is("admin/drivers-payments/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.drivers-payments.index") }}">
+                                    <i class="fa-fw fas fa-euro-sign">
+
+                                    </i>
+                                    <span>{{ trans('cruds.driversPayment.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                     </ul>
                 </li>
             @endcan

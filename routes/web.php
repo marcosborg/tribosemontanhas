@@ -521,6 +521,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('car-hires/process-csv-import', 'CarHireController@processCsvImport')->name('car-hires.processCsvImport');
     Route::resource('car-hires', 'CarHireController');
 
+    // Drivers Payments
+    Route::prefix('drivers-payments')->group(function () {
+        Route::get('/', 'DriversPaymentsController@index')->name('drivers-payments.index');
+    });
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

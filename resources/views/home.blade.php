@@ -86,7 +86,7 @@
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                             <label class="required" for="value">Valor do recibo</label>
                             <input class="form-control" type="text" name="value" id="value"
-                                value="" placeholder="Verifique o seu recibo para confirmar o valor." required>
+                                value="{{ $driver_balance->balance }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
                             @if($errors->has('value'))
                             <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
                             @endif
@@ -312,3 +312,4 @@
 }
 </script>
 @endsection
+<script>console.log({!! $driver_balance !!})</script>

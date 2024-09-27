@@ -2323,4 +2323,8 @@ return [
             'deleted_at_helper' => ' ',
         ],
     ],
+    'driversPayment' => [
+        'title'          => 'Drivers Payments',
+        'title_singular' => 'Drivers Payment',
+    ],
 ];

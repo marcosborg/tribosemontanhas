@@ -44,16 +44,6 @@ class Receipt extends Model implements HasMedia
         return $date->format('Y-m-d H:i:s');
     }
 
-    /*
-
-    public function registerMediaConversions(Media $media = null): void
-    {
-        $this->addMediaConversion('thumb')->fit('crop', 50, 50);
-        $this->addMediaConversion('preview')->fit('crop', 120, 120);
-    }
-
-    */
-
     public function driver()
     {
         return $this->belongsTo(Driver::class, 'driver_id');
