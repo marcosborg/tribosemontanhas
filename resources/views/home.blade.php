@@ -77,6 +77,22 @@
                     Recibo
                 </div>
                 <div class="panel-body">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th>Saldo da semana</th>
+                                <td>{{ $driver_balance->balance }}€</td>
+                            </tr>
+                            <tr>
+                                <th>IVA a devolver:</th>
+                                <td>{{ $driver_balance->iva }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Retenção na fonte</th>
+                                <td>{{ $driver_balance->rf }}€</td>
+                            </tr>
+                        </tbody>
+                    </table>
                     @if ($driver_balance && $driver_balance->drivers_balance > 0)
                     <form method="POST" action="{{ route("admin.receipts.store") }}" enctype="multipart/form-data">
                         @csrf
@@ -86,7 +102,7 @@
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                             <label class="required" for="value">Valor do recibo</label>
                             <input class="form-control" type="text" name="value" id="value"
-                                value="{{ $driver_balance->balance }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
+                                value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
                             @if($errors->has('value'))
                             <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
                             @endif

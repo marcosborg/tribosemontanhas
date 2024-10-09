@@ -32,8 +32,10 @@ class HomeController
 
         $driver = Driver::where('user_id', auth()->user()->id)->first();
 
-        if(!$driver) {
+        if (!$driver) {
             return redirect('/admin/financial-statements');
+        } else {
+            $driver->load('contract_vat');
         }
 
         $driver_id = $driver->id;
@@ -52,6 +54,17 @@ class HomeController
             'driver_id' => $driver_id,
             'tvde_week_id' => $tvde_week_id
         ])->first();
+
+        $factor = $driver->contract_vat->iva / 100;
+        $iva = number_format(($driver_balance->balance * $factor), 2, '.');
+        $driver_balance->iva = $iva ?? 0;
+
+        $factor = $driver->contract_vat->rf / 100;
+        $rf = number_format(-($driver_balance->balance * $factor), 2, '.');
+        $driver_balance->rf = $rf ?? 0;
+
+        $final = number_format($driver_balance->balance + $iva - $rf, 2);
+        $driver_balance->final = $final ?? 0;
 
         return view('home')->with([
             'company_id' => $company_id,
