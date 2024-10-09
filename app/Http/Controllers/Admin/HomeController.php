@@ -63,7 +63,7 @@ class HomeController
         $rf = number_format(-($driver_balance->value * $factor), 2, '.');
         $driver_balance->rf = $rf ?? 0;
 
-        $final = number_format($driver_balance->value + $iva - $rf, 2);
+        $final = number_format($driver_balance->value + $iva + $rf, 2);
         $driver_balance->final = $final ?? 0;
 
         return view('home')->with([
