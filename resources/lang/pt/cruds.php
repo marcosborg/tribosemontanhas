@@ -2353,4 +2353,8 @@ return [
             'vat_helper'          => ' ',
         ],
     ],
+    'vehicleProfitability' => [
+        'title'          => 'Vehicle Profitability',
+        'title_singular' => 'Vehicle Profitability',
+    ],
 ];

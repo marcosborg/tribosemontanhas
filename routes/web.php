@@ -533,6 +533,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('vehicle-expenses/parse-csv-import', 'VehicleExpensesController@parseCsvImport')->name('vehicle-expenses.parseCsvImport');
     Route::post('vehicle-expenses/process-csv-import', 'VehicleExpensesController@processCsvImport')->name('vehicle-expenses.processCsvImport');
     Route::resource('vehicle-expenses', 'VehicleExpensesController');
+
+    // Vehicle Profitability
+    Route::prefix('vehicle-profitabilities')->group(function() {
+        Route::get('/', 'VehicleProfitabilityController@index')->name('vehicle-profitabilities.index');
+    });
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
