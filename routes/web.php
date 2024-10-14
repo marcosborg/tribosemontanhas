@@ -525,6 +525,14 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::prefix('drivers-payments')->group(function () {
         Route::get('/', 'DriversPaymentsController@index')->name('drivers-payments.index');
     });
+
+    // Vehicle Expenses
+    Route::delete('vehicle-expenses/destroy', 'VehicleExpensesController@massDestroy')->name('vehicle-expenses.massDestroy');
+    Route::post('vehicle-expenses/media', 'VehicleExpensesController@storeMedia')->name('vehicle-expenses.storeMedia');
+    Route::post('vehicle-expenses/ckmedia', 'VehicleExpensesController@storeCKEditorImages')->name('vehicle-expenses.storeCKEditorImages');
+    Route::post('vehicle-expenses/parse-csv-import', 'VehicleExpensesController@parseCsvImport')->name('vehicle-expenses.parseCsvImport');
+    Route::post('vehicle-expenses/process-csv-import', 'VehicleExpensesController@processCsvImport')->name('vehicle-expenses.processCsvImport');
+    Route::resource('vehicle-expenses', 'VehicleExpensesController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
