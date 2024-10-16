@@ -536,7 +536,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Vehicle Profitability
     Route::prefix('vehicle-profitabilities')->group(function() {
-        Route::get('/', 'VehicleProfitabilityController@index')->name('vehicle-profitabilities.index');
+        Route::get('/{start_date?}/{end_date?}', 'VehicleProfitabilityController@index')->name('vehicle-profitabilities.index');
+        Route::get('set-vehicle-item-id/{vehicle_item_id}', 'VehicleProfitabilityController@setVehicleItemId');
+        Route::post('set-interval', 'VehicleProfitabilityController@setInterval');
     });
 });
 
