@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ContractVat;
+use App\Models\CurrentAccount;
+use App\Models\Driver;
 use App\Models\TvdeWeek;
 use App\Models\VehicleItem;
 use Gate;
@@ -28,6 +31,7 @@ class VehicleProfitabilityController extends Controller
             session()->put('vehicle_item_id', $vehicle_item_id);
         } else {
             $vehicle_item_id = session()->get('vehicle_item_id');
+            $vehicle_item = VehicleItem::find($vehicle_item_id);
         }
 
         if (!$start_date || !$end_date) {
@@ -63,12 +67,35 @@ class VehicleProfitabilityController extends Controller
             $year = $start_date->year;
             $month = $start_date->month;
 
-            $exercicio_total = ''
+            $current_accounts = CurrentAccount::whereHas('tvde_week', function ($query) use ($year, $month) {
+                $query->whereYear('start_date', $year)
+                    ->whereMonth('start_date', $month);
+            })
+                ->where('driver_id', $vehicle_item->driver->id)
+                ->get()->load('tvde_week');
+
+            $contract_vat = Driver::find($vehicle_item->driver->id)->load('contract_vat')->contract_vat;
+
+            $datas = [];
+
+            foreach ($current_accounts as $current_account) {
+                $encoded_data = $current_account->data;
+                $data = json_decode($encoded_data);
+                $factor = $contract_vat->rf / 100;
+                $rf = number_format(($data->total * $factor), 2, '.');
+                $data->rf = $rf ?? 0;
+                $data->tvde_week = $current_account->tvde_week;
+                $data->total_exercise = $data->total - $rf;
+                $data->vats = -($data->total_gross * 0.06) + ($data->fuel_transactions * 0.23) + ($data->car_track * 0.23);
+                $datas[] = $data;
+            }
+            
         }
 
         return view('admin.vehicleProfitabilities.index', compact([
             'vehicle_items',
-            'vehicle_item_id'
+            'vehicle_item_id',
+            'datas'
         ]));
     }
 

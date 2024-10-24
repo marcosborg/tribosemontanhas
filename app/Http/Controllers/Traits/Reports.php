@@ -58,7 +58,6 @@ trait Reports
         $total_car_track = [];
         $total_car_hire = [];
 
-
         foreach ($drivers as $driver) {
 
             $uber_activities = TvdeActivity::where([
