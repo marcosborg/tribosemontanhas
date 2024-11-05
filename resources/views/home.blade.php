@@ -26,7 +26,7 @@
             }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
         @endforeach
     </div>
-    <div class="row" style="margin-top: 5px;">
+    <div class="row" style="margin-top: 20px;">
         <div class="col-md-5">
             <div class="panel panel-default">
                 <div class="panel-heading">
@@ -61,7 +61,7 @@
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    IVA
+                    IVA das atividades por operador
                 </div>
                 <div class="panel-body">
                     <table class="table table-striped">
@@ -72,66 +72,6 @@
                     </table>
                 </div>
             </div>
-            <div class="panel panel-default">
-                <div class="panel-heading">
-                    Recibo
-                </div>
-                <div class="panel-body">
-                    <table class="table table-striped">
-                        <tbody>
-                            <tr>
-                                <th>Saldo da semana</th>
-                                <td>{{ $driver_balance->balance }}€</td>
-                            </tr>
-                            <tr>
-                                <th>IVA a devolver:</th>
-                                <td>{{ $driver_balance->iva }}€</td>
-                            </tr>
-                            <tr>
-                                <th>Retenção na fonte</th>
-                                <td>{{ $driver_balance->rf }}€</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                    <form method="POST" action="{{ route("admin.receipts.store") }}" enctype="multipart/form-data">
-                        @csrf
-                        <input type="hidden" name="driver_id" value="{{ $driver_id }}">
-                        <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
-                        <input type="hidden" name="balance" value="{{ $driver_balance->drivers_balance }}">
-                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
-                            <label class="required" for="value">Valor do recibo</label>
-                            <input class="form-control" type="text" name="value" id="value"
-                                value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
-                            @if($errors->has('value'))
-                            <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.receipt.fields.value_helper') }}</span>
-                        </div>
-                        <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
-                            <label class="required" for="file">{{ trans('cruds.receipt.fields.file') }}</label>
-                            <div class="needsclick dropzone" id="file-dropzone">
-                            </div>
-                            @if($errors->has('file'))
-                            <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.receipt.fields.file_helper') }}</span>
-                        </div>
-                        <div class="form-group">
-                            <button class="btn btn-danger" type="submit">
-                                {{ trans('global.save') }}
-                            </button>
-                        </div>
-                    </form>
-                    @else
-                    <div class="alert alert-info">
-                        O saldo não permite o envio de recibos.
-                    </div>
-                    @endif
-                </div>
-            </div>
-        </div>
-        <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     Totais
@@ -191,9 +131,11 @@
                     </table>
                 </div>
             </div>
+        </div>
+        <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Valor a pagar: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
+                    <h3 class="pull-left">Saldo da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
@@ -213,6 +155,64 @@
                     </form>
                 </div>
                 @endif
+            </div>
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    Recibo
+                </div>
+                <div class="panel-body">
+                    <table class="table table-striped">
+                        <tbody>
+                            <tr>
+                                <th>Saldo da semana</th>
+                                <td>{{ $driver_balance->balance }}€</td>
+                            </tr>
+                            <tr>
+                                <th>IVA a devolver:</th>
+                                <td>{{ $driver_balance->iva }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Retenção na fonte</th>
+                                <td>{{ $driver_balance->rf }}€</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    @if ($driver_balance && $driver_balance->drivers_balance > 0)
+                    <form method="POST" action="{{ route("admin.receipts.store") }}" enctype="multipart/form-data">
+                        @csrf
+                        <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+                        <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
+                        <input type="hidden" name="balance" value="{{ $driver_balance->drivers_balance }}">
+                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
+                            <label class="required" for="value">Valor do recibo</label>
+                            <input class="form-control" type="text" name="value" id="value"
+                                value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
+                            @if($errors->has('value'))
+                            <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.receipt.fields.value_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
+                            <label class="required" for="file">{{ trans('cruds.receipt.fields.file') }}</label>
+                            <div class="needsclick dropzone" id="file-dropzone">
+                            </div>
+                            @if($errors->has('file'))
+                            <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.receipt.fields.file_helper') }}</span>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-danger" type="submit">
+                                {{ trans('global.save') }}
+                            </button>
+                        </div>
+                    </form>
+                    @else
+                    <div class="alert alert-info">
+                        O saldo não permite o envio de recibos.
+                    </div>
+                    @endif
+                </div>
             </div>
         </div>
     </div>
