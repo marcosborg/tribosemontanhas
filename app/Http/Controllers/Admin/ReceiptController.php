@@ -90,7 +90,7 @@ class ReceiptController extends Controller
                 $value_iva = $row->value * $factor_iva;
                 $factor_rf = $driver->contract_vat->rf / 100;
                 $value_rf = $row->value * $factor_rf;
-                $final = number_format($row->value + $value_iva - $value_rf, 2);
+                $final = number_format($row->value, 2);
                 return $driver ? $final : '';
             });
 
