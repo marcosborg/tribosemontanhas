@@ -88,7 +88,7 @@ class VehicleProfitabilityController extends Controller
                 $data->rf = $rf ?? 0;
                 $data->tvde_week = $current_account->tvde_week;
                 $data->total_exercise = $data->total - $rf;
-                $data->vats = (($data->total_gross / 1.06) * 0.06) + (($data->fuel_transactions / 1.23) * 0.23) - $iva + ($data->car_track * 0.23);
+                $data->vats = (($data->total_gross / 1.06) * 0.06) - (($data->fuel_transactions / 1.23) * 0.23) - $iva + ($data->car_track * 0.23);
                 $datas[] = $data;
             }
         }
