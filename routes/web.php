@@ -524,6 +524,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Drivers Payments
     Route::prefix('drivers-payments')->group(function () {
         Route::get('/', 'DriversPaymentsController@index')->name('drivers-payments.index');
+        Route::post('create-xml', 'DriversPaymentsController@createXml');
     });
 
     // Vehicle Expenses

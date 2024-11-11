@@ -3,13 +3,20 @@
 <div class="content">
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
-            {{ trans('cruds.driversPayment.title') }}
+            <div class="row">
+                <div class="col-md-6">
+                    {{ trans('cruds.driversPayment.title') }}
+                </div>
+                <div class="col-md-6">
+                    <button class="btn btn-primary btn-sm pull-right" onclick="createXml()">Criar ficheiro bancário</button>
+                </div>
+            </div>
         </div>
         <div class="panel-body">
-            <table class=" table table-bordered table-striped table-hover datatable">
+            <table class="table table-bordered table-striped table-hover">
                 <thead>
                     <tr>
-                        <td></td>
+                        <td><input type="checkbox" id="all-checkbox"> <label for="all-checkbox">Todos</label></td>
                         <th>Driver</th>
                         <th>Email</th>
                         <th>IBAN</th>
@@ -20,7 +27,8 @@
                 <tbody>
                     @foreach ($receipts as $receipt)
                     <tr>
-                        <td></td>
+                        <!-- Adiciona data-id com o ID do recibo para capturar depois -->
+                        <td><input type="checkbox" class="receipt-checkbox" data-id="{{ $receipt->id }}"></td>
                         <td>{{ $receipt->driver->name }}</td>
                         <td>{{ $receipt->driver->email }}</td>
                         <td>{{ $receipt->driver->iban }}</td>
@@ -30,19 +38,39 @@
                     @endforeach
                 </tbody>
             </table>
+            <a href="" id="download-link" class="btn btn-success btn-sm">Download</a>
         </div>
     </div>
 </div>
 @endsection
+
 @section('scripts')
 <script>
-    $(function () {
-        let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
-        let dtOverrideGlobals = {
-            buttons: dtButtons,
+    // Configura o token CSRF para requisições AJAX
+    $.ajaxSetup({
+        headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
         }
-        let table = $('.datatable').DataTable(dtOverrideGlobals);
     });
+
+    // Função para capturar os checkboxes selecionados e enviar via AJAX
+    function createXml() {
+        let selectedReceipts = [];
+
+        $('.receipt-checkbox:checked').each(function() {
+            selectedReceipts.push($(this).data('id'));
+        });
+
+        let data = {
+            selectedReceipts: selectedReceipts
+        };
+
+        $.post('/admin/drivers-payments/create-xml', data).then((resp) => {
+            $('#download-link').attr('href', resp.downloadUrl);
+        }).fail((err) => {
+            console.error("Erro ao gerar o XML:", err);
+        });
+    }
+
 </script>
 @endsection
-
