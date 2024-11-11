@@ -81,15 +81,16 @@ class VehicleProfitabilityController extends Controller
             foreach ($current_accounts as $current_account) {
                 $encoded_data = $current_account->data;
                 $data = json_decode($encoded_data);
+                $factor = $contract_vat->iva / 100;
+                $iva = number_format(($data->total * $factor), 2, '.');
                 $factor = $contract_vat->rf / 100;
                 $rf = number_format(($data->total * $factor), 2, '.');
                 $data->rf = $rf ?? 0;
                 $data->tvde_week = $current_account->tvde_week;
                 $data->total_exercise = $data->total - $rf;
-                $data->vats = -($data->total_gross * 0.06) + ($data->fuel_transactions * 0.23) + ($data->car_track * 0.23);
+                $data->vats = (($data->total_gross / 1.06) * 0.06) + (($data->fuel_transactions / 1.23) * 0.23) - $iva + ($data->car_track * 0.23);
                 $datas[] = $data;
             }
-            
         }
 
         return view('admin.vehicleProfitabilities.index', compact([
