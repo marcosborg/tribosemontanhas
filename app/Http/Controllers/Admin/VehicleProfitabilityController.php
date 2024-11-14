@@ -103,15 +103,14 @@ class VehicleProfitabilityController extends Controller
                 $factor = $contract_vat->rf / 100;
                 $rf = number_format(($data->total * $factor), 2, '.');
                 $data->rf = $rf ?? 0;
+                $data->salary = $data->total - $rf + $data->iva['gross_iva'];
+                $data->iva['vat_value'] = $data->vat_value;
                 $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
-                $data->iva['receipt_iva'] = $data->total * 1.23 ?? 0;
-                $data->iva['car_hire_iva'] = ($data->car_hire / 1.23) * 0.23 ?? 0;
-                $data->iva['vehicle_expenses_iva'] = 0;
                 $data->tvde_week = $current_account->tvde_week;
-                $data->total_exercise = $data->total - $rf;
-                $data->vats = 0;
+                $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->salary;
+                $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
+                $data->total_exercise = $data->total_expense + $data->vat;
                 $datas[] = $data;
-                return $data->iva;
             }
         }
 

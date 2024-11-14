@@ -52,9 +52,9 @@
                                     @foreach ($datas as $data)
                                     <tr>
                                         <td>{{ $data->tvde_week->start_date }}</td>
-                                        <td>{{ number_format($data->total, 2) }} €</td>
+                                        <td>{{ number_format($data->total_expense, 2) }} €</td>
                                         <td>{{ number_format($data->total_exercise, 2) }} €</td>
-                                        <td>{{ number_format($data->vats, 2) }} €</td>
+                                        <td>{{ number_format($data->vat, 2) }} €</td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -76,9 +76,9 @@
     document.addEventListener('DOMContentLoaded', function () {
         // Dados obtidos do servidor para o gráfico
         const labels = @json(array_map(function($data) { return $data->tvde_week->start_date; }, $datas));
-        const exerciseTotalData = @json(array_map(function($data) { return $data->total; }, $datas));
+        const exerciseTotalData = @json(array_map(function($data) { return $data->total_expense; }, $datas));
         const treasuryData = @json(array_map(function($data) { return $data->total_exercise; }, $datas));
-        const ivaData = @json(array_map(function($data) { return $data->vats; }, $datas));
+        const ivaData = @json(array_map(function($data) { return $data->vat; }, $datas));
 
         // Configuração do gráfico Chart.js
         const ctx = document.getElementById('profitabilityChart').getContext('2d');
