@@ -7,6 +7,7 @@ use App\Models\ContractVat;
 use App\Models\CurrentAccount;
 use App\Models\Driver;
 use App\Models\TvdeWeek;
+use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
 use Gate;
 use Illuminate\Http\Request;
@@ -76,20 +77,41 @@ class VehicleProfitabilityController extends Controller
 
             $contract_vat = Driver::find($vehicle_item->driver->id)->load('contract_vat')->contract_vat;
 
+            $dates = $current_accounts->map(function ($account) {
+                return [
+                    'start_date' => $account->tvde_week->start_date,
+                    'end_date' => $account->tvde_week->end_date,
+                ];
+            });
+
+            $vehicle_expenses = VehicleExpense::where(function ($query) use ($dates) {
+                foreach ($dates as $date) {
+                    $query->orWhere(function ($subQuery) use ($date) {
+                        $subQuery->where('date', '>=', $date['start_date'])
+                            ->where('date', '<=', $date['end_date']);
+                    });
+                }
+            })->sum('value');
+
             $datas = [];
 
             foreach ($current_accounts as $current_account) {
                 $encoded_data = $current_account->data;
                 $data = json_decode($encoded_data);
                 $factor = $contract_vat->iva / 100;
-                $iva = number_format(($data->total * $factor), 2, '.');
+                $data->iva['gross_iva'] = number_format(($data->total * $factor), 2, '.') ?? 0;
                 $factor = $contract_vat->rf / 100;
                 $rf = number_format(($data->total * $factor), 2, '.');
                 $data->rf = $rf ?? 0;
+                $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
+                $data->iva['receipt_iva'] = $data->total * 1.23 ?? 0;
+                $data->iva['car_hire_iva'] = ($data->car_hire / 1.23) * 0.23 ?? 0;
+                $data->iva['vehicle_expenses_iva'] = 0;
                 $data->tvde_week = $current_account->tvde_week;
                 $data->total_exercise = $data->total - $rf;
-                $data->vats = (($data->total_gross / 1.06) * 0.06) - (($data->fuel_transactions / 1.23) * 0.23) - $iva + ($data->car_track * 0.23);
+                $data->vats = 0;
                 $datas[] = $data;
+                return $data->iva;
             }
         }
 
