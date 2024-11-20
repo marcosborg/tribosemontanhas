@@ -101,26 +101,35 @@ class VehicleProfitabilityController extends Controller
                 $data = json_decode($encoded_data);
                 //CHECK RECEIPT
                 $receipt = Receipt::where('tvde_week_id', $current_account->tvde_week_id)->first();
-                $factor = $contract_vat->iva / 100;
-                $data->iva['gross_iva'] = number_format(($data->total * $factor), 2, '.') ?? 0;
-                $factor = $contract_vat->rf / 100;
-                $rf = number_format(($data->total * $factor), 2, '.');
-                $data->rf = $rf ?? 0;
-                $data->salary = $data->total - $rf + $data->iva['gross_iva'];
-                $data->iva['vat_value'] = $data->vat_value;
-                $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
-                $data->tvde_week = $current_account->tvde_week;
                 if ($receipt) {
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->salary;
+                    $factor = $contract_vat->iva / 100;
+                    $data->iva['gross_iva'] = number_format(($data->total * $factor), 2, '.') ?? 0;
+                    $factor = $contract_vat->rf / 100;
+                    $rf = number_format(($data->total * $factor), 2, '.');
+                    $data->rf = $rf ?? 0;
+                    $data->salary = $data->total - $rf + $data->iva['gross_iva'];
+                    $data->iva['vat_value'] = $data->vat_value;
+                    $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
+                    $data->tvde_week = $current_account->tvde_week;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $data->salary;
                     $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
                     $data->total_exercise = $data->total_expense + $data->vat;
+                    $data->receipt = $receipt;
                 } else {
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->salary;
-                    $data->vat = 0;
-                    $data->total_exercise = $data->total_expense;
-                    return $data;
+                    $factor = $contract_vat->iva / 100;
+                    $data->iva['gross_iva'] = number_format(($data->total * $factor), 2, '.') ?? 0;
+                    $factor = $contract_vat->rf / 100;
+                    $rf = number_format(($data->total * $factor), 2, '.');
+                    $data->rf = $rf ?? 0;
+                    $data->salary = $data->total - $rf + $data->iva['gross_iva'];
+                    $data->iva['vat_value'] = $data->vat_value;
+                    $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
+                    $data->tvde_week = $current_account->tvde_week;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->adjustments;
+                    $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value;
+                    $data->total_exercise = $data->total_expense + $data->vat;
+                    $data->receipt = $receipt;
                 }
-                $data->receipt = $receipt;
                 $datas[] = $data;
             }
         }
