@@ -34,6 +34,7 @@ class Receipt extends Model implements HasMedia
         'verified',
         'paid',
         'amount_transferred',
+        'tvde_week_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -52,6 +53,11 @@ class Receipt extends Model implements HasMedia
     public function getFileAttribute()
     {
         return $this->getMedia('file')->last();
+    }
+
+    public function tvde_week()
+    {
+        return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
     }
 
 }

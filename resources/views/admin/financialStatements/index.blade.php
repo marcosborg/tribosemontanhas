@@ -118,8 +118,8 @@
                             </tr>
                             <tr>
                                 <th>Acertos</th>
-                                <td></td>
-                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
+                                <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
                                 <td>{{ number_format($adjustments, 2) }}€</td>
                             </tr>
                             <tr>
@@ -128,6 +128,11 @@
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
+                            @php
+                                if ($adjustments && $adjustments > 0) {
+                                    $total_net = $total_net + $adjustments;
+                                }
+                            @endphp
                             <tr>
                                 <th>Totais</th>
                                 <th style="text-align: right;">{{ number_format($total_net, 2) }}€</th>

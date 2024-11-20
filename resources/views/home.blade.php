@@ -111,8 +111,8 @@
                             </tr>
                             <tr>
                                 <th>Acertos</th>
-                                <td></td>
-                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
+                                <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
                                 <td>{{ number_format($adjustments, 2) }}€</td>
                             </tr>
                             <tr>
@@ -121,6 +121,11 @@
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
+                            @php
+                                if ($adjustments && $adjustments > 0) {
+                                    $total_net = $total_net + $adjustments;
+                                }
+                            @endphp
                             <tr>
                                 <th>Totais</th>
                                 <th style="text-align: right;">{{ number_format($total_net, 2) }}€</th>
@@ -183,15 +188,34 @@
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <input type="hidden" name="balance" value="{{ $driver_balance->drivers_balance }}">
-                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
-                            <label class="required" for="value">Valor do recibo</label>
-                            <input class="form-control" type="hidden" name="value" id="value" value="{{ $driver_balance->final }}">
-                            <input class="form-control" type="text" disabled value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
-                            @if($errors->has('value'))
-                            <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.receipt.fields.value_helper') }}</span>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
+                                    <label class="required" for="value">Valor do recibo</label>
+                                    <input class="form-control" type="hidden" name="value" id="value" value="{{ $driver_balance->final }}">
+                                    <input class="form-control" type="text" disabled value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
+                                    @if($errors->has('value'))
+                                    <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
+                                    @endif
+                                    <span class="help-block">{{ trans('cruds.receipt.fields.value_helper') }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group {{ $errors->has('tvde_week') ? 'has-error' : '' }}">
+                                    <label class="required" for="tvde_week_id">{{ trans('cruds.receipt.fields.tvde_week') }}</label>
+                                    <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>
+                                        @foreach($tvde_weeks as $tvde_week)
+                                            <option value="{{ $tvde_week->id }}" {{ old('tvde_week_id') == $tvde_week->id ? 'selected' : '' }}>{{ $tvde_week->start_date }}</option>
+                                        @endforeach
+                                    </select>
+                                    @if($errors->has('tvde_week'))
+                                        <span class="help-block" role="alert">{{ $errors->first('tvde_week') }}</span>
+                                    @endif
+                                    <span class="help-block">{{ trans('cruds.receipt.fields.tvde_week_helper') }}</span>
+                                </div>
+                            </div>
                         </div>
+                        
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">{{ trans('cruds.receipt.fields.file') }}</label>
                             <div class="needsclick dropzone" id="file-dropzone">

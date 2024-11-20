@@ -66,6 +66,9 @@
                                     {{ trans('cruds.receipt.fields.paid') }}
                                 </th>
                                 <th>
+                                    {{ trans('cruds.receipt.fields.tvde_week') }}
+                                </th>
+                                <th>
                                     {{ trans('cruds.receipt.fields.created_at') }}
                                 </th>
                                 <th>
@@ -104,6 +107,14 @@
                                 <td>
                                 </td>
                                 <td>
+                                </td>
+                                <td>
+                                    <select class="search">
+                                        <option value>{{ trans('global.all') }}</option>
+                                        @foreach($tvde_weeks as $key => $item)
+                                            <option value="{{ $item->start_date }}">{{ $item->start_date }}</option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td>
                                 </td>
@@ -177,6 +188,7 @@
 { data: 'verified', name: 'verified' },
 { data: 'amount_transferred', name: 'amount_transferred'},
 { data: 'paid', name: 'paid'},
+{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
 { data: 'created_at', name: 'created_at' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],

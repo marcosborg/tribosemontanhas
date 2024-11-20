@@ -46,6 +46,7 @@
                                         <th>Exercício Total</th>
                                         <th>Tesouraria</th>
                                         <th>IVA</th>
+                                        <th style="text-align: right;">Recibo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -55,6 +56,7 @@
                                         <td>{{ number_format($data->total_expense, 2) }} €</td>
                                         <td>{{ number_format($data->total_exercise, 2) }} €</td>
                                         <td>{{ number_format($data->vat, 2) }} €</td>
+                                        <td style="text-align: right;">{{ $data->receipt ? 'X' : '' }}</td>
                                     </tr>
                                     @endforeach
                                 </tbody>

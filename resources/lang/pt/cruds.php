@@ -1209,6 +1209,8 @@ return [
             'verified_value_helper' => ' ',
             'amount_transferred'        => 'Amount Transferred',
             'amount_transferred_helper' => ' ',
+            'tvde_week'                 => 'Tvde Week',
+            'tvde_week_helper'          => ' ',
         ],
     ],
     'myReceipt' => [

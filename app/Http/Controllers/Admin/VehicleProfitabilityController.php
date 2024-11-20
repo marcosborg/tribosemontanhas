@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContractVat;
 use App\Models\CurrentAccount;
 use App\Models\Driver;
+use App\Models\Receipt;
 use App\Models\TvdeWeek;
 use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
@@ -98,6 +99,8 @@ class VehicleProfitabilityController extends Controller
             foreach ($current_accounts as $current_account) {
                 $encoded_data = $current_account->data;
                 $data = json_decode($encoded_data);
+                //CHECK RECEIPT
+                $receipt = Receipt::where('tvde_week_id', $current_account->tvde_week_id)->first();
                 $factor = $contract_vat->iva / 100;
                 $data->iva['gross_iva'] = number_format(($data->total * $factor), 2, '.') ?? 0;
                 $factor = $contract_vat->rf / 100;
@@ -107,9 +110,17 @@ class VehicleProfitabilityController extends Controller
                 $data->iva['vat_value'] = $data->vat_value;
                 $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                 $data->tvde_week = $current_account->tvde_week;
-                $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->salary;
-                $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
-                $data->total_exercise = $data->total_expense + $data->vat;
+                if ($receipt) {
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->salary;
+                    $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
+                    $data->total_exercise = $data->total_expense + $data->vat;
+                } else {
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->salary;
+                    $data->vat = 0;
+                    $data->total_exercise = $data->total_expense;
+                    return $data;
+                }
+                $data->receipt = $receipt;
                 $datas[] = $data;
             }
         }

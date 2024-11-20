@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 use App\Models\DriversBalance;
 use App\Models\Company;
+use App\Models\TvdeWeek;
 
 class ReceiptController extends Controller
 {
@@ -86,10 +87,6 @@ class ReceiptController extends Controller
 
             $table->editColumn('final', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $factor_iva = $driver->contract_vat->iva / 100;
-                $value_iva = $row->value * $factor_iva;
-                $factor_rf = $driver->contract_vat->rf / 100;
-                $value_rf = $row->value * $factor_rf;
                 $final = number_format($row->value, 2);
                 return $driver ? $final : '';
             });
@@ -111,15 +108,20 @@ class ReceiptController extends Controller
                 return '<input id="amount_transferred-' . $row->id . '" type="number" value="' . $row->amount_transferred . '" ' . ($row->verified ? 'disabled' : '') . '>';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'driver', 'file', 'receipt_value', 'amount_transferred', 'paid', 'verified']);
+            $table->addColumn('tvde_week_start_date', function ($row) {
+                return $row->tvde_week ? $row->tvde_week->start_date : '';
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'driver', 'file', 'receipt_value', 'amount_transferred', 'paid', 'verified', 'tvde_week']);
 
             return $table->make(true);
         }
 
         $drivers = Driver::get();
         $companies = Company::all();
+        $tvde_weeks = TvdeWeek::get();
 
-        return view('admin.receipts.index', compact('drivers', 'companies'));
+        return view('admin.receipts.index', compact('drivers', 'companies', 'tvde_weeks'));
     }
 
     public function create()
@@ -128,7 +130,9 @@ class ReceiptController extends Controller
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.receipts.create', compact('drivers'));
+        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.receipts.create', compact('drivers', 'tvde_weeks'));
     }
 
     public function store(StoreReceiptRequest $request)
@@ -166,9 +170,10 @@ class ReceiptController extends Controller
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        $receipt->load('driver');
+        $receipt->load('driver', 'tvde_week');
+        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.receipts.edit', compact('drivers', 'receipt'));
+        return view('admin.receipts.edit', compact('drivers', 'receipt', 'tvde_weeks'));
     }
 
     public function update(UpdateReceiptRequest $request, Receipt $receipt)

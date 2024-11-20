@@ -86,6 +86,18 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.receipt.fields.amount_transferred_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('tvde_week') ? 'has-error' : '' }}">
+                            <label class="required" for="tvde_week_id">{{ trans('cruds.receipt.fields.tvde_week') }}</label>
+                            <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>
+                                @foreach($tvde_weeks as $id => $entry)
+                                    <option value="{{ $id }}" {{ old('tvde_week_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('tvde_week'))
+                                <span class="help-block" role="alert">{{ $errors->first('tvde_week') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.receipt.fields.tvde_week_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
