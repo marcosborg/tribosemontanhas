@@ -219,7 +219,7 @@
                         <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->total - $driver->balance, 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->total + $driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">
                             <div class="checkbox">
                                 <label>
