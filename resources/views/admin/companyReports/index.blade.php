@@ -173,7 +173,7 @@
                         <th style="text-align: right;">Via verde</th>
                         <th style="text-align: right;">Aluguer</th>
                         <th style="text-align: right;">Saldo</th>
-                        <th style="text-align: right">Saldo da semana</th>
+                        <th style="text-align: right">Valor da semana</th>
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
                         <th></th>
@@ -219,7 +219,7 @@
                         <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->total + $driver->balance, 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->final_total, 2) }} <small>€</small></td>
                         <td style="text-align: right">
                             <div class="checkbox">
                                 <label>
