@@ -85,20 +85,13 @@ class VehicleProfitabilityController extends Controller
                 ];
             });
 
-            $vehicle_expenses = VehicleExpense::where(function ($query) use ($dates) {
-                foreach ($dates as $date) {
-                    $query->orWhere(function ($subQuery) use ($date) {
-                        $subQuery->where('date', '>=', $date['start_date'])
-                            ->where('date', '<=', $date['end_date']);
-                    });
-                }
-            })->sum('value');
-
             $datas = [];
 
             foreach ($current_accounts as $current_account) {
                 $encoded_data = $current_account->data;
                 $data = json_decode($encoded_data);
+                $vehicle_expenses = 0;
+                $vehicle_expenses = VehicleExpense::whereBetween('date', [$current_account->tvde_week->start_date, $current_account->tvde_week->end_date])->sum('value');
                 //CHECK RECEIPT
                 $receipt = Receipt::where('tvde_week_id', $current_account->tvde_week_id)->first();
                 if ($receipt) {
@@ -111,7 +104,9 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['vat_value'] = $data->vat_value;
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $data->salary;
+                    $data->vehicle_expenses = $vehicle_expenses ?? 0;
+                    $data->iva['vehicle_expenses_iva'] = $data->vehicle_expenses = 0 ? 0 : ($data->vehicle_expenses / 1.23) * 0.23;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $data->salary - $data->vehicle_expenses;
                     $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
@@ -125,8 +120,10 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['vat_value'] = $data->vat_value;
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->adjustments;
-                    $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value;
+                    $data->vehicle_expenses = $vehicle_expenses ?? 0;
+                    $data->iva['vehicle_expenses_iva'] = $data->vehicle_expenses = 0 ? 0 : ($data->vehicle_expenses / 1.23) * 0.23;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->adjustments - $vehicle_expenses;
+                    $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value - $data->iva['vehicle_expenses_iva'];
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
                 }
