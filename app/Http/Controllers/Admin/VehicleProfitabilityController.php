@@ -87,7 +87,7 @@ class VehicleProfitabilityController extends Controller
 
             $datas = [];
 
-            foreach ($current_accounts as $current_account) {
+            foreach ($current_accounts as $key => $current_account) {
                 $encoded_data = $current_account->data;
                 $data = json_decode($encoded_data);
                 $vehicle_expenses = 0;
@@ -105,7 +105,6 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses ?? 0;
-                    $data->iva['vehicle_expenses_iva'] = $data->vehicle_expenses = 0 ? 0 : ($data->vehicle_expenses / 1.23) * 0.23;
                     $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $data->salary - $data->vehicle_expenses;
                     $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value;
                     $data->total_exercise = $data->total_expense + $data->vat;
@@ -121,9 +120,8 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses ?? 0;
-                    $data->iva['vehicle_expenses_iva'] = $data->vehicle_expenses = 0 ? 0 : ($data->vehicle_expenses / 1.23) * 0.23;
                     $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $data->adjustments - $vehicle_expenses;
-                    $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value - $data->iva['vehicle_expenses_iva'];
+                    $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
                 }
