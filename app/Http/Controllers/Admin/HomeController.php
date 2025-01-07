@@ -56,15 +56,15 @@ class HomeController
         ])->first();
 
         $factor = $driver->contract_vat->iva / 100;
-        $iva = number_format(($driver_balance->value * $factor), 2, '.');
-        $driver_balance->iva = $iva ?? 0;
+        $iva = number_format(($driver_balance->value ?? 0 * $factor), 2, '.');
+        $driver_balance ? $driver_balance->iva = $iva ?? 0 : 0;
 
         $factor = $driver->contract_vat->rf / 100;
-        $rf = number_format(-($driver_balance->value * $factor), 2, '.');
-        $driver_balance->rf = $rf ?? 0;
+        $rf = number_format(-($driver_balance->value ?? 0 * $factor), 2, '.');
+        $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
 
-        $final = number_format($driver_balance->value + $iva + $rf, 2);
-        $driver_balance->final = $final ?? 0;
+        $final = number_format($driver_balance->value ?? 0 + $iva + $rf, 2);
+        $driver_balance ? $driver_balance->final = $final ?? 0 : 0;
 
         return view('home')->with([
             'company_id' => $company_id,

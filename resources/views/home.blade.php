@@ -170,15 +170,15 @@
                         <tbody>
                             <tr>
                                 <th>Saldo da semana</th>
-                                <td>{{ $driver_balance->balance }}€</td>
+                                <td>{{ $driver_balance->balance ?? 0 }}€</td>
                             </tr>
                             <tr>
                                 <th>IVA a devolver:</th>
-                                <td>{{ $driver_balance->iva }}€</td>
+                                <td>{{ $driver_balance->iva ?? 0 }}€</td>
                             </tr>
                             <tr>
                                 <th>Retenção na fonte</th>
-                                <td>{{ $driver_balance->rf }}€</td>
+                                <td>{{ $driver_balance->rf ?? 0 }}€</td>
                             </tr>
                         </tbody>
                     </table>
