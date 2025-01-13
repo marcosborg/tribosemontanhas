@@ -391,6 +391,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('expense_receipt_access')
+                            <li class="{{ request()->is("admin/expense-receipts") || request()->is("admin/expense-receipts/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.expense-receipts.index") }}">
+                                    <i class="fa-fw fas fa-file-invoice-dollar">
+
+                                    </i>
+                                    <span>{{ trans('cruds.expenseReceipt.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                 </ul>
             </li>
             @endcan

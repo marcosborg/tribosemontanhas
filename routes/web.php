@@ -541,6 +541,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         Route::get('set-vehicle-item-id/{vehicle_item_id}', 'VehicleProfitabilityController@setVehicleItemId');
         Route::post('set-interval', 'VehicleProfitabilityController@setInterval');
     });
+
+    // Expense Receipts
+    Route::delete('expense-receipts/destroy', 'ExpenseReceiptsController@massDestroy')->name('expense-receipts.massDestroy');
+    Route::post('expense-receipts/media', 'ExpenseReceiptsController@storeMedia')->name('expense-receipts.storeMedia');
+    Route::post('expense-receipts/ckmedia', 'ExpenseReceiptsController@storeCKEditorImages')->name('expense-receipts.storeCKEditorImages');
+    Route::resource('expense-receipts', 'ExpenseReceiptsController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
