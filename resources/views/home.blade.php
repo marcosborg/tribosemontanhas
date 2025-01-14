@@ -217,7 +217,7 @@
                         </div>
                         
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
-                            <label class="required" for="file">{{ trans('cruds.receipt.fields.file') }}</label>
+                            <label class="required" for="file">Recibo verde</label>
                             <div class="needsclick dropzone" id="file-dropzone">
                             </div>
                             @if($errors->has('file'))
@@ -226,8 +226,8 @@
                             <span class="help-block">{{ trans('cruds.receipt.fields.file_helper') }}</span>
                         </div>
                         <div class="form-group">
-                            <button class="btn btn-danger" type="submit">
-                                {{ trans('global.save') }}
+                            <button class="btn btn-success" type="submit">
+                                Enviar recibo verde
                             </button>
                         </div>
                     </form>
