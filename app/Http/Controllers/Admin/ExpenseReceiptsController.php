@@ -51,7 +51,7 @@ class ExpenseReceiptsController extends Controller
             Media::whereIn('id', $media)->update(['model_id' => $expenseReceipt->id]);
         }
 
-        return redirect()->route('admin.expense-receipts.index');
+        return redirect()->back();
     }
 
     public function edit(ExpenseReceipt $expenseReceipt)
@@ -85,7 +85,7 @@ class ExpenseReceiptsController extends Controller
             }
         }
 
-        return redirect()->route('admin.expense-receipts.index');
+        return redirect()->back();
     }
 
     public function show(ExpenseReceipt $expenseReceipt)

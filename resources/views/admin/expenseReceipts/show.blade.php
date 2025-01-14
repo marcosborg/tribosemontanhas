@@ -61,6 +61,14 @@
                                         {{ $expenseReceipt->approved_value }}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.expenseReceipt.fields.verified') }}
+                                    </th>
+                                    <td>
+                                        <input type="checkbox" disabled="disabled" {{ $expenseReceipt->verified ? 'checked' : '' }}>
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

@@ -40,6 +40,9 @@
                                         {{ trans('cruds.expenseReceipt.fields.approved_value') }}
                                     </th>
                                     <th>
+                                        {{ trans('cruds.expenseReceipt.fields.verified') }}
+                                    </th>
+                                    <th>
                                         &nbsp;
                                     </th>
                                 </tr>
@@ -68,6 +71,10 @@
                                         </td>
                                         <td>
                                             {{ $expenseReceipt->approved_value ?? '' }}
+                                        </td>
+                                        <td>
+                                            <span style="display:none">{{ $expenseReceipt->verified ?? '' }}</span>
+                                            <input type="checkbox" disabled="disabled" {{ $expenseReceipt->verified ? 'checked' : '' }}>
                                         </td>
                                         <td>
                                             @can('expense_receipt_show')

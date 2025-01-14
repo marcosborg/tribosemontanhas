@@ -30,6 +30,7 @@ class ExpenseReceipt extends Model implements HasMedia
         'driver_id',
         'tvde_week_id',
         'approved_value',
+        'verified',
         'created_at',
         'updated_at',
         'deleted_at',

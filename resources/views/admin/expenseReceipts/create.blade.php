@@ -52,6 +52,17 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.expenseReceipt.fields.approved_value_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('verified') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="verified" value="0">
+                                <input type="checkbox" name="verified" id="verified" value="1" {{ old('verified', 0) == 1 ? 'checked' : '' }}>
+                                <label for="verified" style="font-weight: 400">{{ trans('cruds.expenseReceipt.fields.verified') }}</label>
+                            </div>
+                            @if($errors->has('verified'))
+                                <span class="help-block" role="alert">{{ $errors->first('verified') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.expenseReceipt.fields.verified_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
