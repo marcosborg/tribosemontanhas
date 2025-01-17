@@ -67,10 +67,16 @@ class HomeController
         $final = number_format($driver_balance->value ?? 0 + $iva + $rf, 2);
         $driver_balance ? $driver_balance->final = $final ?? 0 : 0;
 
+        //VERIFICAR RECIBOS DE DESPESAS
+
         $expenseReceipt = ExpenseReceipt::where([
             'driver_id' => $driver_id,
             'tvde_week_id' => $tvde_week_id
         ])->first();
+
+        if($expenseReceipt && $expenseReceipt->verified) {
+            $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
+        }
 
         return view('home')->with([
             'company_id' => $company_id,
@@ -95,7 +101,7 @@ class HomeController
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
-            'expenseReceipt' => $expense_receipt ?? null,
+            'expenseReceipt' => $expenseReceipt ?? null,
         ]);
     }
 
