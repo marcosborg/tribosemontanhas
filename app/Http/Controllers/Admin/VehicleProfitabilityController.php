@@ -88,7 +88,7 @@ class VehicleProfitabilityController extends Controller
             $datas = [];
 
             foreach ($current_accounts as $key => $current_account) {
-                if ($key === 0) {
+                if ($key === 2) {
                     $encoded_data = $current_account->data;
                     $data = json_decode($encoded_data);
                     $vehicle_expenses_value = 0;
@@ -114,8 +114,20 @@ class VehicleProfitabilityController extends Controller
                         $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                         $data->tvde_week = $current_account->tvde_week;
                         $data->vehicle_expenses = $vehicle_expenses_value > 0 ? $vehicle_expenses_value * 1.23 : 0;
-                        $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $receipt->amount_transfered - $data->vehicle_expenses;
-                        $data->vat = /*$data->iva['fuel_transactions_iva'] + */$data->iva['gross_iva'] - $data->vat_value - $vehicle_expenses_iva;
+                        $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - $data->adjustments - $receipt->amount_transferred - $data->vehicle_expenses;
+                        
+                        return [
+                            'total_net' => $data->total_net,
+                            'fuel_transactions' => $data->fuel_transactions,
+                            'car_track' => $data->car_track,
+                            'rf' => $rf,
+                            'adjustments' => $data->adjustments,
+                            'amount_transfered' => $receipt->amount_transferred,
+                            'vehicle_expenses' => $data->vehicle_expenses,
+                            'adjustments' => $data->adjustments,
+                        ];
+                        
+                        $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value - $vehicle_expenses_iva;
                         $data->total_exercise = $data->total_expense + $data->vat;
                         $data->receipt = $receipt;
                     } else {
