@@ -32,10 +32,12 @@ class VehicleExpense extends Model implements HasMedia
         'Manutenção' => 'Manutenção',
         'Penus'      => 'Pneus',
         'Rent'       => 'Rent',
+        'Seguro'     => 'Seguro',
         'Outros'     => 'Outros',
     ];
 
     protected $fillable = [
+        'vehicle_item_id',
         'expense_type',
         'date',
         'description',
@@ -70,5 +72,10 @@ class VehicleExpense extends Model implements HasMedia
     public function getFilesAttribute()
     {
         return $this->getMedia('files');
+    }
+
+    public function vehicle_item()
+    {
+        return $this->belongsTo(VehicleItem::class, 'vehicle_item_id');
     }
 }

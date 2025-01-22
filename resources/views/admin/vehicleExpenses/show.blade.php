@@ -27,6 +27,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleExpense.fields.vehicle_item') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleExpense->vehicle_item->license_plate ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleExpense.fields.expense_type') }}
                                     </th>
                                     <td>

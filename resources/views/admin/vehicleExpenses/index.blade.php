@@ -31,6 +31,9 @@
                                     {{ trans('cruds.vehicleExpense.fields.id') }}
                                 </th>
                                 <th>
+                                    {{ trans('cruds.vehicleExpense.fields.vehicle_item') }}
+                                </th>
+                                <th>
                                     {{ trans('cruds.vehicleExpense.fields.expense_type') }}
                                 </th>
                                 <th>
@@ -54,6 +57,14 @@
                                 </td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td>
+                                <td>
+                                    <select class="search">
+                                        <option value>{{ trans('global.all') }}</option>
+                                        @foreach($vehicle_items as $key => $item)
+                                            <option value="{{ $item->license_plate }}">{{ $item->license_plate }}</option>
+                                        @endforeach
+                                    </select>
                                 </td>
                                 <td>
                                     <select class="search" strict="true">
@@ -132,6 +143,7 @@
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
+{ data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
 { data: 'expense_type', name: 'expense_type' },
 { data: 'date', name: 'date' },
 { data: 'files', name: 'files', sortable: false, searchable: false },

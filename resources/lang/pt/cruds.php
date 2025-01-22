@@ -2353,6 +2353,8 @@ return [
             'deleted_at_helper'   => ' ',
             'vat'                 => 'IVA',
             'vat_helper'          => ' ',
+            'vehicle_item'        => 'Viatura',
+            'vehicle_item_helper' => ' ',
         ],
     ],
     'vehicleProfitability' => [

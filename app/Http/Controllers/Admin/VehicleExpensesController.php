@@ -9,6 +9,7 @@ use App\Http\Requests\MassDestroyVehicleExpenseRequest;
 use App\Http\Requests\StoreVehicleExpenseRequest;
 use App\Http\Requests\UpdateVehicleExpenseRequest;
 use App\Models\VehicleExpense;
+use App\Models\VehicleItem;
 use Gate;
 use Illuminate\Http\Request;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -24,7 +25,7 @@ class VehicleExpensesController extends Controller
         abort_if(Gate::denies('vehicle_expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = VehicleExpense::query()->select(sprintf('%s.*', (new VehicleExpense)->table));
+            $query = VehicleExpense::with(['vehicle_item'])->select(sprintf('%s.*', (new VehicleExpense)->table));
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -48,6 +49,10 @@ class VehicleExpensesController extends Controller
             $table->editColumn('id', function ($row) {
                 return $row->id ? $row->id : '';
             });
+            $table->addColumn('vehicle_item_license_plate', function ($row) {
+                return $row->vehicle_item ? $row->vehicle_item->license_plate : '';
+            });
+
             $table->editColumn('expense_type', function ($row) {
                 return $row->expense_type ? VehicleExpense::EXPENSE_TYPE_RADIO[$row->expense_type] : '';
             });
@@ -70,19 +75,23 @@ class VehicleExpensesController extends Controller
                 return $row->vat ? $row->vat : '';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'files']);
+            $table->rawColumns(['actions', 'placeholder', 'vehicle_item', 'files']);
 
             return $table->make(true);
         }
 
-        return view('admin.vehicleExpenses.index');
+        $vehicle_items = VehicleItem::get();
+
+        return view('admin.vehicleExpenses.index', compact('vehicle_items'));
     }
 
     public function create()
     {
         abort_if(Gate::denies('vehicle_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.vehicleExpenses.create');
+        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.vehicleExpenses.create', compact('vehicle_items'));
     }
 
     public function store(StoreVehicleExpenseRequest $request)
@@ -104,7 +113,11 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.vehicleExpenses.edit', compact('vehicleExpense'));
+        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        $vehicleExpense->load('vehicle_item');
+
+        return view('admin.vehicleExpenses.edit', compact('vehicleExpense', 'vehicle_items'));
     }
 
     public function update(UpdateVehicleExpenseRequest $request, VehicleExpense $vehicleExpense)
@@ -131,6 +144,8 @@ class VehicleExpensesController extends Controller
     public function show(VehicleExpense $vehicleExpense)
     {
         abort_if(Gate::denies('vehicle_expense_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $vehicleExpense->load('vehicle_item');
 
         return view('admin.vehicleExpenses.show', compact('vehicleExpense'));
     }
