@@ -1357,6 +1357,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('vehicle_usage_access')
+                            <li class="{{ request()->is("admin/vehicle-usages") || request()->is("admin/vehicle-usages/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.vehicle-usages.index") }}">
+                                    <i class="fa-fw fas fa-calendar-plus">
+
+                                    </i>
+                                    <span>{{ trans('cruds.vehicleUsage.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                     <li class="{{ request()->is("admin/system-calendar") || request()->is("admin/system-calendar/*") ?
                         "active"
                         : "" }}">

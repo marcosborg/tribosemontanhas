@@ -537,7 +537,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Vehicle Profitability
     Route::prefix('vehicle-profitabilities')->group(function() {
-        Route::get('/{start_date?}/{end_date?}', 'VehicleProfitabilityController@index')->name('vehicle-profitabilities.index');
+        Route::get('/', 'VehicleProfitabilityController@index')->name('vehicle-profitabilities.index');
         Route::get('set-vehicle-item-id/{vehicle_item_id}', 'VehicleProfitabilityController@setVehicleItemId');
         Route::post('set-interval', 'VehicleProfitabilityController@setInterval');
     });
@@ -547,6 +547,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('expense-receipts/media', 'ExpenseReceiptsController@storeMedia')->name('expense-receipts.storeMedia');
     Route::post('expense-receipts/ckmedia', 'ExpenseReceiptsController@storeCKEditorImages')->name('expense-receipts.storeCKEditorImages');
     Route::resource('expense-receipts', 'ExpenseReceiptsController');
+
+    // Vehicle Usage
+    Route::delete('vehicle-usages/destroy', 'VehicleUsageController@massDestroy')->name('vehicle-usages.massDestroy');
+    Route::resource('vehicle-usages', 'VehicleUsageController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\MassDestroyVehicleUsageRequest;
+use App\Http\Requests\StoreVehicleUsageRequest;
+use App\Http\Requests\UpdateVehicleUsageRequest;
+use App\Models\Driver;
+use App\Models\VehicleItem;
+use App\Models\VehicleUsage;
+use Gate;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Yajra\DataTables\Facades\DataTables;
+
+class VehicleUsageController extends Controller
+{
+    public function index(Request $request)
+    {
+        abort_if(Gate::denies('vehicle_usage_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($request->ajax()) {
+            $query = VehicleUsage::with(['driver', 'vehicle_item'])->select(sprintf('%s.*', (new VehicleUsage)->table));
+            $table = Datatables::of($query);
+
+            $table->addColumn('placeholder', '&nbsp;');
+            $table->addColumn('actions', '&nbsp;');
+
+            $table->editColumn('actions', function ($row) {
+                $viewGate      = 'vehicle_usage_show';
+                $editGate      = 'vehicle_usage_edit';
+                $deleteGate    = 'vehicle_usage_delete';
+                $crudRoutePart = 'vehicle-usages';
+
+                return view('partials.datatablesActions', compact(
+                    'viewGate',
+                    'editGate',
+                    'deleteGate',
+                    'crudRoutePart',
+                    'row'
+                ));
+            });
+
+            $table->editColumn('id', function ($row) {
+                return $row->id ? $row->id : '';
+            });
+            $table->addColumn('driver_name', function ($row) {
+                return $row->driver ? $row->driver->name : '';
+            });
+
+            $table->addColumn('vehicle_item_license_plate', function ($row) {
+                return $row->vehicle_item ? $row->vehicle_item->license_plate : '';
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'driver', 'vehicle_item']);
+
+            return $table->make(true);
+        }
+
+        return view('admin.vehicleUsages.index');
+    }
+
+    public function create()
+    {
+        abort_if(Gate::denies('vehicle_usage_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.vehicleUsages.create', compact('drivers', 'vehicle_items'));
+    }
+
+    public function store(StoreVehicleUsageRequest $request)
+    {
+        $vehicleUsage = VehicleUsage::create($request->all());
+
+        return redirect()->route('admin.vehicle-usages.index');
+    }
+
+    public function edit(VehicleUsage $vehicleUsage)
+    {
+        abort_if(Gate::denies('vehicle_usage_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        $vehicleUsage->load('driver', 'vehicle_item');
+
+        return view('admin.vehicleUsages.edit', compact('drivers', 'vehicleUsage', 'vehicle_items'));
+    }
+
+    public function update(UpdateVehicleUsageRequest $request, VehicleUsage $vehicleUsage)
+    {
+        $vehicleUsage->update($request->all());
+
+        return redirect()->route('admin.vehicle-usages.index');
+    }
+
+    public function show(VehicleUsage $vehicleUsage)
+    {
+        abort_if(Gate::denies('vehicle_usage_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $vehicleUsage->load('driver', 'vehicle_item');
+
+        return view('admin.vehicleUsages.show', compact('vehicleUsage'));
+    }
+
+    public function destroy(VehicleUsage $vehicleUsage)
+    {
+        abort_if(Gate::denies('vehicle_usage_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $vehicleUsage->delete();
+
+        return back();
+    }
+
+    public function massDestroy(MassDestroyVehicleUsageRequest $request)
+    {
+        $vehicleUsages = VehicleUsage::find(request('ids'));
+
+        foreach ($vehicleUsages as $vehicleUsage) {
+            $vehicleUsage->delete();
+        }
+
+        return response(null, Response::HTTP_NO_CONTENT);
+    }
+}

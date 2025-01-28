@@ -43,11 +43,8 @@ trait Reports
                 'vehicle'
             ]);
 
-        $total_uber = [];
-        $total_bolt = [];
         $total_operators = [];
         $total_earnings_after_discount = [];
-        $total_tips_after_discount = [];
         $total_fuel_transactions = [];
         $total_adjustments = [];
         $total_fleet_management = [];
@@ -224,7 +221,8 @@ trait Reports
                 'total_after_vat' => $total_after_vat,
                 'adjustments' => $adjustments,
                 'fuel_transactions' => $fuel_transactions,
-                'car_hire' => $car_hire ? $car_hire->amount : 0
+                'car_hire' => $car_hire ? $car_hire->amount : 0,
+                'company_expense' => $total_company_adjustments,
             ]);
 
             $driver->earnings = $earnings;
