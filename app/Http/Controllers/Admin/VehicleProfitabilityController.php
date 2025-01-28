@@ -114,7 +114,7 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses_value > 0 ? $vehicle_expenses_value * 1.23 : 0;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - ($data->company_expense ? $data->company_expense : $data->adjustments) - $receipt->amount_transferred - $data->vehicle_expenses;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $receipt->amount_transferred - $data->vehicle_expenses;
                     $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value - $vehicle_expenses_iva;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
@@ -129,7 +129,7 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses ?? 0;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - ($data->company_expense ? $data->company_expense : $data->adjustments) - $vehicle_expenses_value;
+                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $vehicle_expenses_value;
                     $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value - $vehicle_expenses_iva;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
