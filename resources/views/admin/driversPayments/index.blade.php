@@ -38,7 +38,7 @@
                     @endforeach
                 </tbody>
             </table>
-            <a href="" id="download-link" class="btn btn-success btn-sm">Download</a>
+            <a href="https://tribosemontanhas.gestvde.pt/assets/payment.xml" target="_new" id="download-link" class="btn btn-success btn-sm">Download</a>
         </div>
     </div>
 </div>
