@@ -2,8 +2,8 @@
 <Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03">
   <CstmrCdtTrfInitn>
     <GrpHdr>
-      <MsgId>MSG20250114T123000</MsgId>
-      <CreDtTm>2025-01-14T12:30:00</CreDtTm>
+      <MsgId>MSG20250205T123000</MsgId>
+      <CreDtTm>2025-02-05T12:30:00</CreDtTm>
       <NbOfTxs>1</NbOfTxs>
       <CtrlSum>270.40</CtrlSum>
       <InitgPty>
@@ -14,7 +14,7 @@
       <PmtInfId>PAY20250205T123000</PmtInfId>
       <PmtMtd>TRF</PmtMtd>
       <NbOfTxs>1</NbOfTxs>
-      <CtrlSum>270.40/CtrlSum>
+      <CtrlSum>270.40</CtrlSum>
       <ReqdExctnDt>2025-02-05</ReqdExctnDt>
       <Dbtr>
         <Nm>Tribos &amp; Montanhas</Nm>
