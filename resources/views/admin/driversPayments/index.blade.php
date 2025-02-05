@@ -8,7 +8,7 @@
                     {{ trans('cruds.driversPayment.title') }}
                 </div>
                 <div class="col-md-6">
-                    <button class="btn btn-primary btn-sm pull-right" onclick="createXml()">Criar ficheiro bancário</button>
+                    <a href="https://tribosemontanhas.gestvde.pt/assets/payment.xml" target="_new" id="download-link" class="btn btn-success btn-sm" download>Download</a>
                 </div>
             </div>
         </div>
@@ -42,35 +42,4 @@
         </div>
     </div>
 </div>
-@endsection
-
-@section('scripts')
-<script>
-    // Configura o token CSRF para requisições AJAX
-    $.ajaxSetup({
-        headers: {
-            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-        }
-    });
-
-    // Função para capturar os checkboxes selecionados e enviar via AJAX
-    function createXml() {
-        let selectedReceipts = [];
-
-        $('.receipt-checkbox:checked').each(function() {
-            selectedReceipts.push($(this).data('id'));
-        });
-
-        let data = {
-            selectedReceipts: selectedReceipts
-        };
-
-        $.post('/admin/drivers-payments/create-xml', data).then((resp) => {
-            $('#download-link').attr('href', resp.downloadUrl);
-        }).fail((err) => {
-            console.error("Erro ao gerar o XML:", err);
-        });
-    }
-
-</script>
 @endsection
