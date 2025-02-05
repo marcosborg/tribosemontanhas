@@ -11,10 +11,10 @@
       </InitgPty>
     </GrpHdr>
     <PmtInf>
-      <PmtInfId>PAY20250114T123000</PmtInfId>
+      <PmtInfId>PAY20250205T123000</PmtInfId>
       <PmtMtd>TRF</PmtMtd>
       <NbOfTxs>1</NbOfTxs>
-      <CtrlSum>5.00</CtrlSum>
+      <CtrlSum>270.40/CtrlSum>
       <ReqdExctnDt>2025-02-05</ReqdExctnDt>
       <Dbtr>
         <Nm>Tribos &amp; Montanhas</Nm>
@@ -31,7 +31,7 @@
       </DbtrAgt>
       <CdtTrfTxInf>
         <PmtId>
-          <EndToEndId>TRANS20250114T123000</EndToEndId>
+          <EndToEndId>TRANS20250205T123000</EndToEndId>
         </PmtId>
         <Amt>
           <InstdAmt Ccy="EUR">270.40</InstdAmt>
