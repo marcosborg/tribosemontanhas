@@ -5,7 +5,7 @@
       <MsgId>MSG20250114T123000</MsgId>
       <CreDtTm>2025-01-14T12:30:00</CreDtTm>
       <NbOfTxs>1</NbOfTxs>
-      <CtrlSum>242.51</CtrlSum>
+      <CtrlSum>270.40</CtrlSum>
       <InitgPty>
         <Nm>Tribos &amp; Montanhas</Nm>
       </InitgPty>
@@ -34,7 +34,7 @@
           <EndToEndId>TRANS20250114T123000</EndToEndId>
         </PmtId>
         <Amt>
-          <InstdAmt Ccy="EUR">242.51</InstdAmt>
+          <InstdAmt Ccy="EUR">270.40</InstdAmt>
         </Amt>
         <Cdtr>
           <Nm>TVDE - Paula Monteiro</Nm>
