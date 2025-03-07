@@ -83,4 +83,9 @@ class VehicleItem extends Model implements HasMedia
     {
         return $this->belongsTo(Driver::class, 'driver_id');
     }
+
+    public function vehicle_usage()
+    {
+        return $this->hasMany(VehicleUsage::class, 'vehicle_item_id');
+    }
 }

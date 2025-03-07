@@ -10,6 +10,7 @@ use App\Models\Receipt;
 use App\Models\TvdeWeek;
 use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
+use App\Models\VehicleUsage;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -64,6 +65,29 @@ class VehicleProfitabilityController extends Controller
             }
         }
 
+        $driver_id = $vehicle_item->driver->id;
+
+        // Definir o período da tvde_week
+        $tvde_start = $tvde_week->start_date;
+        $tvde_end = $tvde_week->end_date;
+
+        // Buscar o VehicleUsage correspondente ao período da tvde_week e ao vehicle_item_id atual
+        $vehicleUsage = VehicleUsage::where('vehicle_item_id', $vehicle_item_id)
+            ->where(function ($query) use ($tvde_start, $tvde_end) {
+                $query->whereBetween('start_date', [$tvde_start, $tvde_end])
+                    ->orWhereBetween('end_date', [$tvde_start, $tvde_end])
+                    ->orWhere(function ($query) use ($tvde_start, $tvde_end) {
+                        $query->where('start_date', '<=', $tvde_start)
+                            ->where('end_date', '>=', $tvde_end);
+                    });
+            })
+            ->latest('start_date') // Pegamos o mais recente no período
+            ->first();
+
+        if ($vehicleUsage) {
+            $driver_id = $vehicleUsage->driver_id; // Atualiza driver_id com base no VehicleUsage
+        }
+
         if ($screen == 'weeks') {
             $start_date = Carbon::parse($tvde_week->start_date);
             $year = $start_date->year;
@@ -73,10 +97,10 @@ class VehicleProfitabilityController extends Controller
                 $query->whereYear('start_date', $year)
                     ->whereMonth('start_date', $month);
             })
-                ->where('driver_id', $vehicle_item->driver->id)
+                ->where('driver_id', $driver_id)
                 ->get()->load('tvde_week');
 
-            $contract_vat = Driver::find($vehicle_item->driver->id)->load('contract_vat')->contract_vat;
+            $contract_vat = Driver::find($driver_id)->load('contract_vat')->contract_vat;
 
             $dates = $current_accounts->map(function ($account) {
                 return [
@@ -114,7 +138,7 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses_value > 0 ? $vehicle_expenses_value * 1.23 : 0;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - $rf - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $receipt->amount_transferred - $data->vehicle_expenses;
+                    $data->total_expense = $data->total_net ?? 0 - $data->fuel_transactions - $data->car_track - $rf - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $receipt->amount_transferred - $data->vehicle_expenses;
                     $data->vat = $data->iva['fuel_transactions_iva'] + $data->iva['gross_iva'] - $data->vat_value - $vehicle_expenses_iva;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
@@ -129,7 +153,7 @@ class VehicleProfitabilityController extends Controller
                     $data->iva['fuel_transactions_iva'] = ($data->fuel_transactions / 1.23) * 0.23;
                     $data->tvde_week = $current_account->tvde_week;
                     $data->vehicle_expenses = $vehicle_expenses ?? 0;
-                    $data->total_expense = $data->total_net - $data->fuel_transactions - $data->car_track - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $vehicle_expenses_value;
+                    $data->total_expense = $data->total_net ?? 0 - $data->fuel_transactions - $data->car_track - (isset($data->company_expense) ? $data->company_expense : $data->adjustments) - $vehicle_expenses_value;
                     $data->vat = $data->iva['fuel_transactions_iva'] - $data->vat_value - $vehicle_expenses_iva;
                     $data->total_exercise = $data->total_expense + $data->vat;
                     $data->receipt = $receipt;
