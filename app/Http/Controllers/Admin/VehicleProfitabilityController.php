@@ -65,7 +65,7 @@ class VehicleProfitabilityController extends Controller
             }
         }
 
-        $driver_id = $vehicle_item->driver->id;
+        $driver_id = $vehicle_item->driver ? $vehicle_item->driver->id : 0;
 
         // Definir o período da tvde_week
         $tvde_start = $tvde_week->start_date;
@@ -100,7 +100,13 @@ class VehicleProfitabilityController extends Controller
                 ->where('driver_id', $driver_id)
                 ->get()->load('tvde_week');
 
-            $contract_vat = Driver::find($driver_id)->load('contract_vat')->contract_vat;
+            $driver = Driver::find($driver_id);
+
+            if($driver) {
+                $contract_vat = $driver->load('contract_vat')->contract_vat;
+            } else {
+                $contract_vat = 0;
+            }
 
             $dates = $current_accounts->map(function ($account) {
                 return [
