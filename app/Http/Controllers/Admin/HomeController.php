@@ -97,7 +97,7 @@ class HomeController
             'total_gross' => isset($results) ? $results->total_gross : 0,
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
-            'adjustments_array' => isset($results) ? $results->adjustments_array : 0,
+            'adjustments_array' => isset($results) && isset($results->adjustments_array) ? $results->adjustments_array : 0,
             'total' => isset($results) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,

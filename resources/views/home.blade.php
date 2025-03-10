@@ -109,6 +109,7 @@
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                             </tr>
+                            @if ($adjustments_array)
                             @foreach ($adjustments_array as $adjustment)
                             <tr>
                                 <th>{{ $adjustment->name }}</th>
@@ -120,6 +121,7 @@
                                 </td>
                             </tr>
                             @endforeach
+                            @endif
                             <tr>
                                 <th>IVA</th>
                                 <td></td>
@@ -142,7 +144,6 @@
                 </div>
             </div>
         </div>
-        <script>console.log({!! json_encode($adjustments_array) !!})</script>
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
