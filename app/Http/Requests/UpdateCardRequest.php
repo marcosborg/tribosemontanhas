@@ -21,6 +21,10 @@ class UpdateCardRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'driver' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

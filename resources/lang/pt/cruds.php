@@ -1010,8 +1010,8 @@ return [
         ],
     ],
     'card' => [
-        'title'          => 'Cartão',
-        'title_singular' => 'Cartão',
+        'title'          => 'Cartão PRIO',
+        'title_singular' => 'Cartão PRIO',
         'fields'         => [
             'id'                => 'ID',
             'id_helper'         => ' ',
@@ -1025,6 +1025,8 @@ return [
             'deleted_at_helper' => ' ',
             'company'           => 'Empresa',
             'company_helper'    => ' ',
+            'driver'           => 'Condutor',
+            'driver_helper'    => ' ',
         ],
     ],
     'local' => [

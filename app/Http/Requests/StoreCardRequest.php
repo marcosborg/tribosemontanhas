@@ -21,6 +21,10 @@ class StoreCardRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'driver' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

@@ -21,6 +21,7 @@ class Card extends Model
 
     protected $fillable = [
         'code',
+        'driver',
         'company_id',
         'created_at',
         'updated_at',

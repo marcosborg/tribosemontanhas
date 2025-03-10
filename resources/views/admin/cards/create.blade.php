@@ -31,6 +31,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.card.fields.company_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
+                            <label for="driver">{{ trans('cruds.card.fields.driver') }}</label>
+                            <input class="form-control" type="text" name="driver" id="driver" value="{{ old('driver', '') }}">
+                            @if($errors->has('driver'))
+                                <span class="help-block" role="alert">{{ $errors->first('driver') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.card.fields.driver_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

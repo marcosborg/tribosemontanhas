@@ -31,6 +31,9 @@
                                         {{ trans('cruds.card.fields.code') }}
                                     </th>
                                     <th>
+                                        {{ trans('cruds.card.fields.driver') }}
+                                    </th>
+                                    <th>
                                         {{ trans('cruds.card.fields.company') }}
                                     </th>
                                     <th>
@@ -49,6 +52,9 @@
                                         </td>
                                         <td>
                                             {{ $card->code ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ $card->driver ?? '' }}
                                         </td>
                                         <td>
                                             {{ $card->company->name ?? '' }}
