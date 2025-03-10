@@ -151,7 +151,7 @@ trait Reports
             ->first();
 
             //ADJUSTMENTS
-            $adjustments = Adjustment::whereHas('drivers', function ($query) use ($driver) {
+            $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
                 $query->where('id', $driver->id);
             })
                 ->where('company_id', $company_id)
@@ -170,7 +170,7 @@ trait Reports
             $fleet_management = [];
             $company_expense = [];
 
-            foreach ($adjustments as $adjustment) {
+            foreach ($adjustments_array as $adjustment) {
                 if ($adjustment->type == 'deduct') {
                     if ($adjustment->fleet_management) {
                         $fleet_management[] = $adjustment->amount;
@@ -223,6 +223,7 @@ trait Reports
                 'fuel_transactions' => $fuel_transactions,
                 'car_hire' => $car_hire ? $car_hire->amount : 0,
                 'company_expense' => $total_company_adjustments,
+                'adjustments_array' => $adjustments_array
             ]);
 
             $driver->earnings = $earnings;
@@ -316,7 +317,7 @@ trait Reports
         ])
             ->get();
 
-        $adjustments = Adjustment::whereHas('drivers', function ($query) use ($driver_id) {
+        $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver_id) {
             $query->where('id', $driver_id);
         })
             ->where('company_id', $company_id)
@@ -333,7 +334,7 @@ trait Reports
         $refund = 0;
         $deduct = 0;
 
-        foreach ($adjustments as $adjustment) {
+        foreach ($adjustments_array as $adjustment) {
             switch ($adjustment->type) {
                 case 'refund':
                     if ($adjustment->amount) {
@@ -518,6 +519,7 @@ trait Reports
             'total_tips',
             'total_tip_after_vat',
             'adjustments',
+            'adjustments_array',
             'total_earnings',
             'total_earnings_no_tip',
             'total',

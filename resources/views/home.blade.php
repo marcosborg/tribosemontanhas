@@ -109,12 +109,17 @@
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                             </tr>
+                            @foreach ($adjustments_array as $adjustment)
                             <tr>
-                                <th>Acertos</th>
-                                <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <th>{{ $adjustment->name }}</th>
+                                <td>{{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}</td>
+                                <td>{{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}</td>
+                                <td>
+                                    {{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}
+                                    {{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}
+                                </td>
                             </tr>
+                            @endforeach
                             <tr>
                                 <th>IVA</th>
                                 <td></td>
@@ -137,6 +142,7 @@
                 </div>
             </div>
         </div>
+        <script>console.log({!! json_encode($adjustments_array) !!})</script>
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">

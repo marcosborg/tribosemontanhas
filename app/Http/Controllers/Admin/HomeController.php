@@ -56,26 +56,28 @@ class HomeController
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
-        $factor = $driver->contract_vat->iva / 100;
-        $iva = number_format($driver_balance->value * $factor, 2);
-        $driver_balance->iva = $iva;
-
-        $factor = $driver->contract_vat->rf / 100;
-        $rf = number_format(-($driver_balance->value * $factor), 2);
-        $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
-
-        $final = number_format($driver_balance->value + $iva + $rf, 2);
-        $driver_balance->final = $final;
-
-        //VERIFICAR RECIBOS DE DESPESAS
-
-        $expenseReceipt = ExpenseReceipt::where([
-            'driver_id' => $driver_id,
-            'tvde_week_id' => $tvde_week_id
-        ])->first();
-
-        if($expenseReceipt && $expenseReceipt->verified) {
-            $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
+        if($driver_balance) {
+            $factor = $driver->contract_vat->iva / 100;
+            $iva = number_format($driver_balance->value * $factor, 2);
+            $driver_balance->iva = $iva;
+    
+            $factor = $driver->contract_vat->rf / 100;
+            $rf = number_format(-($driver_balance->value * $factor), 2);
+            $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
+    
+            $final = number_format($driver_balance->value + $iva + $rf, 2);
+            $driver_balance->final = $final;
+    
+            //VERIFICAR RECIBOS DE DESPESAS
+    
+            $expenseReceipt = ExpenseReceipt::where([
+                'driver_id' => $driver_id,
+                'tvde_week_id' => $tvde_week_id
+            ])->first();
+    
+            if($expenseReceipt && $expenseReceipt->verified) {
+                $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
+            }
         }
 
         return view('home')->with([
@@ -95,6 +97,7 @@ class HomeController
             'total_gross' => isset($results) ? $results->total_gross : 0,
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
+            'adjustments_array' => isset($results) ? $results->adjustments_array : 0,
             'total' => isset($results) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
