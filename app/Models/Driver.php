@@ -147,4 +147,9 @@ class Driver extends Model
         return $this->hasOne(VehicleItem::class);
     }
 
+    public function cards()
+    {
+        return $this->belongsToMany(Card::class);
+    }
+
 }

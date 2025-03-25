@@ -1007,6 +1007,8 @@ return [
             'contract_vat_helper'       => ' ',
             'tool_card'             => 'Toll Card',
             'tool_card_helper'      => ' ',
+            'cards'                                => 'Cards',
+            'cards_helper'                         => ' ',
         ],
     ],
     'card' => [
@@ -1027,6 +1029,8 @@ return [
             'company_helper'    => ' ',
             'driver'           => 'Condutor',
             'driver_helper'    => ' ',
+            'type'              => 'Type',
+            'type_helper'       => ' ',
         ],
     ],
     'local' => [

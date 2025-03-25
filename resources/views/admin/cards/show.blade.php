@@ -27,6 +27,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.card.fields.type') }}
+                                    </th>
+                                    <td>
+                                        {{ App\Models\Card::TYPE_RADIO[$card->type] ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.card.fields.code') }}
                                     </th>
                                     <td>

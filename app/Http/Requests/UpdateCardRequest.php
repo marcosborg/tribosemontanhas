@@ -17,6 +17,9 @@ class UpdateCardRequest extends FormRequest
     public function rules()
     {
         return [
+            'type' => [
+                'required',
+            ],
             'code' => [
                 'string',
                 'required',

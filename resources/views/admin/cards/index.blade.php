@@ -28,10 +28,10 @@
                                         {{ trans('cruds.card.fields.id') }}
                                     </th>
                                     <th>
-                                        {{ trans('cruds.card.fields.code') }}
+                                        {{ trans('cruds.card.fields.type') }}
                                     </th>
                                     <th>
-                                        {{ trans('cruds.card.fields.driver') }}
+                                        {{ trans('cruds.card.fields.code') }}
                                     </th>
                                     <th>
                                         {{ trans('cruds.card.fields.company') }}
@@ -51,10 +51,10 @@
                                             {{ $card->id ?? '' }}
                                         </td>
                                         <td>
-                                            {{ $card->code ?? '' }}
+                                            {{ App\Models\Card::TYPE_RADIO[$card->type] ?? '' }}
                                         </td>
                                         <td>
-                                            {{ $card->driver ?? '' }}
+                                            {{ $card->code ?? '' }}
                                         </td>
                                         <td>
                                             {{ $card->company->name ?? '' }}

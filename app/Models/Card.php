@@ -20,12 +20,18 @@ class Card extends Model
     ];
 
     protected $fillable = [
+        'type',
         'code',
-        'driver',
         'company_id',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    public const TYPE_RADIO = [
+        'Cartão Prio Frota'   => 'Cartão Prio Frota',
+        'Cartão Prio Eletric' => 'Cartão Prio Eletric',
+        'Cartão Prio Virtual' => 'Cartão Prio Virtual',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

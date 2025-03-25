@@ -31,7 +31,7 @@ class DriverController extends Controller
         abort_if(Gate::denies('driver_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = Driver::with(['user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
+            $query = Driver::with(['user', 'card', 'cards', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -177,6 +177,7 @@ class DriverController extends Controller
     public function store(StoreDriverRequest $request)
     {
         $driver = Driver::create($request->all());
+        $driver->cards()->sync($request->input('cards', []));
 
         return redirect()->route('admin.drivers.index');
     }
@@ -209,6 +210,7 @@ class DriverController extends Controller
     public function update(UpdateDriverRequest $request, Driver $driver)
     {
         $driver->update($request->all());
+        $driver->cards()->sync($request->input('cards', []));
 
         return redirect()->route('admin.drivers.index');
     }

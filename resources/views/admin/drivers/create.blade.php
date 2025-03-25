@@ -63,6 +63,22 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.electric_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('cards') ? 'has-error' : '' }}">
+                            <label for="cards">{{ trans('cruds.driver.fields.cards') }}</label>
+                            <div style="padding-bottom: 4px">
+                                <span class="btn btn-info btn-xs select-all" style="border-radius: 0">{{ trans('global.select_all') }}</span>
+                                <span class="btn btn-info btn-xs deselect-all" style="border-radius: 0">{{ trans('global.deselect_all') }}</span>
+                            </div>
+                            <select class="form-control select2" name="cards[]" id="cards" multiple>
+                                @foreach($cards as $id => $card)
+                                    <option value="{{ $id }}" {{ in_array($id, old('cards', [])) ? 'selected' : '' }}>{{ $card }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('cards'))
+                                <span class="help-block" role="alert">{{ $errors->first('cards') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.cards_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('tool_card') ? 'has-error' : '' }}">
                             <label for="tool_card_id">{{ trans('cruds.driver.fields.tool_card') }}</label>
                             <select class="form-control select2" name="tool_card_id" id="tool_card_id">

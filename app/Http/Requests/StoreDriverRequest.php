@@ -25,6 +25,12 @@ class StoreDriverRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'cards.*' => [
+                'integer',
+            ],
+            'cards' => [
+                'array',
+            ],
             'contract_vat_id' => [
                 'required',
                 'integer',
