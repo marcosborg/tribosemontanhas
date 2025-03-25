@@ -31,9 +31,6 @@
                                         {{ trans('cruds.vehicleItem.fields.company') }}
                                     </th>
                                     <th>
-                                        {{ trans('cruds.vehicleItem.fields.driver') }}
-                                    </th>
-                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.vehicle_brand') }}
                                     </th>
                                     <th>
@@ -64,9 +61,6 @@
                                         </td>
                                         <td>
                                             {{ $vehicleItem->company->name ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $vehicleItem->driver->name ?? '' }}
                                         </td>
                                         <td>
                                             {{ $vehicleItem->vehicle_brand->name ?? '' }}
