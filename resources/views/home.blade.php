@@ -212,7 +212,7 @@
                                     <label class="required" for="tvde_week_id">Recibo da semana</label>
                                     <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>
                                         @foreach($tvde_weeks as $tvde_week)
-                                            <option value="{{ $tvde_week->id }}" {{ old('tvde_week_id') == $tvde_week->id ? 'selected' : '' }}>{{ $tvde_week->start_date }} a {{ $tvde_week->end_date }}</option>
+                                            <option value="{{ $tvde_week->id }}" {{ $tvde_week_id == $tvde_week->id ? 'selected' : '' }}>{{ $tvde_week->start_date }} a {{ $tvde_week->end_date }}</option>
                                         @endforeach
                                     </select>
                                     @if($errors->has('tvde_week'))
@@ -220,6 +220,7 @@
                                     @endif
                                     <span class="help-block">{{ trans('cruds.receipt.fields.tvde_week_helper') }}</span>
                                 </div>
+                                <input type="hidden" name="tvde_week_id" id="tvde_week_id" value="{{ $tvde_week_id }}">
                             </div>
                         </div>
                         
