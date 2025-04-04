@@ -33,6 +33,7 @@
     .verified {
         color: #00a65a;
     }
+
 </style>
 @endsection
 @section('scripts')
@@ -45,24 +46,28 @@
         checkboxes.forEach((checkbox) => {
             let driver = JSON.parse(checkbox.value);
             data.push({
-                driver: driver,
-                tvde_week_id: {{ session()->get('tvde_week_id') }},
-            });
+                driver: driver
+                , tvde_week_id: {
+                    {
+                        session() - > get('tvde_week_id')
+                    }
+                }
+            , });
         });
         $.post({
-            url: '/admin/company-reports/validate-data',
-            headers: {
+            url: '/admin/company-reports/validate-data'
+            , headers: {
                 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-            },
-            data: {
-                data: data,
-            },
-            success: (resp) => {
+            }
+            , data: {
+                data: data
+            , }
+            , success: (resp) => {
                 Swal.fire('Atualizado com sucesso').then(() => {
                     location.reload();
                 });
-            },
-            error: (error) => {
+            }
+            , error: (error) => {
                 console.log(error);
             }
         });
@@ -80,7 +85,7 @@
         checkCheckedCheckboxes();
     }
 
-// Função para desmarcar todos os checkboxes que estão marcados e não estão desativados
+    // Função para desmarcar todos os checkboxes que estão marcados e não estão desativados
     function unselectAll() {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)');
         checkboxes.forEach((checkbox) => {
@@ -121,23 +126,20 @@
     @else
     <div class="btn-group btn-group-justified" role="group">
         @foreach ($tvde_years as $tvde_year)
-        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}"
-            class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
+        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
             }}</a>
         @endforeach
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_months as $tvde_month)
-        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}"
-            class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{
+        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{
             $tvde_month->name
             }}</a>
         @endforeach
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}"
-            class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
             \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
             }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
         @endforeach
@@ -146,13 +148,11 @@
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
             Faturação
-            <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData"
-                disabled>Validar
+            <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData" disabled>Validar
                 selecionados</button>
             <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar
                 todos</button>
-            <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll"
-                style="display: none;">Remover
+            <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover
                 seleção</button>
         </div>
         <div class="panel-body">
@@ -214,7 +214,11 @@
                         <td style="text-align: right;">{{ number_format($driver->fuel, 2) }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small></td>
+                        <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Adjustments" data-html="true" data-content="
+                            @foreach($driver->earnings['adjustments_array'] as $adjustment)
+                                <strong>{{ $adjustment['name'] }}: </strong>{{ $adjustment['type'] == 'deduct' ? '-' : '' }}{{ $adjustment['amount'] }}€<br>
+                            @endforeach
+                            "><i class="fa-fw fas fa-eye"></i></button></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
@@ -224,8 +228,7 @@
                             <div class="checkbox">
                                 <label>
                                     <input type="checkbox" value="{{ json_encode($driver) }}" {{
-                                        $driver->current_account ? 'checked disabled' : '' }}><span
-                                        class="glyphicon glyphicon-ok green-checkmark {{ $driver->current_account ? 'verified' : 'unverified' }}"></span>
+                                        $driver->current_account ? 'checked disabled' : '' }}><span class="glyphicon glyphicon-ok green-checkmark {{ $driver->current_account ? 'verified' : 'unverified' }}"></span>
                                 </label>
                             </div>
                         </td>
@@ -289,6 +292,12 @@
 @endif
 </div>
 @endsection
+@section('scripts')
 <script>
-    console.log({!! $drivers !!})
+    $(function() {
+        $('[data-toggle="popover"]').popover()
+    })
+
 </script>
+@endsection
+<script>console.log({!! $drivers !!})</script>
