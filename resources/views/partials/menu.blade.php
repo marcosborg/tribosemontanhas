@@ -335,6 +335,17 @@
                         </a>
                     </li>
                     @endcan
+                    @can('tesla_charging_access')
+                            <li class="{{ request()->is("admin/tesla-chargings") || request()->is("admin/tesla-chargings/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.tesla-chargings.index") }}">
+                                    <i class="fa-fw fas fa-bolt">
+
+                                    </i>
+                                    <span>{{ trans('cruds.teslaCharging.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                     @can('toll_payment_access')
                             <li class="{{ request()->is("admin/toll-payments") || request()->is("admin/toll-payments/*") ? "active" : "" }}">
                                 <a href="{{ route("admin.toll-payments.index") }}">

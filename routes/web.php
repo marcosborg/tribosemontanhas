@@ -551,6 +551,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Vehicle Usage
     Route::delete('vehicle-usages/destroy', 'VehicleUsageController@massDestroy')->name('vehicle-usages.massDestroy');
     Route::resource('vehicle-usages', 'VehicleUsageController');
+
+    // Tesla Charging
+    Route::delete('tesla-chargings/destroy', 'TeslaChargingController@massDestroy')->name('tesla-chargings.massDestroy');
+    Route::post('tesla-chargings/parse-csv-import', 'TeslaChargingController@parseCsvImport')->name('tesla-chargings.parseCsvImport');
+    Route::post('tesla-chargings/process-csv-import', 'TeslaChargingController@processCsvImport')->name('tesla-chargings.processCsvImport');
+    Route::resource('tesla-chargings', 'TeslaChargingController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
