@@ -207,7 +207,7 @@
                                     <span class="help-block">{{ trans('cruds.receipt.fields.value_helper') }}</span>
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-6" style="display: none;">
                                 <div class="form-group {{ $errors->has('tvde_week') ? 'has-error' : '' }}">
                                     <label class="required" for="tvde_week_id">Recibo da semana</label>
                                     <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>

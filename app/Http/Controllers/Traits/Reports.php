@@ -40,7 +40,8 @@ trait Reports
                 'contract_vat',
                 'card',
                 'electric',
-                'vehicle'
+                'vehicle',
+                'cards'
             ]);
 
         $total_operators = [];
@@ -119,7 +120,21 @@ trait Reports
                 }
             }
 
-            if ($driver->card) {
+            if ($driver->cards) {
+                $fuel_transactions = [];
+                foreach ($driver->cards as $card) {
+                    $combustion_transactions = CombustionTransaction::where([
+                        'tvde_week_id' => $tvde_week_id,
+                        'card' => $card->code
+                    ])
+                        ->sum('total');
+
+                    if ($combustion_transactions > 0) {
+                        $fuel_transactions[] = $combustion_transactions;
+                    }
+                }
+                $fuel_transactions = array_sum($fuel_transactions);
+            } elseif ($driver->card) {
                 $combustion_transactions = CombustionTransaction::where([
                     'tvde_week_id' => $tvde_week_id,
                     'card' => $driver->card->code
@@ -140,15 +155,15 @@ trait Reports
             $car_hire = CarHire::where([
                 'driver_id' => $driver->id,
             ])
-            ->where(function ($query) use ($tvde_week) {
-                $query->where('start_date', '<=', $tvde_week->start_date)
-                    ->orWhereNull('start_date');
-            })
-            ->where(function ($query) use ($tvde_week) {
-                $query->where('end_date', '>=', $tvde_week->end_date)
-                    ->orWhereNull('end_date');
-            })
-            ->first();
+                ->where(function ($query) use ($tvde_week) {
+                    $query->where('start_date', '<=', $tvde_week->start_date)
+                        ->orWhereNull('start_date');
+                })
+                ->where(function ($query) use ($tvde_week) {
+                    $query->where('end_date', '>=', $tvde_week->end_date)
+                        ->orWhereNull('end_date');
+                })
+                ->first();
 
             //ADJUSTMENTS
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
@@ -264,7 +279,6 @@ trait Reports
             } else {
                 $driver->current_account = false;
             }
-
         }
 
         $totals = collect([
@@ -662,7 +676,6 @@ trait Reports
         if ($consultancy && !$company->main) {
 
             $total_consultancy = ($totals['total_operators'] * $consultancy->value) / 100;
-
         }
 
         //GET EARNINGS FROM OTHER COMPANIES
@@ -765,6 +778,5 @@ trait Reports
         $company_data->tvde_week_id = $tvde_week_id;
         $company_data->data = json_encode($data);
         $company_data->save();
-
     }
 }
