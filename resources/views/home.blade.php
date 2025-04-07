@@ -177,7 +177,7 @@
                         <tbody>
                             <tr>
                                 <th>Saldo transitado</th>
-                                <td>{{ number_format($total - $driver_balance->balance ?? 0, 2) }}€</td>
+                                <td>{{ number_format($total - $driver_balance ? $driver_balance->balance : 0, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Saldo final</th>
