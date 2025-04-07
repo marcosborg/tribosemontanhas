@@ -147,7 +147,7 @@
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Saldo da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
+                    <h3 class="pull-left">Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
@@ -176,7 +176,11 @@
                     <table class="table table-striped">
                         <tbody>
                             <tr>
-                                <th>Saldo da semana</th>
+                                <th>Saldo transitado</th>
+                                <td>{{ number_format($total - $driver_balance->balance, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Saldo final</th>
                                 <td>{{ $driver_balance->balance ?? 0 }}€</td>
                             </tr>
                             <tr>
@@ -560,3 +564,4 @@ Dropzone.options.receiptsDropzone = {
 @endif
 
 @endsection
+<script>console.log({!! $driver_balance !!})</script>

@@ -57,6 +57,7 @@ class HomeController
         ])->first();
 
         if($driver_balance) {
+            
             $factor = $driver->contract_vat->iva / 100;
             $iva = number_format($driver_balance->value * $factor, 2);
             $driver_balance->iva = $iva;
@@ -65,7 +66,7 @@ class HomeController
             $rf = number_format(-($driver_balance->value * $factor), 2);
             $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
     
-            $final = number_format($driver_balance->value + $iva + $rf, 2);
+            $final = number_format($driver_balance->balance + $iva + $rf, 2);
             $driver_balance->final = $final;
     
             //VERIFICAR RECIBOS DE DESPESAS

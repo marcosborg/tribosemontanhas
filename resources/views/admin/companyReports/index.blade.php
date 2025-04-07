@@ -219,7 +219,11 @@
                         <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->final_total, 2) }} <small>€</small></td>
+                        @if ($driver->current_account)
+                        <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
+                        @else
+                        <td style="text-align: right">{{ number_format($driver->final_total_balance, 2) }} <small>€</small></td>
+                        @endif
                         <td style="text-align: right">
                             <div class="checkbox">
                                 <label>
