@@ -141,6 +141,7 @@
                             </tr>
                         </tbody>
                     </table>
+                    <p><small>Saldo transitado: {{ number_format($total - $driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
                 </div>
             </div>
             <div class="panel panel-default">
@@ -230,3 +231,4 @@
 
 </script>
 @endsection
+<script>console.log({!! $driver_balance !!})</script>
