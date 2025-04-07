@@ -47,12 +47,8 @@
             let driver = JSON.parse(checkbox.value);
             data.push({
                 driver: driver
-                , tvde_week_id: {
-                    {
-                        session() - > get('tvde_week_id')
-                    }
-                }
-            , });
+                , tvde_week_id: {{ session()->get('tvde_week_id') }}
+            });
         });
         $.post({
             url: '/admin/company-reports/validate-data'

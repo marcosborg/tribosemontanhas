@@ -252,7 +252,7 @@ trait Reports
 
             $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
 
-            $driver->final_total = $driver->total;
+            $driver->final_total = $driver->total + $driver->balance;
 
             $earnings['total'] = $driver->total;
 
