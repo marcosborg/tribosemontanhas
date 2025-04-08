@@ -141,7 +141,9 @@
                             </tr>
                         </tbody>
                     </table>
+                    @if ($driver_balance)
                     <p><small>Saldo transitado: {{ number_format($total - $driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
+                    @endif
                 </div>
             </div>
             <div class="panel panel-default">
