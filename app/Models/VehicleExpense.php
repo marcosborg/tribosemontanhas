@@ -33,6 +33,12 @@ class VehicleExpense extends Model implements HasMedia
         'Penus'      => 'Pneus',
         'Rent'       => 'Rent',
         'Seguro'     => 'Seguro',
+        'Aquisição da viatura' => 'Aquisição da viatura',
+        'Inspeção' => 'Inspeção',
+        'IUC' => 'IUC',
+        'Limpeza' => 'Limpeza',
+        'Acessórios' => 'Acessórios',
+        'Distico verde' => 'Distico verde',
         'Outros'     => 'Outros',
     ];
 

@@ -9,61 +9,83 @@
                     {{ trans('cruds.vehicleProfitability.title') }}
                 </div>
                 <div class="panel-body">
+                    <div class="btn-group btn-group-justified" role="group">
+                        @foreach ($tvde_years as $tvde_year)
+                        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
+                            }}</a>
+                        @endforeach
+                    </div>
+                    <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
+                        @foreach ($tvde_months as $tvde_month)
+                        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{
+                            $tvde_month->name
+                            }}</a>
+                        @endforeach
+                    </div>
+                    <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
+                        @foreach ($tvde_weeks as $tvde_week)
+                        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
+                            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
+                            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+                        @endforeach
+                    </div>
                     <ul class="nav nav-tabs">
                         @foreach ($vehicle_items as $vehicle_item)
-                        <li role="presentation" {{ $vehicle_item_id == $vehicle_item->id ? 'class="active"' : '' }}>
+                        <li role="presentation" {{ $vehicle_item_id == $vehicle_item->id ? 'class=active' : '' }}>
                             <a href="/admin/vehicle-profitabilities/set-vehicle-item-id/{{ $vehicle_item->id }}">{{ $vehicle_item->license_plate }} {{ $vehicle_item->driver ? '(' . $vehicle_item->driver->name . ')' : '' }}</a>
                         </li>
                         @endforeach
                     </ul>
-                    <div class="row" style="margin-top: 20px;">
-                        <div class="col-md-6">
-                            <form action="/admin/vehicle-profitabilities/set-interval" method="post">
-                                @csrf
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Data inicial</label>
-                                        <input type="date" name="start_date" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>Data final</label>
-                                        <input type="date" name="end_date" class="form-control" required>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="form-group">
-                                        <label>&nbsp;</label>
-                                        <button type="submit" class="btn btn-success form-control">Obter dados</button>
-                                    </div>
-                                </div>
-                            </form>
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Data</th>
-                                        <th>Tesouraria</th>
-                                        <th>IVA</th>
-                                        <th>Exercício Total</th>
-                                        <th style="text-align: right;">Recibo</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($datas as $data)
-                                    <tr>
-                                        <td>{{ $data->tvde_week->start_date }}</td>
-                                        <td>{{ number_format($data->total_expense, 2) }} €</td>
-                                        <td>{{ number_format($data->vat, 2) }} €</td>
-                                        <td>{{ number_format($data->total_exercise, 2) }} €</td>
-                                        <td style="text-align: right;">{{ $data->receipt ? 'X' : '' }}</td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Tesouraria
                         </div>
-                        <div class="col-md-6">
-                            <canvas id="profitabilityChart"></canvas>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Motorista</strong><br>
+                                    Liquido: {{ $results->total_net }}<br>
+                                    Portagens: {{ $results->car_track }}<br>
+                                    Gasóleo: {{ $results->fuel_transactions }}<br>
+                                    Ajustes: {{ $results->adjustments }}<br>
+                                    Retenção na fonte: <br>
+                                    Salário: <br>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Viatura</strong><br>
+                                    Aluguer: {{ $results->car_hire }}<br>
+                                    Manutenção: <br>
+                                    Seguros: <br>
+                                    Pneus: <br>
+                                    Outros: <br>
+                                    Devoluções: <br>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            IVA
+                        </div>
+                        <div class="panel-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <strong>Motorista</strong><br>
+                                    IVA da faturação bruta: <br>
+                                    IVA do recibo verde: <br>
+                                    IVA do gasóleo: <br>
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Viatura</strong><br>
+                                    Manutenções com IVA: <br>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -72,53 +94,4 @@
     </div>
 </div>
 @endsection
-@section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // Dados obtidos do servidor para o gráfico
-        const labels = @json(array_map(function($data) { return $data->tvde_week->start_date; }, $datas));
-        const exerciseTotalData = @json(array_map(function($data) { return $data->total_expense; }, $datas));
-        const treasuryData = @json(array_map(function($data) { return $data->total_exercise; }, $datas));
-        const ivaData = @json(array_map(function($data) { return $data->vat; }, $datas));
-
-        // Configuração do gráfico Chart.js
-        const ctx = document.getElementById('profitabilityChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Exercício Total',
-                        data: exerciseTotalData,
-                        backgroundColor: 'rgba(255, 159, 64, 0.7)',
-                    },
-                    {
-                        label: 'Tesouraria',
-                        data: treasuryData,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                    },
-                    {
-                        label: 'IVA',
-                        data: ivaData,
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                scales: {
-                    x: {
-                        beginAtZero: true
-                    },
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-    });
-</script>
-@endsection
-
+<script>console.log({!! json_encode($results) !!})</script>

@@ -157,8 +157,7 @@ class ReceiptController extends Controller
             'driver_id' => $driver_id,
             'tvde_week_id' => $tvde_week_id
         ])->first();
-        $balance = $drivers_balance->drivers_balance - $value;
-        $drivers_balance->drivers_balance = $balance;
+        $drivers_balance->drivers_balance = $value;
         $drivers_balance->save();
 
         return redirect()->back();
