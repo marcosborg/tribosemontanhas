@@ -58,10 +58,7 @@
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
                                     Aluguer: {{ $results->car_hire }}<br>
-                                    Manutenção: <br>
-                                    Seguros: <br>
-                                    Pneus: <br>
-                                    Outros: <br>
+                                    Despesas: {{ $vehicle_expenses['vehicle_expenses_value'] }}<br>
                                     Devoluções: <br>
                                 </div>
                             </div>
@@ -83,7 +80,7 @@
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
-                                    Manutenções com IVA: <br>
+                                    Manutenções com IVA: {{ $vehicle_expenses['vehicle_expenses_vat'] }}<br>
                                 </div>
                             </div>
                         </div>

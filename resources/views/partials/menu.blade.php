@@ -1379,6 +1379,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('expense_reimbursement_access')
+                            <li class="{{ request()->is("admin/expense-reimbursements") || request()->is("admin/expense-reimbursements/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.expense-reimbursements.index") }}">
+                                    <i class="fa-fw fas fa-hand-holding-usd">
+
+                                    </i>
+                                    <span>{{ trans('cruds.expenseReimbursement.title') }}</span>
+
+                                </a>
+                            </li>
+                        @endcan
                     <li class="{{ request()->is("admin/system-calendar") || request()->is("admin/system-calendar/*") ?
                         "active"
                         : "" }}">

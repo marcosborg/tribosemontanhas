@@ -10,7 +10,7 @@ use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\Traits\Reports;
 use App\Models\TvdeWeek;
 use App\Models\VehicleUsage;
-use App\Models\DriversBalance;
+use App\Models\VehicleExpense;
 use App\Models\CurrentAccount;
 
 class VehicleProfitabilityController extends Controller
@@ -70,6 +70,29 @@ class VehicleProfitabilityController extends Controller
             $results = json_decode($results->data);
         }
 
+        // DESPESAS DA VIATURA
+        $vehicle_expenses = VehicleExpense::where('vehicle_item_id', $vehicle_item->id)
+            ->whereDate('date', '>=', $tvde_week->start_date)
+            ->whereDate('date', '<=', $tvde_week->end_date)
+            ->get();
+
+        $vehicle_expenses_value = [];
+        $vehicle_expenses_vat = [];
+
+        if ($vehicle_expenses) {
+            foreach ($vehicle_expenses as $vehicle_expense) {
+                $vehicle_expenses_value[] = $vehicle_expense->value;
+                if($vehicle_expense->vat > 0 || $vehicle_expense->vat !== NULL) {
+                    $vehicle_expenses_vat[] = $vehicle_expense->value * ($vehicle_expense->vat / 100);
+                }
+            }
+        }
+
+        $vehicle_expenses_value = array_sum($vehicle_expenses_value);
+        $vehicle_expenses_vat = array_sum($vehicle_expenses_vat);
+
+        $vehicle_expenses = compact('vehicle_expenses_value', 'vehicle_expenses_vat');
+
         return view('admin.vehicleProfitabilities.index', compact([
             'tvde_year_id',
             'tvde_years',
@@ -80,6 +103,7 @@ class VehicleProfitabilityController extends Controller
             'vehicle_items',
             'vehicle_item_id',
             'results',
+            'vehicle_expenses',
         ]));
     }
 

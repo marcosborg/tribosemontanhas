@@ -556,6 +556,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('tesla-chargings/parse-csv-import', 'TeslaChargingController@parseCsvImport')->name('tesla-chargings.parseCsvImport');
     Route::post('tesla-chargings/process-csv-import', 'TeslaChargingController@processCsvImport')->name('tesla-chargings.processCsvImport');
     Route::resource('tesla-chargings', 'TeslaChargingController');
+
+    // Expense Reimbursement
+    Route::delete('expense-reimbursements/destroy', 'ExpenseReimbursementController@massDestroy')->name('expense-reimbursements.massDestroy');
+    Route::post('expense-reimbursements/parse-csv-import', 'ExpenseReimbursementController@parseCsvImport')->name('expense-reimbursements.parseCsvImport');
+    Route::post('expense-reimbursements/process-csv-import', 'ExpenseReimbursementController@processCsvImport')->name('expense-reimbursements.processCsvImport');
+    Route::resource('expense-reimbursements', 'ExpenseReimbursementController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
