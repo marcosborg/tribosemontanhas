@@ -30,6 +30,7 @@ class VehicleExpense extends Model implements HasMedia
 
     public const EXPENSE_TYPE_RADIO = [
         'Manutenção' => 'Manutenção',
+        'Bate-chapa' => 'Bate-chapa',
         'Penus'      => 'Pneus',
         'Rent'       => 'Rent',
         'Seguro'     => 'Seguro',
