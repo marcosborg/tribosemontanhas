@@ -57,7 +57,6 @@
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
-                                    Aluguer: {{ $results->car_hire }}<br>
                                     Despesas: {{ $vehicle_expenses['vehicle_expenses_value'] }}<br>
                                     Devoluções: {{ $expense_reimbursements_value }}<br>
                                 </div>
