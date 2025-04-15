@@ -12,6 +12,7 @@ use App\Models\TvdeWeek;
 use App\Models\VehicleUsage;
 use App\Models\VehicleExpense;
 use App\Models\CurrentAccount;
+use App\Models\ExpenseReimbursement;
 
 class VehicleProfitabilityController extends Controller
 {
@@ -82,7 +83,7 @@ class VehicleProfitabilityController extends Controller
         if ($vehicle_expenses) {
             foreach ($vehicle_expenses as $vehicle_expense) {
                 $vehicle_expenses_value[] = $vehicle_expense->value;
-                if($vehicle_expense->vat > 0 || $vehicle_expense->vat !== NULL) {
+                if ($vehicle_expense->vat > 0 || $vehicle_expense->vat !== NULL) {
                     $vehicle_expenses_vat[] = $vehicle_expense->value * ($vehicle_expense->vat / 100);
                 }
             }
@@ -92,6 +93,15 @@ class VehicleProfitabilityController extends Controller
         $vehicle_expenses_vat = array_sum($vehicle_expenses_vat);
 
         $vehicle_expenses = compact('vehicle_expenses_value', 'vehicle_expenses_vat');
+
+        //REEMBOLSOS DA VIATURA
+
+        $expense_reimbursements = ExpenseReimbursement::where('vehicle_item_id', $vehicle_item->id)
+            ->whereDate('date', '>=', $tvde_week->start_date)
+            ->whereDate('date', '<=', $tvde_week->end_date)
+            ->get();
+
+        $expense_reimbursements_value = $expense_reimbursements ? $expense_reimbursements->sum('value') : 0;
 
         return view('admin.vehicleProfitabilities.index', compact([
             'tvde_year_id',
@@ -104,6 +114,7 @@ class VehicleProfitabilityController extends Controller
             'vehicle_item_id',
             'results',
             'vehicle_expenses',
+            'expense_reimbursements_value',
         ]));
     }
 

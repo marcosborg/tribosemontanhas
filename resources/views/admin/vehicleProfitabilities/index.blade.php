@@ -59,7 +59,7 @@
                                     <strong>Viatura</strong><br>
                                     Aluguer: {{ $results->car_hire }}<br>
                                     Despesas: {{ $vehicle_expenses['vehicle_expenses_value'] }}<br>
-                                    Devoluções: <br>
+                                    Devoluções: {{ $expense_reimbursements_value }}<br>
                                 </div>
                             </div>
                         </div>
