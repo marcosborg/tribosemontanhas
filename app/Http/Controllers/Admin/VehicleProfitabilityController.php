@@ -79,7 +79,7 @@ class VehicleProfitabilityController extends Controller
             $rf = number_format(($results->total * $factor), 2);
         }
 
-        $fuel_transactions_vat = $results->fuel_transactions ? $results->fuel_transactions * 0.23 : 0;
+        $fuel_transactions_vat = $results->fuel_transactions ? ($results->fuel_transactions / 1.23) * 0.23 : 0;
 
         // DESPESAS DA VIATURA
         $vehicle_expenses = VehicleExpense::where('vehicle_item_id', $vehicle_item->id)
