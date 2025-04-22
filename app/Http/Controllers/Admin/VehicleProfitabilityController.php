@@ -62,6 +62,8 @@ class VehicleProfitabilityController extends Controller
             session()->put('vehicle_item_id', $vehicle_usage->vehicle_item_id);
         }
 
+        $driver = $vehicle_usage->driver;
+
         $results = CurrentAccount::where([
             'tvde_week_id' => $tvde_week_id,
             'driver_id' => $vehicle_usage->driver->id
@@ -69,7 +71,15 @@ class VehicleProfitabilityController extends Controller
 
         if ($results) {
             $results = json_decode($results->data);
+            //IVA A DEVOLVER
+            $factor = $driver->contract_vat->iva / 100;
+            $iva = number_format($results->total * $factor, 2);
+            //RETENCAO
+            $factor = $driver->contract_vat->rf / 100;
+            $rf = number_format(($results->total * $factor), 2);
         }
+
+        $fuel_transactions_vat = $results->fuel_transactions ? $results->fuel_transactions * 0.23 : 0;
 
         // DESPESAS DA VIATURA
         $vehicle_expenses = VehicleExpense::where('vehicle_item_id', $vehicle_item->id)
@@ -115,6 +125,10 @@ class VehicleProfitabilityController extends Controller
             'results',
             'vehicle_expenses',
             'expense_reimbursements_value',
+            'driver',
+            'fuel_transactions_vat',
+            'rf',
+            'iva',
         ]));
     }
 

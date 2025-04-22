@@ -47,13 +47,13 @@
                         <div class="panel-body">
                             <div class="row">
                                 <div class="col-md-6">
-                                    <strong>Motorista</strong><br>
+                                    <strong>Motorista</strong> ({{ $driver->name }})<br>
                                     Liquido: {{ $results->total_net }}<br>
                                     Portagens: {{ $results->car_track }}<br>
                                     Gasóleo: {{ $results->fuel_transactions }}<br>
                                     Ajustes: {{ $results->adjustments }}<br>
-                                    Retenção na fonte: <br>
-                                    Salário: <br>
+                                    Retenção na fonte: {{ $rf }}<br>
+                                    Salário: {{ $results->total }}<br>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
@@ -73,9 +73,9 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Motorista</strong><br>
-                                    IVA da faturação bruta: <br>
-                                    IVA do recibo verde: <br>
-                                    IVA do gasóleo: <br>
+                                    IVA da faturação bruta: {{ $results->vat_value }}<br>
+                                    IVA do recibo verde: {{ $iva }}<br>
+                                    IVA do gasóleo: {{ $fuel_transactions_vat }}<br>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
