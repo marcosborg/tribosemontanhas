@@ -52,8 +52,8 @@
                                     Portagens: {{ $results->car_track }}<br>
                                     Gasóleo: {{ $results->fuel_transactions }}<br>
                                     Ajustes: {{ $results->adjustments }}<br>
-                                    Retenção na fonte: {{ $rf }}<br>
-                                    Salário: {{ $results->total }}<br>
+                                    Retenção na fonte: {{ $driver_balance->final }}<br>
+                                    Salário: {{ $driver_balance->balance }}<br>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
@@ -74,7 +74,7 @@
                                 <div class="col-md-6">
                                     <strong>Motorista</strong><br>
                                     IVA da faturação bruta: {{ $results->vat_value }}<br>
-                                    IVA do recibo verde: {{ $iva }}<br>
+                                    IVA do recibo verde: {{ $driver_balance->iva }}<br>
                                     IVA do gasóleo: {{ $fuel_transactions_vat }}<br>
                                 </div>
                                 <div class="col-md-6">
