@@ -48,12 +48,12 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Motorista</strong> ({{ $driver->name }})<br>
-                                    Liquido: {{ $results->total_net }}<br>
-                                    Portagens: {{ $results->car_track }}<br>
-                                    Gasóleo: {{ $results->fuel_transactions }}<br>
-                                    Ajustes: {{ $results->adjustments }}<br>
-                                    Retenção na fonte: {{ $driver_balance->final }}<br>
-                                    Salário: {{ $driver_balance->balance }}<br>
+                                    Liquido: {{ $results->total_net ?? 0 }}<br>
+                                    Portagens: {{ $results->car_track ?? 0 }}<br>
+                                    Gasóleo: {{ $results->fuel_transactions ?? 0 }}<br>
+                                    Ajustes: {{ $results->adjustments ?? 0 }}<br>
+                                    Retenção na fonte: {{ $rf ?? 0 }}<br>
+                                    Salário: {{ $receipt ? $receipt->amount_transferred : 0 }}<br>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
@@ -73,13 +73,13 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <strong>Motorista</strong><br>
-                                    IVA da faturação bruta: {{ $results->vat_value }}<br>
-                                    IVA do recibo verde: {{ $driver_balance->iva }}<br>
-                                    IVA do gasóleo: {{ $fuel_transactions_vat }}<br>
+                                    IVA da faturação bruta: {{ $results->vat_value ?? 0 }}<br>
+                                    IVA do recibo verde: {{ $iva ?? 0 }}<br>
+                                    IVA do gasóleo: {{ $fuel_transactions_vat ?? 0 }}<br>
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
-                                    Manutenções com IVA: {{ $vehicle_expenses['vehicle_expenses_vat'] }}<br>
+                                    Manutenções com IVA: {{ $vehicle_expenses['vehicle_expenses_vat'] ?? 0 }}<br>
                                 </div>
                             </div>
                         </div>

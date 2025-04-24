@@ -13,6 +13,7 @@ use App\Models\VehicleUsage;
 use App\Models\VehicleExpense;
 use App\Models\CurrentAccount;
 use App\Models\ExpenseReimbursement;
+use App\Models\Receipt;
 
 class VehicleProfitabilityController extends Controller
 {
@@ -77,9 +78,17 @@ class VehicleProfitabilityController extends Controller
             //RETENCAO
             $factor = $driver->contract_vat->rf / 100;
             $rf = number_format(($results->total * $factor), 2);
+        } else {
+            $iva = 0;
+            $rf = 0;
         }
 
-        $fuel_transactions_vat = $results->fuel_transactions ? ($results->fuel_transactions / 1.23) * 0.23 : 0;
+        $receipt = Receipt::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $vehicle_usage->driver->id
+        ])->first();
+
+        $fuel_transactions_vat = $results && $results->fuel_transactions ? ($results->fuel_transactions / 1.23) * 0.23 : 0;
 
         // DESPESAS DA VIATURA
         $vehicle_expenses = VehicleExpense::where('vehicle_item_id', $vehicle_item->id)
@@ -129,6 +138,7 @@ class VehicleProfitabilityController extends Controller
             'fuel_transactions_vat',
             'rf',
             'iva',
+            'receipt',
         ]));
     }
 
