@@ -101,9 +101,11 @@ class VehicleProfitabilityController extends Controller
 
         if ($vehicle_expenses) {
             foreach ($vehicle_expenses as $vehicle_expense) {
-                $vehicle_expenses_value[] = $vehicle_expense->value;
                 if ($vehicle_expense->vat > 0 || $vehicle_expense->vat !== NULL) {
                     $vehicle_expenses_vat[] = $vehicle_expense->value * ($vehicle_expense->vat / 100);
+                    $vehicle_expenses_value[] = $vehicle_expense->value + ($vehicle_expense->value * ($vehicle_expense->vat / 100));
+                } else {
+                    $vehicle_expenses_value[] = $vehicle_expense->value;
                 }
             }
         }
@@ -122,6 +124,15 @@ class VehicleProfitabilityController extends Controller
 
         $expense_reimbursements_value = $expense_reimbursements ? $expense_reimbursements->sum('value') : 0;
 
+        $total_earnings = ($results->total_net ?? 0) + ($expense_reimbursements_value ?? 0) + ($iva ?? 0) + ($fuel_transactions_vat ?? 0) + ($vehicle_expenses['vehicle_expenses_vat'] ?? 0);
+        $total_expenses = ($results->car_track ?? 0) + ($results->fuel_transactions ?? 0) + ($results->adjustments ?? 0) + ($rf ?? 0) + ($receipt ? $receipt->amount_transferred : 0) + ($vehicle_expenses['vehicle_expenses_value'] ?? 0) + ($results->vat_value ?? 0);
+        $total_net = $total_earnings - $total_expenses;
+        $total = [
+            'total_earnings' => $total_earnings,
+            'total_expenses' => $total_expenses,
+            'total_net' => $total_net,
+        ];
+
         return view('admin.vehicleProfitabilities.index', compact([
             'tvde_year_id',
             'tvde_years',
@@ -139,6 +150,7 @@ class VehicleProfitabilityController extends Controller
             'rf',
             'iva',
             'receipt',
+            'total'
         ]));
     }
 

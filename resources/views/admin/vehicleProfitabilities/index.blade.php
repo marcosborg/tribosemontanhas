@@ -86,8 +86,116 @@
                     </div>
                 </div>
             </div>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Resultados
+                        </div>
+                        <div class="panel-body">
+                            <table width="100%">
+                                <tbody>
+                                    <tr>
+                                        <th>
+                                            <h1><small>Recebimentos: </small></h1>
+                                        </th>
+                                        <td>
+                                            <h1>{{ number_format($total['total_earnings'], 2) }}<small>€</small></h1>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>
+                                            <h1><small>Despesas: </small></h1>
+                                        </th>
+                                        <td>
+                                            <h1>{{ number_format($total['total_expenses'], 2) }}<small>€</small></h1>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            @if (number_format($total['total_net'] >= 0))
+                            Lucro
+                            @else
+                            Prejuizo
+                            @endif
+                        </div>
+                        <div class="panel-body">
+                            <h1 style="font-size: 50px;">{{ number_format($total['total_net'], 2) }}<small>€</small></h1>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            Gráfico
+                        </div>
+                        <div class="panel-body">
+                            <canvas id="rentabilidadeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 @endsection
-<script>console.log({!! json_encode($results) !!})</script>
+@section('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+<script>
+    const chartData = {
+        labels: ['Recebimentos', 'Despesas', 'Lucro/Prejuízo'],
+        datasets: [{
+            label: 'Rentabilidade (€)',
+            data: [
+                {{ $total['total_earnings'] ?? 0 }},
+                {{ $total['total_expenses'] ?? 0 }},
+                {{ $total['total_net'] ?? 0 }}
+            ],
+            backgroundColor: [
+                'rgba(75, 192, 192, 0.6)',   // Recebimentos
+                'rgba(255, 99, 132, 0.6)',   // Despesas
+                'rgba(54, 162, 235, 0.6)'    // Lucro/Prejuízo
+            ],
+            borderColor: [
+                'rgba(75, 192, 192, 1)',
+                'rgba(255, 99, 132, 1)',
+                'rgba(54, 162, 235, 1)'
+            ],
+            borderWidth: 1
+        }]
+    };
+    const ctx = document.getElementById('rentabilidadeChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                title: {
+                    display: true,
+                    text: 'Rentabilidade da Viatura'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '€';
+                        }
+                    }
+                }
+            }
+        }
+    });
+  </script>
+@endsection
