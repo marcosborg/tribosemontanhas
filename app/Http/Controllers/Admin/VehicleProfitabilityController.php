@@ -70,18 +70,29 @@ class VehicleProfitabilityController extends Controller
             'driver_id' => $vehicle_usage->driver->id
         ])->first();
 
+        $adjustments = [];
+
         if ($results) {
             $results = json_decode($results->data);
+            
             //IVA A DEVOLVER
             $factor = $driver->contract_vat->iva / 100;
             $iva = number_format($results->total * $factor, 2);
             //RETENCAO
             $factor = $driver->contract_vat->rf / 100;
             $rf = number_format(($results->total * $factor), 2);
+            //ADJUSTMENTS
+            foreach ($results->adjustments_array as $adjustment) {
+                if ($adjustment->company_expense) {
+                    $adjustments[] = $adjustment->type = 'deduct' ? - $adjustment->amount : $adjustment->amount;
+                }
+            }
         } else {
             $iva = 0;
             $rf = 0;
         }
+
+        $adjustments = array_sum($adjustments);
 
         $receipt = Receipt::where([
             'tvde_week_id' => $tvde_week_id,
@@ -124,7 +135,7 @@ class VehicleProfitabilityController extends Controller
 
         $expense_reimbursements_value = $expense_reimbursements ? $expense_reimbursements->sum('value') : 0;
 
-        $total_treasury = ($results->total_net ?? 0) - ($results->car_track ?? 0) - ($results->fuel_transactions ?? 0) + ($results->adjustments ?? 0) - ($rf ?? 0) - ($receipt ? $receipt->amount_transferred : 0) - ($vehicle_expenses['vehicle_expenses_value'] ?? 0) + ($expense_reimbursements_value ?? 0);
+        $total_treasury = ($results->total_net ?? 0) - ($results->car_track ?? 0) - ($results->fuel_transactions ?? 0) + ($adjustments ?? 0) - ($rf ?? 0) - ($receipt ? $receipt->amount_transferred : 0) - ($vehicle_expenses['vehicle_expenses_value'] ?? 0) + ($expense_reimbursements_value ?? 0);
         $total_taxes = ($results->vat_value ?? 0) - ($iva ?? 0) - ($fuel_transactions_vat ?? 0);
         $final_total = $total_treasury - $total_taxes;
 
@@ -151,7 +162,8 @@ class VehicleProfitabilityController extends Controller
             'rf',
             'iva',
             'receipt',
-            'total'
+            'total',
+            'adjustments',
         ]));
     }
 

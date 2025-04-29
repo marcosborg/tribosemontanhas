@@ -51,7 +51,7 @@
                                     Liquido: {{ $results->total_net ?? 0 }}<br>
                                     Portagens: {{ $results->car_track ?? 0 }}<br>
                                     Gasóleo: {{ $results->fuel_transactions ?? 0 }}<br>
-                                    Ajustes: {{ $results->adjustments ?? 0 }}<br>
+                                    Ajustes: {{ $adjustments ?? 0 }}<br>
                                     Retenção na fonte: {{ $rf ?? 0 }}<br>
                                     Salário: {{ $receipt ? $receipt->amount_transferred : 0 }}<br>
                                 </div>
