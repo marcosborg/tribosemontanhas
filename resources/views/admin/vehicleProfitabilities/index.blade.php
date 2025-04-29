@@ -57,8 +57,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <strong>Viatura</strong><br>
-                                    Despesas: {{ $vehicle_expenses['vehicle_expenses_value'] }}<br>
-                                    Devoluções: {{ $expense_reimbursements_value }}<br>
+                                    Despesas: {{ $vehicle_expenses['vehicle_expenses_value'] ?? 0 }}<br>
+                                    Devoluções: {{ $expense_reimbursements_value ?? 0 }}<br>
                                 </div>
                             </div>
                         </div>
@@ -97,18 +97,18 @@
                                 <tbody>
                                     <tr>
                                         <th>
-                                            <h1><small>Recebimentos: </small></h1>
+                                            <h1><small>Tesouraria: </small></h1>
                                         </th>
                                         <td>
-                                            <h1>{{ number_format($total['total_earnings'], 2) }}<small>€</small></h1>
+                                            <h1>{{ number_format($total['total_treasury'], 2) }}<small>€</small></h1>
                                         </td>
                                     </tr>
                                     <tr>
                                         <th>
-                                            <h1><small>Despesas: </small></h1>
+                                            <h1><small>Impostos: </small></h1>
                                         </th>
                                         <td>
-                                            <h1>{{ number_format($total['total_expenses'], 2) }}<small>€</small></h1>
+                                            <h1>{{ number_format($total['total_taxes'], 2) }}<small>€</small></h1>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -119,14 +119,14 @@
                 <div class="col-md-4">
                     <div class="panel panel-default">
                         <div class="panel-heading">
-                            @if (number_format($total['total_net'] >= 0))
+                            @if (number_format($total['final_total'] >= 0))
                             Lucro
                             @else
                             Prejuizo
                             @endif
                         </div>
                         <div class="panel-body">
-                            <h1 style="font-size: 50px;">{{ number_format($total['total_net'], 2) }}<small>€</small></h1>
+                            <h1 style="font-size: 50px;">{{ number_format($total['final_total'], 2) }}<small>€</small></h1>
                         </div>
                     </div>
                 </div>
@@ -149,13 +149,13 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script>
     const chartData = {
-        labels: ['Recebimentos', 'Despesas', 'Lucro/Prejuízo'],
+        labels: ['Tesouraria', 'Impostos', 'Lucro/Prejuízo'],
         datasets: [{
             label: 'Rentabilidade (€)',
             data: [
-                {{ $total['total_earnings'] ?? 0 }},
-                {{ $total['total_expenses'] ?? 0 }},
-                {{ $total['total_net'] ?? 0 }}
+                {{ $total['total_treasury'] ?? 0 }},
+                {{ $total['total_taxes'] ?? 0 }},
+                {{ $total['final_total'] ?? 0 }}
             ],
             backgroundColor: [
                 'rgba(75, 192, 192, 0.6)',   // Recebimentos
