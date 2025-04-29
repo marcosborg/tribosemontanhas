@@ -136,8 +136,8 @@ class VehicleProfitabilityController extends Controller
         $expense_reimbursements_value = $expense_reimbursements ? $expense_reimbursements->sum('value') : 0;
 
         $total_treasury = ($results->total_net ?? 0) - ($results->car_track ?? 0) - ($results->fuel_transactions ?? 0) + ($adjustments ?? 0) - ($rf ?? 0) - ($receipt ? $receipt->amount_transferred : 0) - ($vehicle_expenses['vehicle_expenses_value'] ?? 0) + ($expense_reimbursements_value ?? 0);
-        $total_taxes = ($results->vat_value ?? 0) - ($iva ?? 0) - ($fuel_transactions_vat ?? 0);
-        $final_total = $total_treasury - $total_taxes;
+        $total_taxes = - ($results->vat_value ?? 0) + ($iva ?? 0) + ($fuel_transactions_vat ?? 0) + ($vehicle_expenses['vehicle_expenses_vat'] ?? 0);
+        $final_total = $total_treasury + $total_taxes;
 
         $total = [
             'total_treasury' => $total_treasury,
