@@ -74,14 +74,14 @@ class ReceiptController extends Controller
             $table->editColumn('iva', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->iva / 100;
-                $value = number_format(($row->value * $factor), 2, '.');
+                $value = number_format(($row->balance * $factor), 2, '.');
                 return $driver ? $value : '';
             });
 
             $table->editColumn('rf', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->rf / 100;
-                $value = number_format(-($row->value * $factor), 2, '.');
+                $value = number_format(-($row->balance * $factor), 2, '.');
                 return $driver ? $value : '';
             });
 

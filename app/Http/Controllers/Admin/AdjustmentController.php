@@ -20,81 +20,67 @@ class AdjustmentController extends Controller
     use CsvImportTrait;
 
     public function index(Request $request)
-    {
-        abort_if(Gate::denies('adjustment_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+{
+    abort_if(Gate::denies('adjustment_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        if ($request->ajax()) {
-            if (session()->has('company_id') && session()->get('company_id') !== '0') {
-                $query = Adjustment::where('company_id', session()->get('company_id'))->with(['drivers', 'company'])->select(sprintf('%s.*', (new Adjustment)->table));
-            } else {
-                $query = Adjustment::with(['drivers', 'company'])->select(sprintf('%s.*', (new Adjustment)->table));
-            }
-            $table = Datatables::of($query);
+    if ($request->ajax()) {
+        $query = Adjustment::with(['drivers', 'company']);
 
-            $table->addColumn('placeholder', '&nbsp;');
-            $table->addColumn('actions', '&nbsp;');
-
-            $table->editColumn('actions', function ($row) {
-                $viewGate = 'adjustment_show';
-                $editGate = 'adjustment_edit';
-                $deleteGate = 'adjustment_delete';
-                $crudRoutePart = 'adjustments';
-
-                return view(
-                    'partials.datatablesActions',
-                    compact(
-                        'viewGate',
-                        'editGate',
-                        'deleteGate',
-                        'crudRoutePart',
-                        'row'
-                    )
-                );
-            });
-
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->editColumn('name', function ($row) {
-                return $row->name ? $row->name : '';
-            });
-            $table->editColumn('type', function ($row) {
-                return $row->type ? Adjustment::TYPE_RADIO[$row->type] : '';
-            });
-            $table->editColumn('amount', function ($row) {
-                return $row->amount ? $row->amount : '';
-            });
-            $table->editColumn('percent', function ($row) {
-                return $row->percent ? $row->percent : '';
-            });
-
-            $table->editColumn('drivers', function ($row) {
-                $labels = [];
-                foreach ($row->drivers as $driver) {
-                    $labels[] = sprintf('<span class="label label-info label-many">%s</span>', $driver->name);
-                }
-
-                return implode(' ', $labels);
-            });
-            $table->addColumn('company_name', function ($row) {
-                return $row->company ? $row->company->name : '';
-            });
-
-            $table->editColumn('company_expense', function ($row) {
-                return '<input type="checkbox" disabled ' . ($row->company_expense ? 'checked' : null) . '>';
-            });
-
-            $table->editColumn('fleet_management', function ($row) {
-                return '<input type="checkbox" disabled ' . ($row->fleet_management ? 'checked' : null) . '>';
-            });
-
-            $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'fleet_management']);
-
-            return $table->make(true);
+        if (session()->has('company_id') && session()->get('company_id') !== '0') {
+            $query->where('company_id', session()->get('company_id'));
         }
 
-        return view('admin.adjustments.index');
+        // 👇 Aplica o filtro do driver_id antes do select()
+        if ($request->filled('driver_id')) {
+            $query->whereHas('drivers', function ($q) use ($request) {
+                $q->where('drivers.id', $request->driver_id);
+            });
+        }
+
+        // 👇 Só agora adiciona o select, depois de todos os filtros
+        $query->select(sprintf('%s.*', (new Adjustment)->table));
+
+        $table = Datatables::of($query);
+        $table->addColumn('placeholder', '&nbsp;');
+        $table->addColumn('actions', '&nbsp;');
+
+        $table->editColumn('actions', function ($row) {
+            $viewGate = 'adjustment_show';
+            $editGate = 'adjustment_edit';
+            $deleteGate = 'adjustment_delete';
+            $crudRoutePart = 'adjustments';
+
+            return view('partials.datatablesActions', compact(
+                'viewGate', 'editGate', 'deleteGate', 'crudRoutePart', 'row'
+            ));
+        });
+
+        $table->editColumn('id', fn($row) => $row->id ?? '');
+        $table->editColumn('name', fn($row) => $row->name ?? '');
+        $table->editColumn('type', fn($row) => $row->type ? Adjustment::TYPE_RADIO[$row->type] : '');
+        $table->editColumn('amount', fn($row) => $row->amount ?? '');
+        $table->editColumn('percent', fn($row) => $row->percent ?? '');
+
+        $table->editColumn('drivers', function ($row) {
+            $labels = [];
+            foreach ($row->drivers as $driver) {
+                $labels[] = sprintf('<span class="label label-info label-many">%s</span>', $driver->name);
+            }
+            return implode(' ', $labels);
+        });
+
+        $table->addColumn('company_name', fn($row) => $row->company->name ?? '');
+        $table->editColumn('company_expense', fn($row) => '<input type="checkbox" disabled ' . ($row->company_expense ? 'checked' : null) . '>');
+        $table->editColumn('fleet_management', fn($row) => '<input type="checkbox" disabled ' . ($row->fleet_management ? 'checked' : null) . '>');
+
+        $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'fleet_management']);
+        return $table->make(true);
     }
+
+    $drivers = Driver::get();
+    return view('admin.adjustments.index', compact('drivers'));
+}
+
 
     public function create()
     {

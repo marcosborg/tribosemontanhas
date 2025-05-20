@@ -3,13 +3,29 @@
 <div class="content">
     @can('adjustment_create')
         <div style="margin-bottom: 10px;" class="row">
-            <div class="col-lg-12">
+            <div class="col-lg-6">
                 <a class="btn btn-success" href="{{ route('admin.adjustments.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.adjustment.title_singular') }}
                 </a>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
+
+                
+            </div>
+            <div class="col-md-6">
+<div class="form-group">
+                <label class="required" for="driver_id">Motorista</label>
+                <select class="form-control select2" name="driver_id" id="driver_id" required>
+                    <option {{ request('driver_id') ? '' : 'selected' }} value="">Todos</option>
+                    @foreach($drivers as $driver)
+                        <option value="{{ $driver->id }}" {{ request('driver_id') == $driver->id ? 'selected' : '' }}>
+                            {{ $driver->name }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
                 @include('csvImport.modal', ['model' => 'Adjustment', 'route' => 'admin.adjustments.parseCsvImport'])
             </div>
         </div>
@@ -116,26 +132,32 @@
     serverSide: true,
     retrieve: true,
     aaSorting: [],
-    ajax: "{{ route('admin.adjustments.index') }}",
+    ajax: {
+    url: "{{ route('admin.adjustments.index') }}",
+    data: function (d) {
+        d.driver_id = $('#driver_id').val(); // <-- isto envia o valor ao Laravel
+    }
+},
     columns: [
-      { data: 'placeholder', name: 'placeholder' },
-{ data: 'id', name: 'id' },
-{ data: 'name', name: 'name' },
-{ data: 'type', name: 'type' },
-{ data: 'amount', name: 'amount' },
-{ data: 'percent', name: 'percent' },
-{ data: 'start_date', name: 'start_date' },
-{ data: 'end_date', name: 'end_date' },
-{ data: 'drivers', name: 'drivers.code' },
-{ data: 'company_name', name: 'company.name' },
-{ data: 'company_expense', name: 'company_expense' },
-{ data: 'fleet_management', name: 'fleet_management' },
-{ data: 'actions', name: '{{ trans('global.actions') }}' }
+        { data: 'placeholder', name: 'placeholder' },
+        { data: 'id', name: 'id' },
+        { data: 'name', name: 'name' },
+        { data: 'type', name: 'type' },
+        { data: 'amount', name: 'amount' },
+        { data: 'percent', name: 'percent' },
+        { data: 'start_date', name: 'start_date' },
+        { data: 'end_date', name: 'end_date' },
+        { data: 'drivers', name: 'drivers.code' },
+        { data: 'company_name', name: 'company.name' },
+        { data: 'company_expense', name: 'company_expense' },
+        { data: 'fleet_management', name: 'fleet_management' },
+        { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
+    order: [[1, 'desc']],
     pageLength: 100,
-  };
+};
+
   let table = $('.datatable-Adjustment').DataTable(dtOverrideGlobals);
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
@@ -144,5 +166,16 @@
   
 });
 
+
+
+</script>
+<script>
+    $(() => {
+        $('#driver_id').on('change', function () {
+    $('.datatable-Adjustment').DataTable().ajax.reload();
+});
+
+        
+    });
 </script>
 @endsection
