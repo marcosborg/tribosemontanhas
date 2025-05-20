@@ -127,4 +127,9 @@ class VehicleUsageController extends Controller
 
         return response(null, Response::HTTP_NO_CONTENT);
     }
+
+    public function usage()
+    {
+        return view('admin.vehicleUsages.usage');
+    }
 }
