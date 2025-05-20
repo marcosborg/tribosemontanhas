@@ -7,6 +7,9 @@
                 <a class="btn btn-success" href="{{ route('admin.vehicle-usages.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.vehicleUsage.title_singular') }}
                 </a>
+                <a class="btn btn-primary" href="/admin/vehicle-usage">
+                    Gráfivos {{ trans('cruds.vehicleUsage.title_singular') }}
+                </a>
             </div>
         </div>
     @endcan
