@@ -130,6 +130,49 @@ class VehicleUsageController extends Controller
 
     public function usage()
     {
-        return view('admin.vehicleUsages.usage');
+        $usages = VehicleUsage::with(['vehicle_item'])
+            ->orderBy('start_date')
+            ->get();
+
+        $grouped = $usages->groupBy('vehicle_item.license_plate');
+
+        $occupancyStats = [];
+
+        foreach ($grouped as $plate => $usagesForVehicle) {
+            $years = [];
+
+            foreach ($usagesForVehicle as $usage) {
+                $start = \Carbon\Carbon::parse($usage->start_date);
+                $end = \Carbon\Carbon::parse($usage->end_date);
+
+                for ($year = $start->year; $year <= $end->year; $year++) {
+                    if (!isset($years[$year])) {
+                        $years[$year] = [];
+                    }
+
+                    // Limita o período ao ano específico
+                    $periodStart = $year == $start->year ? $start : \Carbon\Carbon::create($year, 1, 1);
+                    $periodEnd = $year == $end->year ? $end : \Carbon\Carbon::create($year, 12, 31);
+
+                    // Marca cada dia do ano como usado
+                    $period = \Carbon\CarbonPeriod::create($periodStart, $periodEnd);
+                    foreach ($period as $day) {
+                        $years[$year][$day->format('Y-m-d')] = true;
+                    }
+                }
+            }
+
+            foreach ($years as $year => $usedDays) {
+                $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
+                $usedCount = count($usedDays);
+                $occupancyStats[$plate][$year] = [
+                    'used' => $usedCount,
+                    'total' => $totalDays,
+                    'percent' => round(($usedCount / $totalDays) * 100, 2),
+                ];
+            }
+        }
+
+        return view('admin.vehicleUsages.usage', compact('grouped', 'occupancyStats'));
     }
 }
