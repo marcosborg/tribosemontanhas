@@ -173,6 +173,37 @@ class VehicleUsageController extends Controller
             }
         }
 
-        return view('admin.vehicleUsages.usage', compact('grouped', 'occupancyStats'));
+        $sortedStats = [];
+
+        foreach ($occupancyStats as $plate => $years) {
+            foreach ($years as $year => $data) {
+                $sortedStats[] = [
+                    'label' => $plate . ' (' . $year . ')',
+                    'percent' => $data['percent'],
+                ];
+            }
+        }
+
+        // Ordenar do maior para o menor
+        usort($sortedStats, function ($a, $b) {
+            return $b['percent'] <=> $a['percent'];
+        });
+
+        $availableYears = [];
+
+        foreach ($occupancyStats as $plate => $years) {
+            foreach ($years as $year => $data) {
+                $availableYears[$year] = true;
+            }
+        }
+
+        ksort($availableYears); // ordena os anos
+
+        return view('admin.vehicleUsages.usage', compact(
+            'grouped',
+            'occupancyStats',
+            'sortedStats',
+            'availableYears'
+        ));
     }
 }

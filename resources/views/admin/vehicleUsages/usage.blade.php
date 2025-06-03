@@ -9,18 +9,43 @@
                 </div>
 
                 <div class="panel-body">
-                    {{-- 1. Timeline das Viaturas --}}
+
+
+<div>
+
+  <!-- Nav tabs -->
+  <ul class="nav nav-tabs" role="tablist">
+    <li role="presentation" class="active"><a href="#home" aria-controls="home" role="tab" data-toggle="tab">Linha do Tempo das Viaturas</a></li>
+    <li role="presentation"><a href="#profile" aria-controls="profile" role="tab" data-toggle="tab">Gráfico da Taxa de Ocupação</a></li>
+    <li role="presentation"><a href="#messages" aria-controls="messages" role="tab" data-toggle="tab">Detalhe da Ocupação por Viatura</a></li>
+  </ul>
+
+  <!-- Tab panes -->
+  <div class="tab-content">
+    <div role="tabpanel" class="tab-pane active" id="home">
+        {{-- 1. Timeline das Viaturas --}}
                     <h3>Linha do Tempo das Viaturas</h3>
                     <div id="timelineContainer" style="margin-bottom: 40px;">
                         <div id="timeline" style="height: auto;"></div>
                     </div>
+    </div>
+    <div role="tabpanel" class="tab-pane" id="profile">
+        <div class="form-group mt-3">
+    <label for="yearFilter">Selecionar Ano:</label>
+    <select id="yearFilter" class="form-control" style="max-width: 200px;">
+        <option value="all">Todos os anos</option>
+        @foreach(array_keys($availableYears) as $year)
+            <option value="{{ $year }}">{{ $year }}</option>
+        @endforeach
+    </select>
+</div>
 
-                    {{-- 2. Gráfico da Taxa de Ocupação --}}
+        {{-- 2. Gráfico da Taxa de Ocupação --}}
                     <h3 id="chartTitle">Gráfico da Taxa de Ocupação</h3>
                     <canvas id="occupancyChart" style="width: 100%; max-width: 100%; height: 400px;"></canvas>
-
-
-                    {{-- 3. Tabela Detalhada por Viatura/Ano --}}
+    </div>
+    <div role="tabpanel" class="tab-pane" id="messages">
+        {{-- 3. Tabela Detalhada por Viatura/Ano --}}
                     <h3 class="mt-5">Detalhe da Ocupação por Viatura</h3>
                     @foreach($occupancyStats as $plate => $years)
                         <h4>{{ $plate }}</h4>
@@ -45,6 +70,10 @@
                             </tbody>
                         </table>
                     @endforeach
+    </div>
+  </div>
+
+</div>
 
                 </div>
             </div>
@@ -98,82 +127,99 @@
 
             new vis.Timeline(container, timelineItems, timelineGroups, options);
 
-            // Gráfico de Ocupação
+            // Gráfico de Ocupação com filtro por ano
             const ctx = document.getElementById('occupancyChart').getContext('2d');
 
-            const labels = [
-                @foreach($occupancyStats as $plate => $years)
-                    @foreach($years as $year => $data)
-                        '{{ $plate }} ({{ $year }})',
-                    @endforeach
+            const allStats = [
+                @foreach($sortedStats as $item)
+                    {
+                        label: '{{ $item['label'] }}',
+                        year: '{{ explode("(", $item['label'])[1] }}'.replace(')', ''),
+                        percent: {{ $item['percent'] }}
+                    },
                 @endforeach
             ];
 
-            const data = [
-                @foreach($occupancyStats as $plate => $years)
-                    @foreach($years as $year => $data)
-                        {{ $data['percent'] }},
-                    @endforeach
-                @endforeach
-            ];
+            let chart;
 
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Taxa de Ocupação (%)',
-                        data: data,
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function (value) {
-                                    return value + '%';
+            function updateChart(filteredStats) {
+                const labels = filteredStats.map(item => item.label);
+                const data = filteredStats.map(item => item.percent);
+
+                if (chart) chart.destroy(); // Remove gráfico anterior
+
+                chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Taxa de Ocupação (%)',
+                            data: data,
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function (value) {
+                                        return value + '%';
+                                    }
                                 }
                             }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.raw + '%';
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function (context) {
+                                        return context.raw + '%';
+                                    }
                                 }
                             }
                         }
                     }
-                }
+                });
+            }
+
+            // Inicializa com todos os dados
+            updateChart(allStats);
+
+            // Filtro por ano
+            document.getElementById('yearFilter').addEventListener('change', function () {
+                const selectedYear = this.value;
+
+                const filtered = selectedYear === 'all'
+                    ? allStats
+                    : allStats.filter(item => item.year === selectedYear);
+
+                updateChart(filtered);
             });
 
-            // Espaçamento Dinâmico usando ResizeObserver
+            // Espaçamento Dinâmico com ResizeObserver
             const timelineContainer = document.getElementById('timelineContainer');
 
-if ('ResizeObserver' in window && timelineContainer) {
-    const observer = new ResizeObserver(entries => {
-        for (let entry of entries) {
-            const height = entry.contentRect.height;
-            timelineContainer.style.marginBottom = (height * 0.1 + 60) + 'px'; // 10% extra + 60px
-        }
-    });
+            if ('ResizeObserver' in window && timelineContainer) {
+                const observer = new ResizeObserver(entries => {
+                    for (let entry of entries) {
+                        const height = entry.contentRect.height;
+                        timelineContainer.style.marginBottom = (height * 0.1 + 60) + 'px';
+                    }
+                });
 
-    observer.observe(timelineContainer);
-} else {
-    // Fallback se ResizeObserver não existir
-    setTimeout(() => {
-        const height = timelineContainer.offsetHeight;
-        timelineContainer.style.marginBottom = (height * 0.1 + 60) + 'px';
-    }, 500);
-}
-
+                observer.observe(timelineContainer);
+            } else {
+                setTimeout(() => {
+                    const height = timelineContainer.offsetHeight;
+                    timelineContainer.style.marginBottom = (height * 0.1 + 60) + 'px';
+                }, 500);
+            }
         });
     </script>
 @endsection
+
