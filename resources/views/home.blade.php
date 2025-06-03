@@ -205,8 +205,8 @@
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                                     <label class="required" for="value">Valor do recibo</label>
-                                    <input class="form-control" type="hidden" name="value" id="value" value="{{ $driver_balance->final }}">
-                                    <input class="form-control" type="text" disabled value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
+                                    <input class="form-control" type="hidden" name="value" id="value" value="{{ number_format($driver_balance->final, 2, '.', '') }}">
+                                    <input class="form-control" type="text" disabled value="{{ number_format($driver_balance->final, 2, '.', '') }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
                                     @if($errors->has('value'))
                                     <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
                                     @endif
