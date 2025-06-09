@@ -13,8 +13,8 @@
                         @method('PUT')
                         @csrf
                         <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
-                            <label class="required" for="driver_id">{{ trans('cruds.vehicleUsage.fields.driver') }}</label>
-                            <select class="form-control select2" name="driver_id" id="driver_id" required>
+                            <label for="driver_id">{{ trans('cruds.vehicleUsage.fields.driver') }}</label>
+                            <select class="form-control select2" name="driver_id" id="driver_id">
                                 @foreach($drivers as $id => $entry)
                                     <option value="{{ $id }}" {{ (old('driver_id') ? old('driver_id') : $vehicleUsage->driver->id ?? '') == $id ? 'selected' : '' }}>{{ $entry }}</option>
                                 @endforeach
@@ -51,6 +51,19 @@
                                 <span class="help-block" role="alert">{{ $errors->first('end_date') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleUsage.fields.end_date_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('usage_exceptions') ? 'has-error' : '' }}">
+                            <label>{{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}</label>
+                            @foreach(App\Models\VehicleUsage::USAGE_EXCEPTIONS_RADIO as $key => $label)
+                                <div>
+                                    <input type="radio" id="usage_exceptions_{{ $key }}" name="usage_exceptions" value="{{ $key }}" {{ old('usage_exceptions', $vehicleUsage->usage_exceptions) === (string) $key ? 'checked' : '' }}>
+                                    <label for="usage_exceptions_{{ $key }}" style="font-weight: 400">{{ $label }}</label>
+                                </div>
+                            @endforeach
+                            @if($errors->has('usage_exceptions'))
+                                <span class="help-block" role="alert">{{ $errors->first('usage_exceptions') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleUsage.fields.usage_exceptions_helper') }}</span>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">

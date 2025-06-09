@@ -17,10 +17,6 @@ class UpdateVehicleUsageRequest extends FormRequest
     public function rules()
     {
         return [
-            'driver_id' => [
-                'required',
-                'integer',
-            ],
             'vehicle_item_id' => [
                 'required',
                 'integer',

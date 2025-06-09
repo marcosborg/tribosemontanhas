@@ -57,6 +57,14 @@
                                         {{ $vehicleUsage->end_date }}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}
+                                    </th>
+                                    <td>
+                                        {{ App\Models\VehicleUsage::USAGE_EXCEPTIONS_RADIO[$vehicleUsage->usage_exceptions] ?? '' }}
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

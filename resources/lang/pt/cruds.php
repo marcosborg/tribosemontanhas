@@ -2411,6 +2411,8 @@ return [
             'updated_at_helper'   => ' ',
             'deleted_at'          => 'Deleted at',
             'deleted_at_helper'   => ' ',
+            'usage_exceptions'        => 'Exceções',
+            'usage_exceptions_helper' => ' ',
         ],
     ],
     'teslaCharging' => [

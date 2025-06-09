@@ -27,9 +27,18 @@ class VehicleUsage extends Model
         'vehicle_item_id',
         'start_date',
         'end_date',
+        'usage_exceptions',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    public const USAGE_EXCEPTIONS_RADIO = [
+        'usage'       => 'Utilização',
+        'maintenance' => 'Manutenção',
+        'accident'    => 'Sinistrado',
+        'unassigned'  => 'Sem utilização',
+        'personal'    => 'Utilização pessoal',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

@@ -7,9 +7,6 @@
                 <a class="btn btn-success" href="{{ route('admin.vehicle-usages.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.vehicleUsage.title_singular') }}
                 </a>
-                <a class="btn btn-primary" href="/admin/vehicle-usage">
-                    Gráfivos {{ trans('cruds.vehicleUsage.title_singular') }}
-                </a>
             </div>
         </div>
     @endcan
@@ -40,6 +37,9 @@
                                 </th>
                                 <th>
                                     {{ trans('cruds.vehicleUsage.fields.end_date') }}
+                                </th>
+                                <th>
+                                    {{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}
                                 </th>
                                 <th>
                                     &nbsp;
@@ -105,6 +105,7 @@
 { data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
 { data: 'start_date', name: 'start_date' },
 { data: 'end_date', name: 'end_date' },
+{ data: 'usage_exceptions', name: 'usage_exceptions' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

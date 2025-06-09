@@ -53,6 +53,10 @@ class VehicleUsageController extends Controller
                 return $row->vehicle_item ? $row->vehicle_item->license_plate : '';
             });
 
+            $table->editColumn('usage_exceptions', function ($row) {
+                return $row->usage_exceptions ? VehicleUsage::USAGE_EXCEPTIONS_RADIO[$row->usage_exceptions] : '';
+            });
+
             $table->rawColumns(['actions', 'placeholder', 'driver', 'vehicle_item']);
 
             return $table->make(true);
