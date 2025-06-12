@@ -327,12 +327,50 @@
                         @endif
                     </form>
                     @endif
-                    
                     @else
                     <div class="alert alert-info">
                         O saldo não permite o envio de recibos.
                     </div>
                     @endif
+                    <hr>
+                    <form method="POST" action="{{ route("admin.reimbursements.store") }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
+                            <label class="required" for="file">Devolução de valores</label>
+                            <div class="needsclick dropzone" id="file-dropzone">
+                            </div>
+                            @if($errors->has('file'))
+                                <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.reimbursement.fields.file_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
+                            <label class="required" for="value">Somatório de valores devolvidos</label>
+                            <input class="form-control" type="number" name="value" id="value" value="{{ old('value', '') }}" step="0.01" required>
+                            @if($errors->has('value'))
+                                <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.reimbursement.fields.value_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('verified') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="verified" value="0">
+                                <input type="checkbox" name="verified" id="verified" value="1" {{ old('verified', 0) == 1 ? 'checked' : '' }} disabled>
+                                <label for="verified" style="font-weight: 400">Verificado</label>
+                            </div>
+                            @if($errors->has('verified'))
+                                <span class="help-block" role="alert">{{ $errors->first('verified') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.reimbursement.fields.verified_helper') }}</span>
+                        </div>
+                        <input type="hidden" name="driver_id" value="{{ $driver_id }}">
+                        <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
+                        <div class="form-group">
+                            <button class="btn btn-danger" type="submit">
+                                Gravar valores devolvidos
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -564,6 +602,54 @@ Dropzone.options.receiptsDropzone = {
 }
 </script>
 @endif
+<script>
+    Dropzone.options.fileDropzone = {
+    url: '{{ route('admin.reimbursements.storeMedia') }}',
+    maxFilesize: 2, // MB
+    maxFiles: 1,
+    addRemoveLinks: true,
+    headers: {
+      'X-CSRF-TOKEN': "{{ csrf_token() }}"
+    },
+    params: {
+      size: 2
+    },
+    success: function (file, response) {
+      $('form').find('input[name="file"]').remove()
+      $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
+    },
+    removedfile: function (file) {
+      file.previewElement.remove()
+      if (file.status !== 'error') {
+        $('form').find('input[name="file"]').remove()
+        this.options.maxFiles = this.options.maxFiles + 1
+      }
+    },
+    init: function () {
+@if(isset($reimbursement) && $reimbursement->file)
+      var file = {!! json_encode($reimbursement->file) !!}
+          this.options.addedfile.call(this, file)
+      file.previewElement.classList.add('dz-complete')
+      $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
+      this.options.maxFiles = this.options.maxFiles - 1
+@endif
+    },
+     error: function (file, response) {
+         if ($.type(response) === 'string') {
+             var message = response //dropzone sends it's own error messages in string
+         } else {
+             var message = response.errors.file
+         }
+         file.previewElement.classList.add('dz-error')
+         _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
+         _results = []
+         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+             node = _ref[_i]
+             _results.push(node.textContent = message)
+         }
 
+         return _results
+     }
+}
+</script>
 @endsection
-<script>console.log({!! $driver_balance !!})</script>

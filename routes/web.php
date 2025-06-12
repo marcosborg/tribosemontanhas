@@ -563,6 +563,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('expense-reimbursements/parse-csv-import', 'ExpenseReimbursementController@parseCsvImport')->name('expense-reimbursements.parseCsvImport');
     Route::post('expense-reimbursements/process-csv-import', 'ExpenseReimbursementController@processCsvImport')->name('expense-reimbursements.processCsvImport');
     Route::resource('expense-reimbursements', 'ExpenseReimbursementController');
+
+    // Reimbursement
+    Route::delete('reimbursements/destroy', 'ReimbursementController@massDestroy')->name('reimbursements.massDestroy');
+    Route::post('reimbursements/media', 'ReimbursementController@storeMedia')->name('reimbursements.storeMedia');
+    Route::post('reimbursements/ckmedia', 'ReimbursementController@storeCKEditorImages')->name('reimbursements.storeCKEditorImages');
+    Route::resource('reimbursements', 'ReimbursementController');
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {

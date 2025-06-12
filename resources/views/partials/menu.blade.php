@@ -299,6 +299,16 @@
                         </a>
                     </li>
                     @endcan
+                    @can('reimbursement_access')
+                    <li class="{{ request()->is("admin/reimbursements") || request()->is("admin/reimbursements/*") ? "active" : "" }}">
+                        <a href="{{ route("admin.reimbursements.index") }}">
+                            <i class="fa-fw fas fa-file-invoice-dollar">
+
+                            </i>
+                            <span>{{ trans('cruds.reimbursement.title') }}</span>
+                        </a>
+                    </li>
+                    @endcan
                     @can('tvde_activity_access')
                     <li class="{{ request()->is("admin/tvde-activities") || request()->is("admin/tvde-activities/*") ?
                         "active" : "" }}">
