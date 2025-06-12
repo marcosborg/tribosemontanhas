@@ -147,7 +147,10 @@
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
+                    <div class="pull-left">
+                    <h4>Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h4>
+                    <h3>Saldo atual: <span style="font-weight: 800;">{{ $driver_balance->balance ?? 0 }}</span>€</h3>
+                    </div>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
