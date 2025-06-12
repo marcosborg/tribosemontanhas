@@ -173,6 +173,7 @@
                         <th style="text-align: right">A pagar</th>
                         <th style="text-align: right">Validar</th>
                         <th></th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -232,6 +233,9 @@
                                 </label>
                             </div>
                         </td>
+                        <td>
+                            <button type="button" onclick="deleteData({{ $tvde_week_id }}, {{ $driver->id }})" class="btn btn-sm"><span class="glyphicon glyphicon-trash"></button>
+                        </td>
                     </tr>
                     @endif
                     @endforeach
@@ -282,6 +286,7 @@
                         </th>
                         <th></th>
                         <th></th>
+                        <th></th>
                     </tr>
                 </tfoot>
             </table>
@@ -297,7 +302,8 @@
     $(function() {
         $('[data-toggle="popover"]').popover()
     })
-
+    function deleteData(tvde_week_id, driver_id) {
+        console.log(tvde_week_id, driver_id);
+    }
 </script>
 @endsection
-<script>console.log({!! $drivers !!})</script>
