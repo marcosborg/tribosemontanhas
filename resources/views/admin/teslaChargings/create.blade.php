@@ -11,6 +11,26 @@
                 <div class="panel-body">
                     <form method="POST" action="{{ route("admin.tesla-chargings.store") }}" enctype="multipart/form-data">
                         @csrf
+                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
+                            <label class="required" for="value">{{ trans('cruds.teslaCharging.fields.value') }}</label>
+                            <input class="form-control" type="number" name="value" id="value" value="{{ old('value', '') }}" step="0.01" required>
+                            @if($errors->has('value'))
+                                <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.teslaCharging.fields.value_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
+                            <label class="required" for="driver_id">{{ trans('cruds.teslaCharging.fields.driver') }}</label>
+                            <select class="form-control select2" name="driver_id" id="driver_id" required>
+                                @foreach($drivers as $id => $entry)
+                                    <option value="{{ $id }}" {{ old('driver_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('driver'))
+                                <span class="help-block" role="alert">{{ $errors->first('driver') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.teslaCharging.fields.driver_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('tvde_week') ? 'has-error' : '' }}">
                             <label class="required" for="tvde_week_id">{{ trans('cruds.teslaCharging.fields.tvde_week') }}</label>
                             <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>
@@ -22,22 +42,6 @@
                                 <span class="help-block" role="alert">{{ $errors->first('tvde_week') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.teslaCharging.fields.tvde_week_helper') }}</span>
-                        </div>
-                        <div class="form-group {{ $errors->has('license') ? 'has-error' : '' }}">
-                            <label class="required" for="license">{{ trans('cruds.teslaCharging.fields.license') }}</label>
-                            <input class="form-control" type="text" name="license" id="license" value="{{ old('license', '') }}" required>
-                            @if($errors->has('license'))
-                                <span class="help-block" role="alert">{{ $errors->first('license') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.teslaCharging.fields.license_helper') }}</span>
-                        </div>
-                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
-                            <label class="required" for="value">{{ trans('cruds.teslaCharging.fields.value') }}</label>
-                            <input class="form-control" type="number" name="value" id="value" value="{{ old('value', '') }}" step="0.01" required>
-                            @if($errors->has('value'))
-                                <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.teslaCharging.fields.value_helper') }}</span>
                         </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">

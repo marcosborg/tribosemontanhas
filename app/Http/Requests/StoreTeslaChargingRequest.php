@@ -17,16 +17,16 @@ class StoreTeslaChargingRequest extends FormRequest
     public function rules()
     {
         return [
-            'tvde_week_id' => [
+            'value' => [
+                'required',
+            ],
+            'driver_id' => [
                 'required',
                 'integer',
             ],
-            'license' => [
-                'string',
+            'tvde_week_id' => [
                 'required',
-            ],
-            'value' => [
-                'required',
+                'integer',
             ],
         ];
     }

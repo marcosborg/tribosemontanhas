@@ -27,26 +27,26 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.teslaCharging.fields.tvde_week') }}
-                                    </th>
-                                    <td>
-                                        {{ $teslaCharging->tvde_week->start_date ?? '' }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>
-                                        {{ trans('cruds.teslaCharging.fields.license') }}
-                                    </th>
-                                    <td>
-                                        {{ $teslaCharging->license }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <th>
                                         {{ trans('cruds.teslaCharging.fields.value') }}
                                     </th>
                                     <td>
                                         {{ $teslaCharging->value }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.teslaCharging.fields.driver') }}
+                                    </th>
+                                    <td>
+                                        {{ $teslaCharging->driver->name ?? '' }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.teslaCharging.fields.tvde_week') }}
+                                    </th>
+                                    <td>
+                                        {{ $teslaCharging->tvde_week->start_date ?? '' }}
                                     </td>
                                 </tr>
                             </tbody>

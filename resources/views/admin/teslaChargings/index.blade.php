@@ -21,76 +21,58 @@
                     {{ trans('cruds.teslaCharging.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <div class="table-responsive">
-                        <table class=" table table-bordered table-striped table-hover datatable datatable-TeslaCharging">
-                            <thead>
-                                <tr>
-                                    <th width="10">
+                    <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-TeslaCharging">
+                        <thead>
+                            <tr>
+                                <th width="10">
 
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.teslaCharging.fields.id') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.teslaCharging.fields.tvde_week') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.teslaCharging.fields.license') }}
-                                    </th>
-                                    <th>
-                                        {{ trans('cruds.teslaCharging.fields.value') }}
-                                    </th>
-                                    <th>
-                                        &nbsp;
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($teslaChargings as $key => $teslaCharging)
-                                    <tr data-entry-id="{{ $teslaCharging->id }}">
-                                        <td>
-
-                                        </td>
-                                        <td>
-                                            {{ $teslaCharging->id ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $teslaCharging->tvde_week->start_date ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $teslaCharging->license ?? '' }}
-                                        </td>
-                                        <td>
-                                            {{ $teslaCharging->value ?? '' }}
-                                        </td>
-                                        <td>
-                                            @can('tesla_charging_show')
-                                                <a class="btn btn-xs btn-primary" href="{{ route('admin.tesla-chargings.show', $teslaCharging->id) }}">
-                                                    {{ trans('global.view') }}
-                                                </a>
-                                            @endcan
-
-                                            @can('tesla_charging_edit')
-                                                <a class="btn btn-xs btn-info" href="{{ route('admin.tesla-chargings.edit', $teslaCharging->id) }}">
-                                                    {{ trans('global.edit') }}
-                                                </a>
-                                            @endcan
-
-                                            @can('tesla_charging_delete')
-                                                <form action="{{ route('admin.tesla-chargings.destroy', $teslaCharging->id) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
-                                                    <input type="hidden" name="_method" value="DELETE">
-                                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                                    <input type="submit" class="btn btn-xs btn-danger" value="{{ trans('global.delete') }}">
-                                                </form>
-                                            @endcan
-
-                                        </td>
-
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
+                                </th>
+                                <th>
+                                    {{ trans('cruds.teslaCharging.fields.id') }}
+                                </th>
+                                <th>
+                                    {{ trans('cruds.teslaCharging.fields.value') }}
+                                </th>
+                                <th>
+                                    {{ trans('cruds.teslaCharging.fields.driver') }}
+                                </th>
+                                <th>
+                                    {{ trans('cruds.teslaCharging.fields.tvde_week') }}
+                                </th>
+                                <th>
+                                    &nbsp;
+                                </th>
+                            </tr>
+                            <tr>
+                                <td>
+                                </td>
+                                <td>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td>
+                                <td>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td>
+                                <td>
+                                    <select class="search">
+                                        <option value>{{ trans('global.all') }}</option>
+                                        @foreach($drivers as $key => $item)
+                                            <option value="{{ $item->name }}">{{ $item->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="search">
+                                        <option value>{{ trans('global.all') }}</option>
+                                        @foreach($tvde_weeks as $key => $item)
+                                            <option value="{{ $item->start_date }}">{{ $item->start_date }}</option>
+                                        @endforeach
+                                    </select>
+                                </td>
+                                <td>
+                                </td>
+                            </tr>
+                        </thead>
+                    </table>
                 </div>
             </div>
 
@@ -106,14 +88,14 @@
     $(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 @can('tesla_charging_delete')
-  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}'
+  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
   let deleteButton = {
     text: deleteButtonTrans,
     url: "{{ route('admin.tesla-chargings.massDestroy') }}",
     className: 'btn-danger',
     action: function (e, dt, node, config) {
-      var ids = $.map(dt.rows({ selected: true }).nodes(), function (entry) {
-          return $(entry).data('entry-id')
+      var ids = $.map(dt.rows({ selected: true }).data(), function (entry) {
+          return entry.id
       });
 
       if (ids.length === 0) {
@@ -135,18 +117,53 @@
   dtButtons.push(deleteButton)
 @endcan
 
-  $.extend(true, $.fn.dataTable.defaults, {
+  let dtOverrideGlobals = {
+    buttons: dtButtons,
+    processing: true,
+    serverSide: true,
+    retrieve: true,
+    aaSorting: [],
+    ajax: "{{ route('admin.tesla-chargings.index') }}",
+    columns: [
+      { data: 'placeholder', name: 'placeholder' },
+{ data: 'id', name: 'id' },
+{ data: 'value', name: 'value' },
+{ data: 'driver_name', name: 'driver.name' },
+{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
+{ data: 'actions', name: '{{ trans('global.actions') }}' }
+    ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
-  });
-  let table = $('.datatable-TeslaCharging:not(.ajaxTable)').DataTable({ buttons: dtButtons })
+  };
+  let table = $('.datatable-TeslaCharging').DataTable(dtOverrideGlobals);
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
   
-})
+let visibleColumnsIndexes = null;
+$('.datatable thead').on('input', '.search', function () {
+      let strict = $(this).attr('strict') || false
+      let value = strict && this.value ? "^" + this.value + "$" : this.value
+
+      let index = $(this).parent().index()
+      if (visibleColumnsIndexes !== null) {
+        index = visibleColumnsIndexes[index]
+      }
+
+      table
+        .column(index)
+        .search(value, strict)
+        .draw()
+  });
+table.on('column-visibility.dt', function(e, settings, column, state) {
+      visibleColumnsIndexes = []
+      table.columns(":visible").every(function(colIdx) {
+          visibleColumnsIndexes.push(colIdx);
+      });
+  })
+});
 
 </script>
 @endsection

@@ -20,9 +20,9 @@ class TeslaCharging extends Model
     ];
 
     protected $fillable = [
-        'tvde_week_id',
-        'license',
         'value',
+        'driver_id',
+        'tvde_week_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -31,6 +31,11 @@ class TeslaCharging extends Model
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
+    }
+
+    public function driver()
+    {
+        return $this->belongsTo(Driver::class, 'driver_id');
     }
 
     public function tvde_week()
