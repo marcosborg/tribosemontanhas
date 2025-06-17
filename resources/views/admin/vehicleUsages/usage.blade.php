@@ -94,18 +94,24 @@
         document.addEventListener('DOMContentLoaded', function () {
             // Timeline
             const timelineItems = new vis.DataSet([
-                @foreach($grouped as $plate => $records)
-                    @foreach($records as $record)
-                        {
-                            id: {{ $record->id }},
-                            content: '{{ $record->driver ? $record->driver->name : 'Sem motorista' }}',
-                            start: '{{ \Carbon\Carbon::parse($record->start_date)->format('Y-m-d') }}',
-                            end: '{{ \Carbon\Carbon::parse($record->end_date)->format('Y-m-d') }}',
-                            group: '{{ $plate }}'
-                        },
-                    @endforeach
-                @endforeach
-            ]);
+    @foreach($grouped as $plate => $records)
+        @foreach($records as $record)
+            {
+                id: {{ $record->id }},
+                content: '{{ $record->driver ? $record->driver->name : ($record->usage_exceptions ? ucfirst($record->usage_exceptions) : 'Sem motorista') }}',
+                start: '{{ \Carbon\Carbon::parse($record->start_date)->format('Y-m-d') }}',
+                end: '{{ \Carbon\Carbon::parse($record->end_date)->format('Y-m-d') }}',
+                group: '{{ $plate }}',
+                @if(!$record->driver && $record->usage_exceptions)
+                    className: 'exception-item',
+                @endif
+            },
+        @endforeach
+    @endforeach
+]);
+
+
+
 
             const timelineGroups = new vis.DataSet([
                 @foreach($grouped as $plate => $records)
@@ -223,3 +229,15 @@
     </script>
 @endsection
 
+@section('styles')
+<style>
+    .vis-item.exception-item {
+        background-color: #ff4d4d !important; /* fundo vermelho */
+        border-color: #cc0000 !important;     /* borda vermelha escura */
+        color: white !important;              /* texto branco */
+        font-weight: bold;                    /* destaque adicional (opcional) */
+    }
+</style>
+
+
+@endsection

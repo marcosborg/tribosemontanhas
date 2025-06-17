@@ -181,11 +181,11 @@
                             @if ($driver_balance)
                             <tr>
                                 <th>Saldo transitado</th>
-                                <td>{{ number_format($total - $driver_balance->balance ?? 0, 2) }}€</td>
+                                <td>{{ number_format($driver_balance->balance - $total ?? 0, 2) }}€</td>
                             </tr>
                             @endif
                             <tr>
-                                <th>Saldo final</th>
+                                <th>Saldo atual</th>
                                 <td>{{ $driver_balance->balance ?? 0 }}€</td>
                             </tr>
                             <tr>

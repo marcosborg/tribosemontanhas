@@ -550,7 +550,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Vehicle Usage
     Route::delete('vehicle-usages/destroy', 'VehicleUsageController@massDestroy')->name('vehicle-usages.massDestroy');
     Route::resource('vehicle-usages', 'VehicleUsageController');
-    Route::get('vehicle-usage', 'VehicleUsageController@usage');
+    Route::get('vehicle-usage', 'VehicleUsageController@usage')->name('vehicle-usage');
 
     // Tesla Charging
     Route::delete('tesla-chargings/destroy', 'TeslaChargingController@massDestroy')->name('tesla-chargings.massDestroy');
