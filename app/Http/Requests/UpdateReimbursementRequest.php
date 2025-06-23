@@ -17,9 +17,6 @@ class UpdateReimbursementRequest extends FormRequest
     public function rules()
     {
         return [
-            'value' => [
-                'required',
-            ],
             'file' => [
                 'required',
             ],
