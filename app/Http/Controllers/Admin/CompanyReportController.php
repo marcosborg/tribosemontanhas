@@ -114,4 +114,24 @@ class CompanyReportController extends Controller
 
     }
 
+    public function deleteData($tvde_week_id, $driver_id)
+    {
+
+        $current_account = CurrentAccount::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $driver_id
+        ])->first();
+
+        if ($current_account) {
+            $current_account->delete();
+        }
+
+        DriversBalance::where([
+            'tvde_week_id' => $tvde_week_id,
+            'driver_id' => $driver_id
+        ])->delete();
+
+        return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
+    }
+
 }

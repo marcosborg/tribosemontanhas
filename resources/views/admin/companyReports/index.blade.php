@@ -303,7 +303,33 @@
         $('[data-toggle="popover"]').popover()
     })
     function deleteData(tvde_week_id, driver_id) {
-        console.log(tvde_week_id, driver_id);
+        Swal.fire({
+            title: 'Tem a certeza?',
+            text: "Isto irá remover os dados do extrato deste condutor para esta semana.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sim, remover!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.get(`/admin/company-reports/delete-data/${tvde_week_id}/${driver_id}`, function(response) {
+                    Swal.fire(
+                        'Removido!',
+                        'Os dados foram removidos com sucesso.',
+                        'success'
+                    ).then(() => {
+                        location.reload();
+                    });
+                }).fail(function() {
+                    Swal.fire(
+                        'Erro!',
+                        'Ocorreu um erro ao remover os dados.',
+                        'error'
+                    );
+                });
+            }
+        });
     }
 </script>
 @endsection
