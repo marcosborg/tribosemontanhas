@@ -13,6 +13,7 @@ use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
+use Carbon\Carbon;
 
 class VehicleUsageController extends Controller
 {
@@ -78,10 +79,30 @@ class VehicleUsageController extends Controller
 
     public function store(StoreVehicleUsageRequest $request)
     {
-        $vehicleUsage = VehicleUsage::create($request->all());
+        // Converter datas no formato correto
+        $startDate = Carbon::createFromFormat(config('panel.date_format'), $request->start_date)->format('Y-m-d');
+        $endDate = Carbon::createFromFormat(config('panel.date_format'), $request->end_date)->format('Y-m-d');
+
+        // Verificar sobreposição
+        $hasOverlap = VehicleUsage::where('vehicle_item_id', $request->vehicle_item_id)
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->where(function ($q) use ($startDate, $endDate) {
+                    $q->where('start_date', '<=', $endDate)
+                        ->where('end_date', '>=', $startDate);
+                });
+            })
+            ->exists();
+
+        if ($hasOverlap) {
+            return redirect()->back()->with('message', 'Sobreposição de utilização. Verifique.');
+        }
+
+        // Criar novo registo se não houver sobreposição
+        VehicleUsage::create($request->all());
 
         return redirect()->route('admin.vehicle-usages.index');
     }
+
 
     public function edit(VehicleUsage $vehicleUsage)
     {
