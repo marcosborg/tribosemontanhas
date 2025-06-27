@@ -188,7 +188,7 @@
 { data: 'verified', name: 'verified' },
 { data: 'amount_transferred', name: 'amount_transferred'},
 { data: 'paid', name: 'paid'},
-{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
+{ data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
 { data: 'created_at', name: 'created_at' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],

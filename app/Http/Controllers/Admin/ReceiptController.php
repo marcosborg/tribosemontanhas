@@ -30,8 +30,12 @@ class ReceiptController extends Controller
         if ($request->ajax()) {
 
             $query = Receipt::where('paid', url()->current() == url('/admin/receipts/paid') ? 1 : 0)
-                ->with(['driver.company'])
-                ->select(sprintf('%s.*', (new Receipt)->table));
+                ->with(['driver.company', 'tvde_week'])
+                ->leftJoin('tvde_weeks', 'receipts.tvde_week_id', '=', 'tvde_weeks.id')
+                ->select([
+                    'receipts.*',
+                    'tvde_weeks.start_date as tvde_week_start_date',
+                ]);
 
             $table = Datatables::of($query);
 
@@ -81,7 +85,7 @@ class ReceiptController extends Controller
             $table->editColumn('rf', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->rf / 100;
-                $value = number_format(-($row->balance * $factor), 2, '.');
+                $value = number_format(- ($row->balance * $factor), 2, '.');
                 return $driver ? $value : '';
             });
 
@@ -239,7 +243,6 @@ class ReceiptController extends Controller
         $receipt = Receipt::find($receipt_id);
         $receipt->paid = true;
         $receipt->save();
-
     }
 
     public function checkVerified($receipt_id, $receipt_value, $amount_transferred)
@@ -259,6 +262,5 @@ class ReceiptController extends Controller
         $drivers_balance->balance = $balance;
         $drivers_balance->drivers_balance = $balance;
         $drivers_balance->save();
-
     }
 }
