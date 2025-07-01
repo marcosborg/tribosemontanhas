@@ -37,7 +37,7 @@
                         </div>
                         <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
                             <label class="required" for="start_date">{{ trans('cruds.vehicleUsage.fields.start_date') }}</label>
-                            <input class="form-control date" type="text" name="start_date" id="start_date" value="{{ old('start_date') }}" required>
+                            <input class="form-control datetime" type="text" name="start_date" id="start_date" value="{{ old('start_date') }}" required>
                             @if($errors->has('start_date'))
                                 <span class="help-block" role="alert">{{ $errors->first('start_date') }}</span>
                             @endif
@@ -45,7 +45,7 @@
                         </div>
                         <div class="form-group {{ $errors->has('end_date') ? 'has-error' : '' }}">
                             <label for="end_date">{{ trans('cruds.vehicleUsage.fields.end_date') }}</label>
-                            <input class="form-control date" type="text" name="end_date" id="end_date" value="{{ old('end_date') }}">
+                            <input class="form-control datetime" type="text" name="end_date" id="end_date" value="{{ old('end_date') }}">
                             @if($errors->has('end_date'))
                                 <span class="help-block" role="alert">{{ $errors->first('end_date') }}</span>
                             @endif
