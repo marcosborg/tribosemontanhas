@@ -96,167 +96,114 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function () {
-        // === TIMELINE ===
-        const timelineItems = new vis.DataSet([
-            @foreach($grouped as $plate => $records)
-                @foreach($records as $record)
-                    {
-                        id: {{ $record->id }},
-                        content: '{{ $record->driver ? $record->driver->name : ($record->usage_exceptions ? ucfirst($record->usage_exceptions) : 'Sem motorista') }}',
-                        start: '{{ \Carbon\Carbon::parse($record->start_date)->format('Y-m-d') }}',
-                        end: '{{ \Carbon\Carbon::parse($record->end_date)->format('Y-m-d') }}',
-                        group: '{{ $plate }}',
-                        @if(!$record->driver && $record->usage_exceptions)
-                            className: 'exception-item',
-                        @endif
-                    },
-                @endforeach
-            @endforeach
-        ]);
-
-        const timelineGroups = new vis.DataSet([
-            @foreach($grouped as $plate => $records)
-                { id: '{{ $plate }}', content: '{{ $plate }}' },
-            @endforeach
-        ]);
-
-        new vis.Timeline(document.getElementById('timeline'), timelineItems, timelineGroups, {
-            stack: false,
-            groupOrder: 'content',
-            editable: false,
-            margin: { item: 10, axis: 5 },
-            orientation: 'top'
-        });
-
-        // === GRÁFICO ===
-        const ctx = document.getElementById('occupancyChart').getContext('2d');
-
-        const monthlyStats = [
-            @foreach($grouped as $plate => $records)
-                @foreach($records as $record)
-                    @php
-                        $start = \Carbon\Carbon::parse($record->start_date);
-                        $end = \Carbon\Carbon::parse($record->end_date);
-                        $period = \Carbon\CarbonPeriod::create($start, $end);
-                        $daysGrouped = [];
-                        foreach ($period as $day) {
-                            $year = $day->format('Y');
-                            $month = $day->format('m');
-                            $key = $plate . ' (' . $year . '-' . $month . ')';
-                            if (!isset($daysGrouped[$key])) {
-                                $daysGrouped[$key] = ['count' => 0, 'year' => $year, 'month' => $month];
-                            }
-                            $daysGrouped[$key]['count']++;
-                        }
-                    @endphp
-                    @foreach($daysGrouped as $key => $info)
-                        {
-                            label: '{{ $key }}',
-                            plate: '{{ explode(' ', $key)[0] }}',
-                            year: '{{ $info['year'] }}',
-                            month: '{{ $info['month'] }}',
-                            percent: {{ round(($info['count'] / \Carbon\Carbon::create($info['year'], $info['month'], 1)->daysInMonth) * 100, 2) }}
-                        },
-                    @endforeach
-                @endforeach
-            @endforeach
-        ];
-
-        const yearlyStats = [];
-        const yearlyMap = {};
-
-        monthlyStats.forEach(item => {
-            const key = item.plate + ' (' + item.year + ')';
-            if (!yearlyMap[key]) {
-                yearlyMap[key] = {
-                    label: key,
-                    year: item.year,
-                    totalPercent: 0,
-                    months: 0
-                };
-            }
-            yearlyMap[key].totalPercent += item.percent;
-            yearlyMap[key].months++;
-        });
-
-        for (const key in yearlyMap) {
-            const entry = yearlyMap[key];
-            yearlyStats.push({
-                label: key,
-                year: entry.year,
-                percent: parseFloat((entry.totalPercent / entry.months).toFixed(2))
-            });
-        }
-
-        let chart;
-
-        function updateChart(data) {
-            const labels = data.map(d => d.label);
-            const values = data.map(d => d.percent);
-
-            if (chart) chart.destroy();
-
-            chart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Taxa de Ocupação (%)',
-                        data: values,
-                        backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
+document.addEventListener('DOMContentLoaded', function () {
+    // === TIMELINE ===
+    const timelineItems = new vis.DataSet([
+        @foreach($grouped as $plate => $records)
+            @foreach($records as $record)
+                {
+                    id: {{ $record->id }},
+                    content: '{{ addslashes($record->driver ? $record->driver->name : ($record->usage_exceptions ? ucfirst($record->usage_exceptions) : 'Sem motorista')) }}',
+                    start: '{{ \Carbon\Carbon::parse($record->getRawOriginal("start_date"))->toDateString() }}',
+                    end: '{{ \Carbon\Carbon::parse($record->getRawOriginal("end_date"))->toDateString() }}',
+                    group: '{{ $plate }}',
+                    @if(!$record->driver && $record->usage_exceptions)
+                        className: 'exception-item',
+                    @endif
                 },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: value => value + '%'
-                            }
+            @endforeach
+        @endforeach
+    ]);
+
+    const timelineGroups = new vis.DataSet([
+        @foreach($grouped as $plate => $records)
+            { id: '{{ $plate }}', content: '{{ $plate }}' },
+        @endforeach
+    ]);
+
+    new vis.Timeline(document.getElementById('timeline'), timelineItems, timelineGroups, {
+        stack: false,
+        groupOrder: 'content',
+        editable: false,
+        margin: { item: 10, axis: 5 },
+        orientation: 'top'
+    });
+
+    // === CHART.JS ===
+    const ctx = document.getElementById('occupancyChart').getContext('2d');
+
+    const monthlyStats = @json(array_values($monthlyStats));
+    const yearlyStats = @json($yearlyStats);
+
+    let chart;
+
+    function updateChart(data) {
+        const labels = data.map(d => d.label);
+        const values = data.map(d => d.percent);
+
+        if (chart) chart.destroy();
+
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Taxa de Ocupação (%)',
+                    data: values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: value => value + '%'
                         }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: context => context.raw + '%'
-                            }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: context => context.raw + '%'
                         }
                     }
                 }
-            });
-        }
-
-        function filterStats() {
-            const year = document.getElementById('yearFilter').value;
-            const month = document.getElementById('monthFilter').value;
-            let filtered;
-
-            if (month !== 'all') {
-                filtered = monthlyStats.filter(d =>
-                    (year === 'all' || d.year === year) && d.month === month
-                );
-            } else {
-                filtered = year === 'all'
-                    ? yearlyStats
-                    : yearlyStats.filter(d => d.year === year);
             }
+        });
+    }
 
-            updateChart(filtered);
+    function filterStats() {
+        const year = document.getElementById('yearFilter').value;
+        const month = document.getElementById('monthFilter').value;
+        let filtered;
+
+        if (month !== 'all') {
+            filtered = monthlyStats.filter(d =>
+                (year === 'all' || d.year === year) && d.month === month
+            );
+        } else {
+            filtered = year === 'all'
+                ? yearlyStats
+                : yearlyStats.filter(d => d.year === year);
         }
 
-        document.getElementById('yearFilter').addEventListener('change', filterStats);
-        document.getElementById('monthFilter').addEventListener('change', filterStats);
+        updateChart(filtered);
+    }
 
-        updateChart(yearlyStats); // inicial
-    });
+    document.getElementById('yearFilter').addEventListener('change', filterStats);
+    document.getElementById('monthFilter').addEventListener('change', filterStats);
+
+    updateChart(yearlyStats); // inicial
+});
 </script>
 @endsection
+
 
 @section('styles')
 <style>

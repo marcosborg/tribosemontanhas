@@ -160,33 +160,67 @@ class VehicleUsageController extends Controller
             ->get();
 
         $grouped = $usages->groupBy('vehicle_item.license_plate');
-
         $occupancyStats = [];
+        $monthlyStats = [];
+        $yearlyMap = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
             $years = [];
 
             foreach ($usagesForVehicle as $usage) {
-                $start = \Carbon\Carbon::parse($usage->start_date);
-                $end = \Carbon\Carbon::parse($usage->end_date);
+                $startRaw = $usage->getRawOriginal('start_date');
+                $endRaw = $usage->getRawOriginal('end_date');
 
-                for ($year = $start->year; $year <= $end->year; $year++) {
+                try {
+                    $start = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $startRaw);
+                } catch (\Exception $e) {
+                    try {
+                        $start = \Carbon\Carbon::createFromFormat('Y-m-d', $startRaw);
+                    } catch (\Exception $e2) {
+                        \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
+                        continue;
+                    }
+                }
+
+                try {
+                    $end = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $endRaw);
+                } catch (\Exception $e) {
+                    try {
+                        $end = \Carbon\Carbon::createFromFormat('Y-m-d', $endRaw);
+                    } catch (\Exception $e2) {
+                        \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
+                        continue;
+                    }
+                }
+
+                // Calcula stats de ocupação anual + mensal
+                $period = \Carbon\CarbonPeriod::create($start, $end);
+                foreach ($period as $day) {
+                    $year = $day->year;
+                    $month = $day->month;
+                    $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
+
+                    // Monthly stats
+                    if (!isset($monthlyStats[$monthKey])) {
+                        $monthlyStats[$monthKey] = [
+                            'label' => $monthKey,
+                            'plate' => $plate,
+                            'year' => (string) $year,
+                            'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
+                            'days' => 0,
+                        ];
+                    }
+                    $monthlyStats[$monthKey]['days']++;
+
+                    // Yearly stats
                     if (!isset($years[$year])) {
                         $years[$year] = [];
                     }
-
-                    // Limita o período ao ano específico
-                    $periodStart = $year == $start->year ? $start : \Carbon\Carbon::create($year, 1, 1);
-                    $periodEnd = $year == $end->year ? $end : \Carbon\Carbon::create($year, 12, 31);
-
-                    // Marca cada dia do ano como usado
-                    $period = \Carbon\CarbonPeriod::create($periodStart, $periodEnd);
-                    foreach ($period as $day) {
-                        $years[$year][$day->format('Y-m-d')] = true;
-                    }
+                    $years[$year][$day->format('Y-m-d')] = true;
                 }
             }
 
+            // Calcula percentagem anual
             foreach ($years as $year => $usedDays) {
                 $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
                 $usedCount = count($usedDays);
@@ -195,39 +229,60 @@ class VehicleUsageController extends Controller
                     'total' => $totalDays,
                     'percent' => round(($usedCount / $totalDays) * 100, 2),
                 ];
+
+                // Agrupa para stats anuais
+                $yearKey = "$plate ($year)";
+                if (!isset($yearlyMap[$yearKey])) {
+                    $yearlyMap[$yearKey] = [
+                        'label' => $yearKey,
+                        'year' => (string) $year,
+                        'totalPercent' => 0,
+                        'months' => 0,
+                    ];
+                }
             }
         }
 
-        $sortedStats = [];
+        // Calcula percentagem mensal
+        foreach ($monthlyStats as &$stat) {
+            $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int) $stat['month'], (int) $stat['year']);
+            $stat['percent'] = round(($stat['days'] / $daysInMonth) * 100, 2);
 
-        foreach ($occupancyStats as $plate => $years) {
-            foreach ($years as $year => $data) {
-                $sortedStats[] = [
-                    'label' => $plate . ' (' . $year . ')',
-                    'percent' => $data['percent'],
-                ];
+            // Soma para cálculo anual
+            $yearKey = "{$stat['plate']} ({$stat['year']})";
+            if (isset($yearlyMap[$yearKey])) {
+                $yearlyMap[$yearKey]['totalPercent'] += $stat['percent'];
+                $yearlyMap[$yearKey]['months']++;
             }
         }
 
-        // Ordenar do maior para o menor
-        usort($sortedStats, function ($a, $b) {
-            return $b['percent'] <=> $a['percent'];
-        });
+        // Calcula stats anuais finais
+        $yearlyStats = [];
+        foreach ($yearlyMap as $entry) {
+            $yearlyStats[] = [
+                'label' => $entry['label'],
+                'year' => $entry['year'],
+                'percent' => $entry['months'] > 0 ? round($entry['totalPercent'] / $entry['months'], 2) : 0,
+            ];
+        }
 
+        // Ordenar stats por percentagem
+        usort($yearlyStats, fn($a, $b) => $b['percent'] <=> $a['percent']);
+
+        // Anos disponíveis para filtros
         $availableYears = [];
-
-        foreach ($occupancyStats as $plate => $years) {
+        foreach ($occupancyStats as $years) {
             foreach ($years as $year => $data) {
                 $availableYears[$year] = true;
             }
         }
-
-        ksort($availableYears); // ordena os anos
+        ksort($availableYears);
 
         return view('admin.vehicleUsages.usage', compact(
             'grouped',
             'occupancyStats',
-            'sortedStats',
+            'yearlyStats',
+            'monthlyStats',
             'availableYears'
         ));
     }
