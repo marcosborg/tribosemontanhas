@@ -13,6 +13,7 @@ use App\Models\CompanyInvoice;
 use App\Models\CompanyData;
 use App\Models\Driver;
 use App\Models\ExpenseReceipt;
+use App\Models\TvdeWeek;
 
 class HomeController
 {
@@ -56,29 +57,46 @@ class HomeController
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
-        if($driver_balance) {
-            
+        if ($driver_balance) {
+
             $factor = $driver->contract_vat->iva / 100;
             $iva = number_format($driver_balance->value * $factor, 2);
             $driver_balance->iva = $iva;
-    
+
             $factor = $driver->contract_vat->rf / 100;
-            $rf = number_format(-($driver_balance->value * $factor), 2);
+            $rf = number_format(- ($driver_balance->value * $factor), 2);
             $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
-    
+
             $final = number_format($driver_balance->balance + $iva + $rf, 2);
             $driver_balance->final = $final;
-    
+
             //VERIFICAR RECIBOS DE DESPESAS
-    
+
             $expenseReceipt = ExpenseReceipt::where([
                 'driver_id' => $driver_id,
                 'tvde_week_id' => $tvde_week_id
             ])->first();
-    
-            if($expenseReceipt && $expenseReceipt->verified) {
+
+            if ($expenseReceipt && $expenseReceipt->verified) {
                 $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
             }
+        }
+
+        //BALANCE LAST WEEK
+
+        $current_week = TvdeWeek::findOrFail($tvde_week_id);
+
+        $previous_week = TvdeWeek::where('end_date', '<', $current_week->start_date)
+            ->orderByDesc('end_date')
+            ->first();
+
+        if ($previous_week) {
+            $driver_balance_last_week = DriversBalance::where([
+                'driver_id' => $driver_id,
+                'tvde_week_id' => $previous_week->id
+            ])->first();
+        } else {
+            $driver_balance_last_week = null; // ou valor default
         }
 
         return view('home')->with([
