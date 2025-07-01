@@ -38,4 +38,5 @@ class CombustionTransaction extends Model
     {
         return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
     }
+
 }

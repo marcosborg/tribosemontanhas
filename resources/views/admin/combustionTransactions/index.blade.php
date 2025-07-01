@@ -37,6 +37,9 @@
                                     {{ trans('cruds.combustionTransaction.fields.card') }}
                                 </th>
                                 <th>
+                                    Existe
+                                </th>
+                                <th>
                                     {{ trans('cruds.combustionTransaction.fields.amount') }}
                                 </th>
                                 <th>
@@ -104,6 +107,7 @@
 { data: 'id', name: 'id' },
 { data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
 { data: 'card', name: 'card' },
+{ data: 'exist', name: 'exist', orderable: false, searchable: false },
 { data: 'amount', name: 'amount' },
 { data: 'total', name: 'total' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }

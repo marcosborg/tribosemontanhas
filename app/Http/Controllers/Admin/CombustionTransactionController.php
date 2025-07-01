@@ -54,6 +54,32 @@ class CombustionTransactionController extends Controller
             $table->editColumn('card', function ($row) {
                 return $row->card ? $row->card : '';
             });
+
+            $table->editColumn('exist', function ($row) {
+                if (!$row->card) {
+                    return '<span class="badge badge-secondary">Sem cartão</span>';
+                }
+
+                // Procurar driver com este cartão
+                $driver = \App\Models\Driver::where('card_id', function ($query) use ($row) {
+                    $query->select('id')
+                        ->from('cards')
+                        ->where('code', $row->card)
+                        ->limit(1);
+                })
+                    ->orWhereHas('cards', function ($query) use ($row) {
+                        $query->where('code', $row->card);
+                    })
+                    ->first();
+
+                if ($driver) {
+                    return '';
+                }
+
+                return '<span class="badge badge-danger">Não existe</span>';
+            });
+
+
             $table->editColumn('amount', function ($row) {
                 return $row->amount ? $row->amount : '';
             });
@@ -61,7 +87,7 @@ class CombustionTransactionController extends Controller
                 return $row->total ? $row->total : '';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'tvde_week']);
+            $table->rawColumns(['actions', 'placeholder', 'tvde_week', 'exist']);
 
             return $table->make(true);
         }
