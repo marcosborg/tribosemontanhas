@@ -24,6 +24,8 @@ use App\Models\Consultancy;
 use App\Models\Company;
 use App\Models\CompanyData;
 use App\Models\CarTrack;
+use App\Models\TeslaCharging;
+use App\Models\VehicleUsage;
 
 trait Reports
 {
@@ -148,7 +150,37 @@ trait Reports
 
             $driver->fuel = $fuel_transactions;
 
-            $total_fuel_transactions[] = $fuel_transactions;
+            //TESLA
+
+            $tesla_total = 0;
+
+            // Buscar todos carregamentos Tesla na semana
+            $tesla_chargings = TeslaCharging::whereBetween('datetime', [$tvde_week->start_date, $tvde_week->end_date])->get();
+
+            foreach ($tesla_chargings as $charging) {
+                // Procurar VehicleUsage do carro do carregamento na data do charging
+                $usage = VehicleUsage::whereHas('vehicle_item', function ($query) use ($charging) {
+                    $query->whereRaw('REPLACE(UPPER(license_plate), "-", "") = ?', [
+                        str_replace('-', '', strtoupper($charging->license))
+                    ]);
+                })
+                    ->where('start_date', '<=', $charging->datetime)
+                    ->where(function ($query) use ($charging) {
+                        $query->where('end_date', '>=', $charging->datetime)
+                            ->orWhereNull('end_date');
+                    })
+                    ->first();
+
+                // Se usage encontrado e pertence a este driver, soma valor
+                if ($usage && $usage->driver_id === $driver->id) {
+                    $tesla_total += $charging->value;
+                }
+            }
+
+            // Soma TeslaCharging ao total de combustível do driver
+            $driver->fuel += $tesla_total;
+
+            $total_fuel_transactions[] = $driver->fuel;
 
             //CAR HIRE
 

@@ -152,4 +152,9 @@ class Driver extends Model
         return $this->belongsToMany(Card::class);
     }
 
+    public function vehicleUsages()
+    {
+        return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
+    }
+
 }

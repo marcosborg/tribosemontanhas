@@ -35,10 +35,10 @@
                                 </tr>
                                 <tr>
                                     <th>
-                                        {{ trans('cruds.teslaCharging.fields.driver') }}
+                                        {{ trans('cruds.teslaCharging.fields.license') }}
                                     </th>
                                     <td>
-                                        {{ $teslaCharging->driver->name ?? '' }}
+                                        {{ $teslaCharging->license ?? '' }}
                                     </td>
                                 </tr>
                                 <tr>

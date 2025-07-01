@@ -34,10 +34,10 @@
                                     {{ trans('cruds.teslaCharging.fields.value') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.teslaCharging.fields.driver') }}
+                                    {{ trans('cruds.teslaCharging.fields.license') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.teslaCharging.fields.tvde_week') }}
+                                    {{ trans('cruds.teslaCharging.fields.datetime') }}
                                 </th>
                                 <th>
                                     &nbsp;
@@ -53,20 +53,10 @@
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td>
-                                    <select class="search">
-                                        <option value>{{ trans('global.all') }}</option>
-                                        @foreach($drivers as $key => $item)
-                                            <option value="{{ $item->name }}">{{ $item->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td>
-                                    <select class="search">
-                                        <option value>{{ trans('global.all') }}</option>
-                                        @foreach($tvde_weeks as $key => $item)
-                                            <option value="{{ $item->start_date }}">{{ $item->start_date }}</option>
-                                        @endforeach
-                                    </select>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td>
                                 </td>
@@ -128,8 +118,8 @@
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
 { data: 'value', name: 'value' },
-{ data: 'driver_name', name: 'driver.name' },
-{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
+{ data: 'license', name: 'license' },
+{ data: 'datetime', name: 'datetime' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

@@ -20,14 +20,6 @@ class UpdateTeslaChargingRequest extends FormRequest
             'value' => [
                 'required',
             ],
-            'driver_id' => [
-                'required',
-                'integer',
-            ],
-            'tvde_week_id' => [
-                'required',
-                'integer',
-            ],
         ];
     }
 }
