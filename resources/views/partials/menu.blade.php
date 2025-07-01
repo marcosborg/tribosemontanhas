@@ -295,7 +295,7 @@
 
                             </i>
                             <span>{{ trans('cruds.receipt.title') }}</span>
-
+                            <span class="badge badge-danger">{{ \App\Models\Receipt::where('verified_value', NULL)->count() }}</span>
                         </a>
                     </li>
                     @endcan
@@ -306,6 +306,7 @@
 
                             </i>
                             <span>{{ trans('cruds.reimbursement.title') }}</span>
+                            <span class="badge badge-danger">{{ \App\Models\Reimbursement::where('verified', 0)->count() }}</span>
                         </a>
                     </li>
                     @endcan
