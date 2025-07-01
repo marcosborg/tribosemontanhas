@@ -23,10 +23,10 @@ class StoreVehicleUsageRequest extends FormRequest
             ],
             'start_date' => [
                 'required',
-                'date_format:' . config('panel.date_format'),
+                'date_format:Y-m-d H:i:s',
             ],
             'end_date' => [
-                'date_format:' . config('panel.date_format'),
+                'date_format:Y-m-d H:i:s',
                 'nullable',
             ],
         ];

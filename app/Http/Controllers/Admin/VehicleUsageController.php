@@ -79,28 +79,29 @@ class VehicleUsageController extends Controller
 
     public function store(StoreVehicleUsageRequest $request)
     {
-        // Converter datas no formato correto
-        $startDate = Carbon::createFromFormat(config('panel.date_format'), $request->start_date)->format('Y-m-d');
-        $endDate = Carbon::createFromFormat(config('panel.date_format'), $request->end_date)->format('Y-m-d');
+        // As datas estão validadas no formato Y-m-d H:i:s, podemos usá-las diretamente
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
 
-        // Verificar sobreposição
+        // Criar SEMPRE o novo registo
+        $newUsage = VehicleUsage::create($request->all());
+
+        // Verificar sobreposição com outros registos (excluindo o registo recém-criado)
         $hasOverlap = VehicleUsage::where('vehicle_item_id', $request->vehicle_item_id)
+            ->where('id', '!=', $newUsage->id)
             ->where(function ($query) use ($startDate, $endDate) {
-                $query->where(function ($q) use ($startDate, $endDate) {
-                    $q->where('start_date', '<=', $endDate)
-                        ->where('end_date', '>=', $startDate);
-                });
+                $query->where('start_date', '<=', $endDate)
+                    ->where('end_date', '>=', $startDate);
             })
-            ->exists();
+            ->first();
 
         if ($hasOverlap) {
-            return redirect()->back()->with('message', 'Sobreposição de utilização. Verifique.');
+            return redirect()->route('admin.vehicle-usages.index')
+                ->with('message', "Utilização criada com sucesso (ID {$newUsage->id}), mas sobrepõe a utilização existente com ID {$hasOverlap->id}.");
         }
 
-        // Criar novo registo se não houver sobreposição
-        VehicleUsage::create($request->all());
-
-        return redirect()->route('admin.vehicle-usages.index');
+        return redirect()->route('admin.vehicle-usages.index')
+            ->with('success', "Utilização criada com sucesso (ID {$newUsage->id}).");
     }
 
 

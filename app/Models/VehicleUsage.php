@@ -58,21 +58,21 @@ class VehicleUsage extends Model
 
     public function getStartDateAttribute($value)
     {
-        return $value ? Carbon::parse($value)->format('d/m/Y H:i:s') : null;
+        return $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
     }
 
     public function setStartDateAttribute($value)
     {
-        $this->attributes['start_date'] = $value ? Carbon::createFromFormat('d/m/Y H:i:s', $value)->format('Y-m-d') : null;
+        $this->attributes['start_date'] = $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
     }
 
     public function getEndDateAttribute($value)
     {
-        return $value ? Carbon::parse($value)->format('d/m/Y H:i:s') : null;
+        return $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
     }
 
     public function setEndDateAttribute($value)
     {
-        $this->attributes['end_date'] = $value ? Carbon::createFromFormat('d/m/Y H:i:s', $value)->format('Y-m-d') : null;
+        $this->attributes['end_date'] = $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
     }
 }
