@@ -23,10 +23,10 @@ class UpdateVehicleUsageRequest extends FormRequest
             ],
             'start_date' => [
                 'required',
-                'date_format: Y-m-d H:i:s',
+                'date_format:Y-m-d H:i:s',
             ],
             'end_date' => [
-                'date_format: Y-m-d H:i:s',
+                'date_format:Y-m-d H:i:s',
                 'nullable',
             ],
         ];
