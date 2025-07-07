@@ -208,7 +208,7 @@
                             }}
                             <small>€</small>
                         </td>
-                        <td style="text-align: right;">{{ number_format($driver->fuel, 2) }}
+                        <td style="text-align: right;">-{{ number_format($driver->fuel, 2) }}
                             <small>€</small>
                         </td>
                         <td style="text-align: right">{{ number_format($driver->adjustments, 2) }} <small>€</small><button class="btn btn-sm" data-toggle="popover" title="Adjustments" data-html="true" data-content="
@@ -217,7 +217,7 @@
                             @endforeach
                             "><i class="fa-fw fas fa-eye"></i></button></td>
                         <td style="text-align: right">{{ number_format($driver->earnings['car_track'], 2) }} <small>€</small></td>
-                        <td style="text-align: right">{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
+                        <td style="text-align: right">-{{ number_format($driver->earnings['car_hire'], 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->balance, 2) }} <small>€</small></td>
                         <td style="text-align: right">{{ number_format($driver->total, 2) }} <small>€</small></td>
                         @if ($driver->current_account)
@@ -268,7 +268,7 @@
                         <th style="text-align: right; display: none;">{{ number_format($totals['total_earnings_after_vat'], 2)
                             }} <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_fuel_transactions'], 2) }}
+                        <th style="text-align: right;">-{{ number_format($totals['total_fuel_transactions'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">{{ number_format($totals['total_adjustments'], 2) }}
@@ -277,7 +277,7 @@
                         <th style="text-align: right;">{{ number_format($totals['total_car_track'], 2) }}
                             <small>€</small>
                         </th>
-                        <th style="text-align: right;">{{ number_format($totals['total_car_hire'], 2) }}
+                        <th style="text-align: right;">-{{ number_format($totals['total_car_hire'], 2) }}
                             <small>€</small>
                         </th>
                         <th style="text-align: right;">
