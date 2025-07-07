@@ -282,7 +282,7 @@ trait Reports
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
-            $driver->total = $total_after_vat - $fuel_transactions + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
+            $driver->total = $total_after_vat - $driver->fuel + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
 
             $driver->final_total = $driver->total;
 
