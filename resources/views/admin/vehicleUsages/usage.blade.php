@@ -114,7 +114,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     start: '{{ \Carbon\Carbon::parse($record->getRawOriginal("start_date"))->toDateString() }}',
                     end: '{{ \Carbon\Carbon::parse($record->getRawOriginal("end_date"))->toDateString() }}',
                     group: '{{ $plate }}',
-                    @if(!$record->driver && $record->usage_exceptions)
+                    @if($record->usage_exceptions)
+                        className: '{{ $record->usage_exceptions }}-item',
+                    @elseif(!$record->driver)
                         className: 'exception-item',
                     @endif
                 },
@@ -218,11 +220,55 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @section('styles')
 <style>
-    .vis-item.exception-item {
-        background-color: #ff4d4d !important;
-        border-color: #cc0000 !important;
-        color: white !important;
-        font-weight: bold;
-    }
+    .vis-item.usage-item {
+    background-color: #28a745 !important; /* Verde */
+    border-color: #1e7e34 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.vis-item.maintenance-item {
+    background-color: #fd7e14 !important; /* Laranja */
+    border-color: #e8590c !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.vis-item.accident-item {
+    background-color: #dc3545 !important; /* Vermelho */
+    border-color: #a71d2a !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.vis-item.unassigned-item {
+    background-color: #ffc107 !important; /* Amarelo */
+    border-color: #e0a800 !important;
+    color: #333 !important;
+    font-weight: bold;
+}
+
+.vis-item.personal-item {
+    background-color: #6f42c1 !important; /* Roxo */
+    border-color: #5936a2 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+.vis-item.exception-item {
+    background-color: #ff4d4d !important; /* Vermelho (sem motorista) */
+    border-color: #cc0000 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
+/* Opcional: estilizar explicitamente a utilização normal (sem usage_exceptions, com driver) */
+.vis-item.default-usage-item {
+    background-color: #007bff !important; /* Azul padrão */
+    border-color: #0056b3 !important;
+    color: white !important;
+    font-weight: bold;
+}
+
 </style>
 @endsection
