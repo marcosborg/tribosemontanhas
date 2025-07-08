@@ -145,6 +145,13 @@
                 </div>
             </div>
             @endif
+            @if(session('error_message'))
+            <div class="row" style='padding:20px 20px 0 20px;'>
+                <div class="col-lg-12">
+                    <div class="alert alert-danger" role="alert">{{ session('error_message') }}</div>
+                </div>
+            </div>
+            @endif
             @if($errors->count() > 0)
             <div class="row" style='padding:20px 20px 0 20px;'>
                 <div class="col-lg-12">

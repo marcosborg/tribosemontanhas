@@ -97,7 +97,7 @@ class VehicleUsageController extends Controller
 
         if ($hasOverlap) {
             return redirect()->route('admin.vehicle-usages.index')
-                ->with('message', "Utilização criada com sucesso (ID {$newUsage->id}), mas sobrepõe a utilização existente com ID {$hasOverlap->id}.");
+                ->with('error_message', "Utilização criada com sucesso (ID {$newUsage->id}), mas sobrepõe a utilização existente com ID {$hasOverlap->id}.");
         }
 
         return redirect()->route('admin.vehicle-usages.index')
@@ -173,10 +173,10 @@ class VehicleUsageController extends Controller
                 $endRaw = $usage->getRawOriginal('end_date');
 
                 try {
-                    $start = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $startRaw);
+                    $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                 } catch (\Exception $e) {
                     try {
-                        $start = \Carbon\Carbon::createFromFormat('Y-m-d', $startRaw);
+                        $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                     } catch (\Exception $e2) {
                         \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
                         continue;
@@ -184,10 +184,10 @@ class VehicleUsageController extends Controller
                 }
 
                 try {
-                    $end = \Carbon\Carbon::createFromFormat('d/m/Y H:i:s', $endRaw);
+                    $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
                 } catch (\Exception $e) {
                     try {
-                        $end = \Carbon\Carbon::createFromFormat('Y-m-d', $endRaw);
+                        $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
                     } catch (\Exception $e2) {
                         \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
                         continue;

@@ -6,7 +6,14 @@
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    {{ trans('cruds.vehicleUsage.title') }} - Visão Geral
+                    <div class="row">
+                        <div class="col-md-8">
+                            {{ trans('cruds.vehicleUsage.title') }} - Visão Geral
+                        </div>
+                        <div class="col-md-4">
+                            <a href="/admin/vehicle-usages/create" class="btn btn-primary btn-sm pull-right">Vehicle usage</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="panel-body">
@@ -189,12 +196,16 @@ document.addEventListener('DOMContentLoaded', function () {
             );
         } else {
             filtered = year === 'all'
-                ? yearlyStats
+                ? [...yearlyStats]
                 : yearlyStats.filter(d => d.year === year);
         }
 
+        // Ordenar do mais utilizado para o menos utilizado
+        filtered.sort((a, b) => b.percent - a.percent);
+
         updateChart(filtered);
     }
+
 
     document.getElementById('yearFilter').addEventListener('change', filterStats);
     document.getElementById('monthFilter').addEventListener('change', filterStats);
