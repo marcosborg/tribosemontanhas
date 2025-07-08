@@ -163,6 +163,7 @@ class VehicleUsageController extends Controller
         $grouped = $usages->groupBy('vehicle_item.license_plate');
         $occupancyStats = [];
         $monthlyStats = [];
+        $monthlyStackedStats = []; // NOVO
         $yearlyMap = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
@@ -175,33 +176,26 @@ class VehicleUsageController extends Controller
                 try {
                     $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                 } catch (\Exception $e) {
-                    try {
-                        $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
-                    } catch (\Exception $e2) {
-                        \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
-                        continue;
-                    }
+                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
+                    continue;
                 }
 
                 try {
                     $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
                 } catch (\Exception $e) {
-                    try {
-                        $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
-                    } catch (\Exception $e2) {
-                        \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
-                        continue;
-                    }
+                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
+                    continue;
                 }
 
-                // Calcula stats de ocupação anual + mensal
+                $exception = $usage->usage_exceptions ?? 'usage';
                 $period = \Carbon\CarbonPeriod::create($start, $end);
+
                 foreach ($period as $day) {
                     $year = $day->year;
                     $month = $day->month;
                     $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
 
-                    // Monthly stats
+                    // Monthly stats simples
                     if (!isset($monthlyStats[$monthKey])) {
                         $monthlyStats[$monthKey] = [
                             'label' => $monthKey,
@@ -213,6 +207,25 @@ class VehicleUsageController extends Controller
                     }
                     $monthlyStats[$monthKey]['days']++;
 
+                    // Monthly stats detalhado para stacked chart
+                    if (!isset($monthlyStackedStats[$monthKey])) {
+                        $monthlyStackedStats[$monthKey] = [
+                            'label' => $monthKey,
+                            'plate' => $plate,
+                            'year' => (string) $year,
+                            'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
+                            'usage' => 0,
+                            'maintenance' => 0,
+                            'accident' => 0,
+                            'unassigned' => 0,
+                            'personal' => 0,
+                        ];
+                    }
+
+                    if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {
+                        $monthlyStackedStats[$monthKey][$exception]++;
+                    }
+
                     // Yearly stats
                     if (!isset($years[$year])) {
                         $years[$year] = [];
@@ -221,7 +234,6 @@ class VehicleUsageController extends Controller
                 }
             }
 
-            // Calcula percentagem anual
             foreach ($years as $year => $usedDays) {
                 $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
                 $usedCount = count($usedDays);
@@ -231,7 +243,6 @@ class VehicleUsageController extends Controller
                     'percent' => round(($usedCount / $totalDays) * 100, 2),
                 ];
 
-                // Agrupa para stats anuais
                 $yearKey = "$plate ($year)";
                 if (!isset($yearlyMap[$yearKey])) {
                     $yearlyMap[$yearKey] = [
@@ -244,12 +255,10 @@ class VehicleUsageController extends Controller
             }
         }
 
-        // Calcula percentagem mensal
         foreach ($monthlyStats as &$stat) {
             $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int) $stat['month'], (int) $stat['year']);
             $stat['percent'] = round(($stat['days'] / $daysInMonth) * 100, 2);
 
-            // Soma para cálculo anual
             $yearKey = "{$stat['plate']} ({$stat['year']})";
             if (isset($yearlyMap[$yearKey])) {
                 $yearlyMap[$yearKey]['totalPercent'] += $stat['percent'];
@@ -257,7 +266,6 @@ class VehicleUsageController extends Controller
             }
         }
 
-        // Calcula stats anuais finais
         $yearlyStats = [];
         foreach ($yearlyMap as $entry) {
             $yearlyStats[] = [
@@ -267,10 +275,8 @@ class VehicleUsageController extends Controller
             ];
         }
 
-        // Ordenar stats por percentagem
         usort($yearlyStats, fn($a, $b) => $b['percent'] <=> $a['percent']);
 
-        // Anos disponíveis para filtros
         $availableYears = [];
         foreach ($occupancyStats as $years) {
             foreach ($years as $year => $data) {
@@ -284,7 +290,8 @@ class VehicleUsageController extends Controller
             'occupancyStats',
             'yearlyStats',
             'monthlyStats',
-            'availableYears'
+            'availableYears',
+            'monthlyStackedStats' // NOVO
         ));
     }
 }

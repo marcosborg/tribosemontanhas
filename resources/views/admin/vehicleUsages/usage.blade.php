@@ -104,7 +104,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // === TIMELINE ===
+    // === TIMELINE === (sem alterações)
     const timelineItems = new vis.DataSet([
         @foreach($grouped as $plate => $records)
             @foreach($records as $record)
@@ -138,17 +138,42 @@ document.addEventListener('DOMContentLoaded', function () {
         orientation: 'top'
     });
 
-    // === CHART.JS ===
+    // === CHART.JS === STACKED ===
     const ctx = document.getElementById('occupancyChart').getContext('2d');
+    const stackedStats = @json(array_values($monthlyStackedStats));
 
-    const monthlyStats = @json(array_values($monthlyStats));
-    const yearlyStats = @json($yearlyStats);
+    const categoryLabels = {
+        usage: 'Utilização',
+        maintenance: 'Manutenção',
+        accident: 'Sinistrado',
+        unassigned: 'Sem utilização',
+        personal: 'Utilização pessoal'
+    };
+
+    const categoryColors = {
+        usage: '#28a745',
+        maintenance: '#fd7e14',
+        accident: '#dc3545',
+        unassigned: '#ffc107',
+        personal: '#6f42c1'
+    };
+
+    const categories = ['usage', 'maintenance', 'accident', 'unassigned', 'personal'];
 
     let chart;
 
-    function updateChart(data) {
-        const labels = data.map(d => d.label);
-        const values = data.map(d => d.percent);
+    function updateStackedChart(filteredData) {
+        const labels = filteredData.map(d => d.label);
+
+        const datasets = categories.map(cat => ({
+            label: categoryLabels[cat],
+            backgroundColor: categoryColors[cat],
+            data: filteredData.map(stat => {
+                const total = categories.reduce((sum, key) => sum + stat[key], 0);
+                return total > 0 ? (stat[cat] / total * 100).toFixed(2) : 0;
+            }),
+            stack: 'ocupacao'
+        }));
 
         if (chart) chart.destroy();
 
@@ -156,65 +181,90 @@ document.addEventListener('DOMContentLoaded', function () {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Taxa de Ocupação (%)',
-                    data: values,
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    borderColor: 'rgba(54, 162, 235, 1)',
-                    borderWidth: 1
-                }]
+                datasets: datasets
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.dataset.label}: ${context.raw}%`
+                        }
+                    },
+                    legend: { position: 'bottom' }
+                },
                 scales: {
                     x: {
-                        beginAtZero: true,
+                        stacked: true,
                         max: 100,
                         ticks: {
                             callback: value => value + '%'
                         }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: context => context.raw + '%'
-                        }
-                    }
+                    },
+                    y: { stacked: true }
                 }
             }
         });
     }
 
-    function filterStats() {
+    function filterStackedStats() {
         const year = document.getElementById('yearFilter').value;
         const month = document.getElementById('monthFilter').value;
-        let filtered;
 
-        if (month !== 'all') {
-            filtered = monthlyStats.filter(d =>
-                (year === 'all' || d.year === year) && d.month === month
-            );
-        } else {
-            filtered = year === 'all'
-                ? [...yearlyStats]
-                : yearlyStats.filter(d => d.year === year);
+        let filtered = stackedStats.filter(stat =>
+            (year === 'all' || stat.year === year) &&
+            (month === 'all' || stat.month === month)
+        );
+
+        // Se mês for "all", agrupamos por viatura (independentemente do ano)
+        if (month === 'all') {
+            const grouped = {};
+
+            filtered.forEach(stat => {
+                const label = `${stat.plate} (${stat.year})`; // exemplo: AA-00-XX (2025)
+                if (!grouped[label]) {
+                    grouped[label] = {
+                        label: label,
+                        usage: 0,
+                        maintenance: 0,
+                        accident: 0,
+                        unassigned: 0,
+                        personal: 0,
+                    };
+                }
+
+                categories.forEach(cat => {
+                    grouped[label][cat] += stat[cat];
+                });
+            });
+
+            filtered = Object.values(grouped);
         }
 
-        // Ordenar do mais utilizado para o menos utilizado
-        filtered.sort((a, b) => b.percent - a.percent);
+        // Ordenação por soma total
+        filtered.sort((a, b) => {
+            const sumA = categories.reduce((sum, k) => sum + a[k], 0);
+            const sumB = categories.reduce((sum, k) => sum + b[k], 0);
+            return sumB - sumA;
+        });
 
-        updateChart(filtered);
+        // 📏 Altura dinâmica por barra (30px por entrada)
+        const BAR_HEIGHT = 10;
+        const canvas = document.getElementById('occupancyChart');
+        canvas.height = filtered.length * BAR_HEIGHT;
+
+        updateStackedChart(filtered);
     }
 
 
-    document.getElementById('yearFilter').addEventListener('change', filterStats);
-    document.getElementById('monthFilter').addEventListener('change', filterStats);
+    document.getElementById('yearFilter').addEventListener('change', filterStackedStats);
+    document.getElementById('monthFilter').addEventListener('change', filterStackedStats);
 
-    updateChart(yearlyStats); // inicial
+    filterStackedStats(); // inicial
 });
 </script>
+
 @endsection
 
 
