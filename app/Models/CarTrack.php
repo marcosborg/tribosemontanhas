@@ -14,13 +14,14 @@ class CarTrack extends Model
     public $table = 'car_tracks';
 
     protected $dates = [
+        'date',
         'created_at',
         'updated_at',
         'deleted_at',
     ];
 
     protected $fillable = [
-        'tvde_week_id',
+        'date',
         'license_plate',
         'value',
         'created_at',
@@ -33,8 +34,4 @@ class CarTrack extends Model
         return $date->format('Y-m-d H:i:s');
     }
 
-    public function tvde_week()
-    {
-        return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
-    }
 }

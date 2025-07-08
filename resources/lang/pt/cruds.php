@@ -2293,8 +2293,8 @@ return [
         'fields'         => [
             'id'                   => 'ID',
             'id_helper'            => ' ',
-            'tvde_week'            => 'Tvde Week',
-            'tvde_week_helper'     => ' ',
+            'date'            => 'Data',
+            'date_helper'     => ' ',
             'license_plate'        => 'License Plate',
             'license_plate_helper' => ' ',
             'value'                => 'Value',

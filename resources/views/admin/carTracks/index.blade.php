@@ -31,7 +31,7 @@
                                     {{ trans('cruds.carTrack.fields.id') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.carTrack.fields.tvde_week') }}
+                                    {{ trans('cruds.carTrack.fields.date') }}
                                 </th>
                                 <th>
                                     {{ trans('cruds.carTrack.fields.license_plate') }}
@@ -99,7 +99,7 @@
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
-{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
+{ data: 'date', name: 'date' },
 { data: 'license_plate', name: 'license_plate' },
 { data: 'value', name: 'value' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }

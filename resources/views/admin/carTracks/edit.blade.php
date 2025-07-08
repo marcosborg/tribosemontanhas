@@ -12,17 +12,13 @@
                     <form method="POST" action="{{ route("admin.car-tracks.update", [$carTrack->id]) }}" enctype="multipart/form-data">
                         @method('PUT')
                         @csrf
-                        <div class="form-group {{ $errors->has('tvde_week') ? 'has-error' : '' }}">
-                            <label class="required" for="tvde_week_id">{{ trans('cruds.carTrack.fields.tvde_week') }}</label>
-                            <select class="form-control select2" name="tvde_week_id" id="tvde_week_id" required>
-                                @foreach($tvde_weeks as $id => $entry)
-                                    <option value="{{ $id }}" {{ (old('tvde_week_id') ? old('tvde_week_id') : $carTrack->tvde_week->id ?? '') == $id ? 'selected' : '' }}>{{ $entry }}</option>
-                                @endforeach
-                            </select>
-                            @if($errors->has('tvde_week'))
-                                <span class="help-block" role="alert">{{ $errors->first('tvde_week') }}</span>
+                        <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
+                            <label for="date">{{ trans('cruds.carTrack.fields.date') }}</label>
+                            <input class="form-control datetime" type="text" name="date" id="date" value="{{ old('date', $carTrack->date) }}">
+                            @if($errors->has('date'))
+                                <span class="help-block" role="alert">{{ $errors->first('date') }}</span>
                             @endif
-                            <span class="help-block">{{ trans('cruds.carTrack.fields.tvde_week_helper') }}</span>
+                            <span class="help-block">{{ trans('cruds.carTrack.fields.date_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('license_plate') ? 'has-error' : '' }}">
                             <label for="license_plate">{{ trans('cruds.carTrack.fields.license_plate') }}</label>

@@ -23,7 +23,7 @@ class CarTrackController extends Controller
         abort_if(Gate::denies('car_track_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = CarTrack::with(['tvde_week'])->select(sprintf('%s.*', (new CarTrack)->table));
+            $query = CarTrack::select(sprintf('%s.*', (new CarTrack)->table));
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -47,8 +47,8 @@ class CarTrackController extends Controller
             $table->editColumn('id', function ($row) {
                 return $row->id ? $row->id : '';
             });
-            $table->addColumn('tvde_week_start_date', function ($row) {
-                return $row->tvde_week ? $row->tvde_week->start_date : '';
+            $table->addColumn('date', function ($row) {
+                return $row->date ? $row->date : '';
             });
 
             $table->editColumn('license_plate', function ($row) {
@@ -58,7 +58,7 @@ class CarTrackController extends Controller
                 return $row->value ? $row->value : '';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'tvde_week']);
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
@@ -70,9 +70,7 @@ class CarTrackController extends Controller
     {
         abort_if(Gate::denies('car_track_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
-
-        return view('admin.carTracks.create', compact('tvde_weeks'));
+        return view('admin.carTracks.create');
     }
 
     public function store(StoreCarTrackRequest $request)
@@ -86,11 +84,7 @@ class CarTrackController extends Controller
     {
         abort_if(Gate::denies('car_track_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
-
-        $carTrack->load('tvde_week');
-
-        return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks'));
+        return view('admin.carTracks.edit', compact('carTrack'));
     }
 
     public function update(UpdateCarTrackRequest $request, CarTrack $carTrack)
@@ -103,8 +97,6 @@ class CarTrackController extends Controller
     public function show(CarTrack $carTrack)
     {
         abort_if(Gate::denies('car_track_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-
-        $carTrack->load('tvde_week');
 
         return view('admin.carTracks.show', compact('carTrack'));
     }
