@@ -242,12 +242,8 @@ document.addEventListener('DOMContentLoaded', function () {
             filtered = Object.values(grouped);
         }
 
-        // Ordenação por soma total
-        filtered.sort((a, b) => {
-            const sumA = categories.reduce((sum, k) => sum + a[k], 0);
-            const sumB = categories.reduce((sum, k) => sum + b[k], 0);
-            return sumB - sumA;
-        });
+        // Ordenar pelo valor de 'usage' decrescente (mais bem ocupado primeiro)
+        filtered.sort((a, b) => b.usage - a.usage);
 
         // 📏 Altura dinâmica por barra (30px por entrada)
         const BAR_HEIGHT = 10;
