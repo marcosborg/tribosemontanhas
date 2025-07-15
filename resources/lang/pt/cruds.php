@@ -2479,4 +2479,8 @@ return [
             'deleted_at_helper' => ' ',
         ],
     ],
+    'vehicleEarning' => [
+        'title'          => 'Vehicle Earnings',
+        'title_singular' => 'Vehicle Earning',
+    ],
 ];

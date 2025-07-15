@@ -570,6 +570,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('reimbursements/media', 'ReimbursementController@storeMedia')->name('reimbursements.storeMedia');
     Route::post('reimbursements/ckmedia', 'ReimbursementController@storeCKEditorImages')->name('reimbursements.storeCKEditorImages');
     Route::resource('reimbursements', 'ReimbursementController');
+
+    // Vehicle Earnings
+    Route::get('vehicle-earnings', 'VehicleEarningsController@index')->name('vehicle-earnings.index');
+
 });
 
 Route::group(['prefix' => 'profile', 'as' => 'profile.', 'namespace' => 'Auth', 'middleware' => ['auth']], function () {
