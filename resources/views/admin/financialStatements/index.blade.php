@@ -129,9 +129,9 @@
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
                             @php
-                                if ($adjustments && $adjustments > 0) {
-                                    $total_net = $total_net + $adjustments;
-                                }
+                            if ($adjustments && $adjustments > 0) {
+                            $total_net = $total_net + $adjustments;
+                            }
                             @endphp
                             <tr>
                                 <th>Totais</th>
@@ -142,9 +142,9 @@
                         </tbody>
                     </table>
                     @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                    <p><small>Saldo transitado: {{ number_format($total - $driver_balance ? $driver_balance->drivers_balance : 0, 2) }}€</small></p>
+                    <p><small>Saldo transitado: {{ number_format($total - ($driver_balance->drivers_balance ?? 0), 2) }}€</small></p>
                     @else
-                    <p><small>Saldo transitado: {{ number_format($total + $driver_balance ? $driver_balance->drivers_balance : 0, 2) }}€</small></p>
+                    <p><small>Saldo transitado: {{ number_format($total + ($driver_balance->drivers_balance ?? 0), 2) }}€</small></p>
                     @endif
                 </div>
             </div>
@@ -235,4 +235,9 @@
 
 </script>
 @endsection
-<script>console.log({!! $driver_balance !!})</script>
+<script>
+    console.log({
+        !!$driver_balance!!
+    })
+
+</script>
