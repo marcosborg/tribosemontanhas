@@ -142,9 +142,9 @@
                         </tbody>
                     </table>
                     @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                    <p><small>Saldo transitado: {{ number_format($total - $driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
+                    <p><small>Saldo transitado: {{ number_format($total - $driver_balance ? $driver_balance->drivers_balance : 0, 2) }}€</small></p>
                     @else
-                    <p><small>Saldo transitado: {{ number_format($total + $driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
+                    <p><small>Saldo transitado: {{ number_format($total + $driver_balance ? $driver_balance->drivers_balance : 0, 2) }}€</small></p>
                     @endif
                 </div>
             </div>

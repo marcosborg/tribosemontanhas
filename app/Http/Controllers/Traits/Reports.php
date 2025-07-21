@@ -36,6 +36,7 @@ trait Reports
 
         $drivers = Driver::where('company_id', $company_id)
             ->where('state_id', 1)
+            ->where('id', 574)
             ->orderBy('name')
             ->get()
             ->load([
@@ -253,10 +254,30 @@ trait Reports
             $total_company_adjustments[] = array_sum($company_expense);
 
             //CAR TRACK
-            $car_track = CarTrack::where([
-                'license_plate' => $driver->vehicle ? $driver->vehicle->license_plate : '',
-                'tvde_week_id' => $tvde_week_id
-            ])->sum('value');
+
+            $car_track = 0;
+
+            $car_track = 0;
+
+            if ($tvde_week->start_date && $tvde_week->end_date) {
+                // Primeiro, encontra a viatura que o driver usou durante essa semana
+                $vehicleUsage = VehicleUsage::where('driver_id', $driver->id)
+                    ->where(function ($query) use ($tvde_week) {
+                        $query->whereBetween('start_date', [$tvde_week->start_date, $tvde_week->end_date])
+                            ->orWhereBetween('end_date', [$tvde_week->start_date, $tvde_week->end_date])
+                            ->orWhere(function ($q) use ($tvde_week) {
+                                $q->where('start_date', '<=', $tvde_week->start_date)
+                                    ->where('end_date', '>=', $tvde_week->end_date);
+                            });
+                    })
+                    ->first();
+
+                if ($vehicleUsage && $vehicleUsage->vehicle_item && $vehicleUsage->vehicle_item->license_plate) {
+                    $car_track = CarTrack::where('license_plate', $vehicleUsage->vehicle_item->license_plate)
+                        ->whereBetween('date', [$tvde_week->start_date, $tvde_week->end_date])
+                        ->sum('value');
+                }
+            }
 
             $earnings = collect([
                 'uber' => $uber,
