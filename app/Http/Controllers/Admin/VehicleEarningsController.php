@@ -7,13 +7,10 @@ use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use App\Http\Controllers\Traits\Reports;
-use App\Models\VehicleUsage;
 use App\Models\VehicleItem;
 use App\Models\TvdeWeek;
 use App\Models\CurrentAccount;
-use App\Models\Receipt;
-use App\Models\VehicleExpense;
-use App\Models\ExpenseReimbursement;
+use App\Models\VehicleUsage;
 
 class VehicleEarningsController extends Controller
 {
@@ -33,108 +30,39 @@ class VehicleEarningsController extends Controller
         $tvde_month_id = $filter['tvde_month_id'];
         $tvde_weeks = $filter['tvde_weeks'];
 
-        $tvde_week = TvdeWeek::find($tvde_week_id);
+        $tvde_week = TvdeWeek::findOrFail($tvde_week_id);
+        $start_date = $tvde_week->start_date;
+        $end_date = $tvde_week->end_date;
 
-        $vehicles = VehicleItem::with(['driver', 'vehicle_brand', 'vehicle_model'])
+        $vehicle_items = VehicleItem::with(['driver', 'vehicle_usage.driver'])
             ->where('company_id', $company_id)
             ->get();
 
-        $problematicVehicles = [];
+        // 1. Viaturas sem motorista atribuído na semana
+        $vehicles_without_driver = $vehicle_items->filter(function ($vehicle) use ($start_date, $end_date) {
+            return $vehicle->vehicle_usage->filter(function ($usage) use ($start_date, $end_date) {
+                return $usage->start_date <= $end_date && $usage->end_date >= $start_date && $usage->driver_id;
+            })->isEmpty();
+        });
 
-        foreach ($vehicles as $vehicle) {
-            $driver = $vehicle->driver;
+        // 2. Condutores com uso mas sem conta corrente ou rendimento zero
+        $drivers_with_usage_no_account_or_zero = collect();
+
+        $usages = VehicleUsage::with('driver')
+            ->whereBetween('start_date', [$start_date, $end_date])
+            ->orWhereBetween('end_date', [$start_date, $end_date])
+            ->get();
+
+        foreach ($usages as $usage) {
+            $driver = $usage->driver;
             if (!$driver) continue;
 
-            $vehicle_usage = VehicleUsage::where('vehicle_item_id', $vehicle->id)
-                ->whereDate('start_date', '<=', $tvde_week->start_date)
-                ->whereDate('end_date', '>=', $tvde_week->end_date)
+            $account = CurrentAccount::where('driver_id', $driver->id)
+                ->where('tvde_week_id', $tvde_week_id)
                 ->first();
 
-            if (!$vehicle_usage) continue;
-
-            $results = CurrentAccount::where([
-                'tvde_week_id' => $tvde_week_id,
-                'driver_id' => $driver->id,
-            ])->first();
-
-            $adjustments = 0;
-            $rf = 0;
-            $iva = 0;
-            $fuel_transactions_vat = 0;
-
-            if ($results) {
-                $data = json_decode($results->data ?? '{}');
-
-                $factor_iva = $driver->contract_vat->iva / 100;
-                $factor_rf = $driver->contract_vat->rf / 100;
-
-                $iva = number_format(($data->total ?? 0) * $factor_iva, 2);
-                $rf = number_format(($data->total ?? 0) * $factor_rf, 2);
-                $fuel_transactions_vat = ($data->fuel_transactions ?? 0) / 1.23 * 0.23;
-
-                foreach ($data->adjustments_array ?? [] as $adjustment) {
-                    if (isset($adjustment->company_expense) && $adjustment->company_expense) {
-                        $amount = floatval($adjustment->amount);
-                        $adjustments += ($adjustment->type === 'deduct') ? -$amount : $amount;
-                    }
-                }
-            }
-
-            $receipt = Receipt::where([
-                'tvde_week_id' => $tvde_week_id,
-                'driver_id' => $driver->id,
-            ])->first();
-
-            // Despesas da viatura
-            $vehicle_expenses = VehicleExpense::where('vehicle_item_id', $vehicle->id)
-                ->whereDate('date', '>=', $tvde_week->start_date)
-                ->whereDate('date', '<=', $tvde_week->end_date)
-                ->get();
-
-            $vehicle_expenses_value = 0;
-            $vehicle_expenses_vat = 0;
-
-            foreach ($vehicle_expenses as $expense) {
-                $vat = $expense->vat ?? 0;
-                $value = $expense->value;
-                if ($vat > 0) {
-                    $vehicle_expenses_vat += $value * ($vat / 100);
-                    $vehicle_expenses_value += $value * (1 + $vat / 100);
-                } else {
-                    $vehicle_expenses_value += $value;
-                }
-            }
-
-            $expense_reimbursements = ExpenseReimbursement::where('vehicle_item_id', $vehicle->id)
-                ->whereDate('date', '>=', $tvde_week->start_date)
-                ->whereDate('date', '<=', $tvde_week->end_date)
-                ->sum('value');
-
-            $total_treasury =
-                ($data->total_net ?? 0)
-                - ($data->car_track ?? 0)
-                - ($data->fuel_transactions ?? 0)
-                + $adjustments
-                - $rf
-                - ($receipt->amount_transferred ?? 0)
-                - $vehicle_expenses_value
-                + $expense_reimbursements;
-
-            $total_taxes =
-                - ($data->vat_value ?? 0)
-                    + $iva
-                    + $fuel_transactions_vat
-                    + $vehicle_expenses_vat;
-
-            $final_total = $total_treasury + $total_taxes;
-
-            // Se lucro <= 0 ou sem faturação
-            if (empty($data->total_net) || $final_total <= 0) {
-                $problematicVehicles[] = [
-                    'vehicle' => $vehicle,
-                    'driver' => $driver,
-                    'final_total' => $final_total,
-                ];
+            if (!$account || floatval($account->data) == 0.0) {
+                $drivers_with_usage_no_account_or_zero->push($driver);
             }
         }
 
@@ -146,7 +74,8 @@ class VehicleEarningsController extends Controller
             'tvde_month_id' => $tvde_month_id,
             'tvde_weeks' => $tvde_weeks,
             'tvde_week_id' => $tvde_week_id,
-            'problematicVehicles' => $problematicVehicles,
+            'vehicles_without_driver' => $vehicles_without_driver,
+            'drivers_with_issues' => $drivers_with_usage_no_account_or_zero->unique('id'),
         ]);
     }
 }

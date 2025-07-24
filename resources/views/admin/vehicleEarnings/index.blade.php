@@ -30,9 +30,7 @@
     <div class="row" style="margin-top: 20px;">
         <div class="col-lg-6">
             <div class="panel panel-default">
-                <div class="panel-heading">
-                    Viaturas sem faturação
-                </div>
+                <div class="panel-heading">Viaturas sem motorista atribuído</div>
                 <div class="panel-body">
                     <table class="table table-bordered table-striped">
                         <thead>
@@ -40,37 +38,56 @@
                                 <th>Matrícula</th>
                                 <th>Marca</th>
                                 <th>Modelo</th>
-                                <th>Condutor</th>
-                                <th>Rentabilidade</th>
                             </tr>
                         </thead>
                         <tbody>
+                            @foreach ($vehicles_without_driver as $vehicle)
                             <tr>
-                                <td>AA-00-11</td>
-                                <td>Peugeot</td>
-                                <td>308</td>
-                                <td>João Martins</td>
-                                <td style="color: red;">-123.45 €</td>
+                                <td>{{ $vehicle->license_plate }}</td>
+                                <td>{{ $vehicle->vehicle_brand->name ?? '' }}</td>
+                                <td>{{ $vehicle->vehicle_model->name ?? '' }}</td>
                             </tr>
+                            @endforeach
+                            @if ($vehicles_without_driver->isEmpty())
                             <tr>
-                                <td>BB-22-33</td>
-                                <td>Renault</td>
-                                <td>Clio</td>
-                                <td>Maria Sousa</td>
-                                <td style="color: orange;">0.00 €</td>
+                                <td colspan="3">Todas as viaturas tiveram motorista.</td>
                             </tr>
+                            @endif
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="panel panel-default">
+                <div class="panel-heading">Condutores sem conta corrente ou com rendimento 0 €</div>
+                <div class="panel-body">
+                    <table class="table table-bordered table-striped">
+                        <thead>
                             <tr>
-                                <td>CC-44-55</td>
-                                <td>Volkswagen</td>
-                                <td>Golf</td>
-                                <td>Carlos Dias</td>
-                                <td style="color: red;">-89.90 €</td>
+                                <th>Nome</th>
+                                <th>NIF</th>
                             </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($drivers_with_issues as $driver)
+                            <tr>
+                                <td>{{ $driver->name }}</td>
+                                <td>{{ $driver->nif ?? '—' }}</td>
+                            </tr>
+                            @endforeach
+                            @if ($drivers_with_issues->isEmpty())
+                            <tr>
+                                <td colspan="2">Todos os condutores faturaram corretamente.</td>
+                            </tr>
+                            @endif
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
+
 </div>
 @endsection
