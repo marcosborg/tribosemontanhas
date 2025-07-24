@@ -42,7 +42,6 @@ class CompanyReportController extends Controller
             'drivers' => $results['drivers'],
             'totals' => $results['totals']
         ]);
-
     }
 
     public function validateData(Request $request)
@@ -76,7 +75,6 @@ class CompanyReportController extends Controller
             Notification::route('mail', $email)
                 ->notify(new ActivityLaunchesSend());
             */
-
         }
     }
 
@@ -111,7 +109,6 @@ class CompanyReportController extends Controller
         $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
         $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
         $driver_balance->save();
-
     }
 
     public function deleteData($tvde_week_id, $driver_id)
@@ -134,4 +131,51 @@ class CompanyReportController extends Controller
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
     }
 
+    public function driverReportAllWeeks($driver_id = NULL)
+    {
+
+        $drivers = Driver::all();
+        $driver_id = $driver_id ?? $drivers->first()->id;
+
+        $weeks = \App\Models\TvdeWeek::orderBy('start_date', 'desc')->get();
+
+        $results = [];
+
+        foreach ($weeks as $week) {
+            $account = \App\Models\CurrentAccount::where([
+                'tvde_week_id' => $week->id,
+                'driver_id' => $driver_id
+            ])->first();
+
+            $balance = \App\Models\DriversBalance::where([
+                'tvde_week_id' => $week->id,
+                'driver_id' => $driver_id
+            ])->first();
+
+            $data = $account ? json_decode($account->data) : null;
+
+            $results[] = [
+                'week' => $week,
+                'uber_gross' => $data->uber->uber_gross ?? 0,
+                'bolt_gross' => $data->bolt->bolt_gross ?? 0,
+                'uber_net' => $data->uber->uber_net ?? 0,
+                'bolt_net' => $data->bolt->bolt_net ?? 0,
+                'total_gross' => $data->total_gross ?? 0,
+                'total_net' => $data->total_net ?? 0,
+                'adjustments' => $data->adjustments ?? 0,
+                'total' => $data->total ?? 0,
+                'vat_value' => $data->vat_value ?? 0,
+                'car_track' => $data->car_track ?? 0,
+                'car_hire' => $data->car_hire ?? 0,
+                'fuel_transactions' => $data->fuel_transactions ?? 0,
+                'driver_balance' => $balance->balance ?? 0,
+            ];
+        }
+
+        return view('admin.companyReports.driverReportAllWeeks')->with([
+            'drivers' => $drivers,
+            'driver_id' => $driver_id,
+            'results' => $results,
+        ]);
+    }
 }

@@ -504,6 +504,17 @@
                                 </a>
                             </li>
                         @endcan
+                        @can('company_report_access')
+                            <li class="{{ request()->is("admin/driver-report-all-weeks") || request()->is("admin/driver-report-all-weeks/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.company-reports.driver-report-all-weeks") }}">
+                                    <i class="fa-fw fas fa-file-contract">
+
+                                    </i>
+                                    <span>Driver all weeks</span>
+
+                                </a>
+                            </li>
+                        @endcan
                         @can('current_account_access')
                             <li class="{{ request()->is("admin/current-accounts") || request()->is("admin/current-accounts/*") ? "active" : "" }}">
                                 <a href="{{ route("admin.current-accounts.index") }}">
