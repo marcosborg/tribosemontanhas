@@ -24,6 +24,7 @@ class CarTrack extends Model
         'date',
         'license_plate',
         'value',
+        'tvde_week_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -34,4 +35,8 @@ class CarTrack extends Model
         return $date->format('Y-m-d H:i:s');
     }
 
+    public function tvde_week()
+    {
+        return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
+    }
 }

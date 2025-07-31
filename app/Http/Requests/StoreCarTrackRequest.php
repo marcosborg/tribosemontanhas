@@ -17,6 +17,10 @@ class StoreCarTrackRequest extends FormRequest
     public function rules()
     {
         return [
+            'tvde_week_id' => [
+                'required',
+                'integer',
+            ],
             'license_plate' => [
                 'string',
                 'nullable',

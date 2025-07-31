@@ -2305,6 +2305,8 @@ return [
             'updated_at_helper'    => ' ',
             'deleted_at'           => 'Deleted at',
             'deleted_at_helper'    => ' ',
+            'tvde_week'            => 'Semana a debitar',
+            'tvde_week_helper'     => ' ',
         ],
     ],
     'carHire' => [

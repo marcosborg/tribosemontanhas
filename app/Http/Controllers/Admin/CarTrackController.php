@@ -58,7 +58,11 @@ class CarTrackController extends Controller
                 return $row->value ? $row->value : '';
             });
 
-            $table->rawColumns(['actions', 'placeholder']);
+            $table->addColumn('tvde_week_start_date', function ($row) {
+                return $row->tvde_week ? $row->tvde_week->start_date : '';
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'tvde_week']);
 
             return $table->make(true);
         }
@@ -70,7 +74,9 @@ class CarTrackController extends Controller
     {
         abort_if(Gate::denies('car_track_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.carTracks.create');
+        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        return view('admin.carTracks.create', compact('tvde_weeks'));
     }
 
     public function store(StoreCarTrackRequest $request)
@@ -84,7 +90,11 @@ class CarTrackController extends Controller
     {
         abort_if(Gate::denies('car_track_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        return view('admin.carTracks.edit', compact('carTrack'));
+        $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
+
+        $carTrack->load('tvde_week');
+
+        return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks'));
     }
 
     public function update(UpdateCarTrackRequest $request, CarTrack $carTrack)
