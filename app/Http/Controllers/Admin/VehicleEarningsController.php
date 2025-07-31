@@ -36,6 +36,7 @@ class VehicleEarningsController extends Controller
 
         $vehicle_items = VehicleItem::with(['driver', 'vehicle_usage.driver'])
             ->where('company_id', $company_id)
+            ->where('suspended', false)
             ->get();
 
         // 1. Viaturas sem motorista atribuído na semana
@@ -61,7 +62,9 @@ class VehicleEarningsController extends Controller
                 ->where('tvde_week_id', $tvde_week_id)
                 ->first();
 
-            if (!$account || floatval($account->data) == 0.0) {
+            $account_data = json_decode($account->data ?? '[]', true);
+
+            if (!$account || floatval($account_data['total_net']) == 0.0) {
                 $drivers_with_usage_no_account_or_zero->push($driver);
             }
         }

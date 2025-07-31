@@ -79,7 +79,7 @@
                             @endforeach
                             @if ($drivers_with_issues->isEmpty())
                             <tr>
-                                <td colspan="2">Todos os condutores faturaram corretamente.</td>
+                                <td colspan="2">Todos os condutores com viatura faturaram corretamente.</td>
                             </tr>
                             @endif
                         </tbody>

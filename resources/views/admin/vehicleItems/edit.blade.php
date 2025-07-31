@@ -73,6 +73,17 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.documents_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('suspended') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="suspended" value="0">
+                                <input type="checkbox" name="suspended" id="suspended" value="1" {{ $vehicleItem->suspended || old('suspended', 0) === 1 ? 'checked' : '' }}>
+                                <label for="suspended" style="font-weight: 400">{{ trans('cruds.company.fields.suspended') }}</label>
+                            </div>
+                            @if($errors->has('suspended'))
+                                <span class="help-block" role="alert">{{ $errors->first('suspended') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.company.fields.suspended_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
