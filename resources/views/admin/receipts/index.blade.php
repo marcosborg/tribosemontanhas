@@ -39,9 +39,6 @@
                                     {{ trans('cruds.receipt.fields.value') }}
                                 </th>
                                 <th>
-                                    Saldo
-                                </th>
-                                <th>
                                     IVA
                                 </th>
                                 <th>
@@ -54,7 +51,7 @@
                                     {{ trans('cruds.receipt.fields.file') }}
                                 </th>
                                 <th>
-                                    Valor da semana
+                                    Saldo atual
                                 </th>
                                 <th>
                                     {{ trans('cruds.receipt.fields.verified') }}
@@ -87,8 +84,6 @@
                                         <option value="{{ $item->name }}">{{ $item->name }}</option>
                                         @endforeach
                                     </select>
-                                </td>
-                                <td>
                                 </td>
                                 <td>
                                 </td>
@@ -179,7 +174,6 @@
 { data: 'id', name: 'id' },
 { data: 'driver_name', name: 'driver.name' },
 { data: 'value', name: 'value' },
-{ data: 'balance', name: 'balance' },
 { data: 'iva', name: 'iva' },
 { data: 'rf', name: 'rf' },
 { data: 'final', name: 'final' },

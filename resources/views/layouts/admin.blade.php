@@ -26,6 +26,28 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.5.1/min/dropzone.min.css" rel="stylesheet" />
     <link href="{{ asset('assets/admin/css/custom.css') }}" rel="stylesheet" />
     @yield('styles')
+    <style>
+        /* Garante que elementos acima não cortam o sticky */
+        .content, .content-wrapper, .panel-body {
+            overflow: visible !important;
+        }
+
+        /* Container que permite scroll e mantém sticky */
+        .table-sticky-container {
+            max-height: 800px; /* Ajusta à necessidade */
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Cabeçalho colado no topo */
+        .table-sticky-container thead th {
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 20; /* Maior para ficar acima das bordas */
+        }
+    </style>
+
 </head>
 
 <body class="sidebar-mini skin-purple" style="height: auto; min-height: 100%;">

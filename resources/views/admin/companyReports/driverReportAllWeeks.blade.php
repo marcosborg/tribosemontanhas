@@ -14,63 +14,54 @@
         <div class="panel-heading">
             Resultados semanais do motorista selecionado
         </div>
-        <div class="panel-body table-responsive">
-            <table class="table table-bordered table-striped table-sm">
-                <thead>
-                    <tr>
-                        <th>Semana</th>
-                        <th>Uber (Bruto)</th>
-                        <th>Bolt (Bruto)</th>
-                        <th>Uber (Líquido)</th>
-                        <th>Bolt (Líquido)</th>
-                        <th>Total Bruto</th>
-                        <th>Total Líquido</th>
-                        <th>Ajustes</th>
-                        <th>Total Final</th>
-                        <th>IVA</th>
-                        <th>Car Track</th>
-                        <th>Aluguer</th>
-                        <th>Combustível</th>
-                        <th>Saldo</th>
-                        <th>Transferido</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($results as $r)
-                    <tr>
-                        <td>
-                            {{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }}
-                            a
-                            {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}
-                        </td>
-                        <td>{{ number_format($r['uber_gross'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['bolt_gross'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['uber_net'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['bolt_net'], 2, ',', '.') }} €</td>
-                        <td><strong>{{ number_format($r['total_gross'], 2, ',', '.') }} €</strong></td>
-                        <td>{{ number_format($r['total_net'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['adjustments'], 2, ',', '.') }} €</td>
-                        <td><strong>{{ number_format($r['total'], 2, ',', '.') }} €</strong></td>
-                        <td>{{ number_format($r['vat_value'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['car_track'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['car_hire'], 2, ',', '.') }} €</td>
-                        <td>{{ number_format($r['fuel_transactions'], 2, ',', '.') }} €</td>
-                        <td>
-                            <strong style="color: {{ $r['driver_balance'] < 0 ? 'red' : 'green' }}">
-                                {{ number_format($r['driver_balance'], 2, ',', '.') }} €
-                            </strong>
-                        </td>
-                        <td>{{ number_format($r['amount_transferred'], 2, ',', '.') }} €</td>
-                    </tr>
-                    @endforeach
-                    @if (count($results) == 0)
-                    <tr>
-                        <td colspan="14">Sem resultados disponíveis para este motorista.</td>
-                    </tr>
-                    @endif
-                </tbody>
-            </table>
+        <div class="panel-body p-0">
+            <div class="table-sticky-container">
+                <table class="table table-bordered table-striped table-sm m-0">
+                    <thead>
+                        <tr>
+                            @foreach ([
+                            'Semana', 'Uber (Bruto)', 'Bolt (Bruto)', 'Uber (Líquido)', 'Bolt (Líquido)',
+                            'Total Bruto', 'Total Líquido', 'Ajustes', 'Total Final', 'IVA',
+                            'Car Track', 'Aluguer', 'Combustível', 'Saldo', 'Transferido'
+                            ] as $th)
+                            <th>{{ $th }}</th>
+                            @endforeach
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($results as $r)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}</td>
+                            <td>{{ number_format($r['uber_gross'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['bolt_gross'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['uber_net'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['bolt_net'], 2, ',', '.') }} €</td>
+                            <td><strong>{{ number_format($r['total_gross'], 2, ',', '.') }} €</strong></td>
+                            <td>{{ number_format($r['total_net'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['adjustments'], 2, ',', '.') }} €</td>
+                            <td><strong>{{ number_format($r['total'], 2, ',', '.') }} €</strong></td>
+                            <td>{{ number_format($r['vat_value'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['car_track'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['car_hire'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['fuel_transactions'], 2, ',', '.') }} €</td>
+                            <td>
+                                <strong style="color: {{ $r['driver_balance'] < 0 ? 'red' : 'green' }}">
+                                    {{ number_format($r['driver_balance'], 2, ',', '.') }} €
+                                </strong>
+                            </td>
+                            <td>{{ number_format($r['amount_transferred'], 2, ',', '.') }} €</td>
+                        </tr>
+                        @endforeach
+                        @if (count($results) == 0)
+                        <tr>
+                            <td colspan="15">Sem resultados disponíveis para este motorista.</td>
+                        </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
         </div>
+
     </div>
 </div>
 @endsection

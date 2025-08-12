@@ -151,8 +151,8 @@
             <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover
                 seleção</button>
         </div>
-        <div class="panel-body">
-            <table>
+        <div class="table-sticky-container">
+            <table class="table table-bordered table-striped table-sm">
                 <thead>
                     <tr>
                         <th>Condutor</th>

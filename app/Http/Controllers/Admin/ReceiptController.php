@@ -91,7 +91,7 @@ class ReceiptController extends Controller
 
             $table->editColumn('final', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $final = number_format($row->balance, 2);
+                $final = number_format($row->balance, 2, '.', '');
                 return $driver ? $final : '';
             });
 
