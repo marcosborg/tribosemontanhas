@@ -69,7 +69,7 @@ class ReceiptController extends Controller
             });
 
             $table->editColumn('value', function ($row) {
-                return $row->value ? number_format($row->value, 2, '.', '') : '';
+                return $row->value ? $row->value : '';
             });
             $table->editColumn('balance', function ($row) {
                 return $row->balance ? $row->balance : '';
