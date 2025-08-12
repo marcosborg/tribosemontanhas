@@ -164,7 +164,7 @@ class ReceiptController extends Controller
         $drivers_balance->drivers_balance = $value;
         $drivers_balance->save();
 
-        return redirect()->back();
+        return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
     }
 
     public function edit(Receipt $receipt)
