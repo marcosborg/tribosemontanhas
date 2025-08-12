@@ -2,9 +2,14 @@
 @section('content')
 <div class="content">
     @foreach ($drivers as $d)
-    <a href="{{ route('admin.company-reports.driver-report-all-weeks', ['driver_id' => $d->id]) }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">{{
+    <a href="{{ route('admin.company-reports.driver-report-all-weeks', ['driver_id' => $d->id, 'state_id' => $state_id]) }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">{{
         $d->name }} {{ $d->team->count() > 0 ? '(Team)' : '' }}</a>
     @endforeach
+    @if ($state_id == 2)
+    <a href="{{ route('admin.company-reports.driver-report-all-weeks', ['driver_id' => 0, 'state_id' => 1]) }}" class="btn btn-default">Ativos</a>
+    @else
+    <a href="{{ route('admin.company-reports.driver-report-all-weeks', ['driver_id' => 0, 'state_id' => 2]) }}" class="btn btn-default">Inativos</a>
+    @endif
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
             Resultados semanais do motorista selecionado
@@ -27,6 +32,7 @@
                         <th>Aluguer</th>
                         <th>Combustível</th>
                         <th>Saldo</th>
+                        <th>Transferido</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -54,6 +60,7 @@
                                 {{ number_format($r['driver_balance'], 2, ',', '.') }} €
                             </strong>
                         </td>
+                        <td>{{ number_format($r['amount_transferred'], 2, ',', '.') }} €</td>
                     </tr>
                     @endforeach
                     @if (count($results) == 0)

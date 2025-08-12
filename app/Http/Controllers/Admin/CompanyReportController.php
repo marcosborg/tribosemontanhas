@@ -131,10 +131,10 @@ class CompanyReportController extends Controller
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
     }
 
-    public function driverReportAllWeeks($driver_id = NULL)
+    public function driverReportAllWeeks($driver_id = NULL, $state_id = 1)
     {
 
-        $drivers = Driver::all();
+        $drivers = Driver::where('state_id', $state_id)->get();
         $driver_id = $driver_id ?? $drivers->first()->id;
 
         $weeks = \App\Models\TvdeWeek::orderBy('start_date', 'desc')->get();
@@ -151,6 +151,11 @@ class CompanyReportController extends Controller
                 'tvde_week_id' => $week->id,
                 'driver_id' => $driver_id
             ])->first();
+
+            $receipt = \App\Models\Receipt::where([
+                'driver_id'    => $driver_id,
+                'tvde_week_id' => $week->id,
+            ])->latest()->first();
 
             $data = $account ? json_decode($account->data) : null;
 
@@ -169,6 +174,7 @@ class CompanyReportController extends Controller
                 'car_hire' => $data->car_hire ?? 0,
                 'fuel_transactions' => $data->fuel_transactions ?? 0,
                 'driver_balance' => $balance->balance ?? 0,
+                'amount_transferred'   => $receipt->amount_transferred ?? 0,
             ];
         }
 
@@ -176,6 +182,7 @@ class CompanyReportController extends Controller
             'drivers' => $drivers,
             'driver_id' => $driver_id,
             'results' => $results,
+            'state_id' => $state_id
         ]);
     }
 }
