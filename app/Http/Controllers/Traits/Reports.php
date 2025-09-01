@@ -256,8 +256,6 @@ trait Reports
 
             $car_track = 0;
 
-            $car_track = 0;
-
             if ($tvde_week->start_date && $tvde_week->end_date) {
                 // Primeiro, encontra a viatura que o driver usou durante essa semana
                 $vehicleUsage = VehicleUsage::where('driver_id', $driver->id)
@@ -272,8 +270,9 @@ trait Reports
                     ->first();
 
                 if ($vehicleUsage && $vehicleUsage->vehicle_item && $vehicleUsage->vehicle_item->license_plate) {
+
                     $car_track = CarTrack::where('license_plate', $vehicleUsage->vehicle_item->license_plate)
-                        ->whereBetween('date', [$tvde_week->start_date, $tvde_week->end_date])
+                        ->where('tvde_week_id', $tvde_week_id)
                         ->sum('value');
                 }
             }
