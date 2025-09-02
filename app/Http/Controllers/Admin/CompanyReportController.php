@@ -46,37 +46,56 @@ class CompanyReportController extends Controller
 
     public function validateData(Request $request)
     {
-
         foreach ($request->data as $data) {
 
+            // 🔹 Função inline para normalizar valores vindos do front
+            $normalize = function ($value): float {
+                if (is_numeric($value)) {
+                    return (float) $value; // já é número limpo
+                }
+                $v = str_replace(' ', '', (string) $value);   // remove espaços normais
+                $v = str_replace("\xc2\xa0", '', $v);         // remove NBSP (utf-8)
+                $v = str_replace('.', '', $v);                // tira separador de milhar
+                $v = str_replace(',', '.', $v);               // vírgula → ponto decimal
+                return (float) $v;
+            };
+
+            // 🔹 Normaliza o total do motorista
+            $total = $normalize($data['driver']['total']);
+
+            // 🔹 Registo da conta corrente
             $current_account = new CurrentAccount;
             $current_account->tvde_week_id = $data['tvde_week_id'];
-            $current_account->driver_id = $data['driver']['id'];
-            $current_account->data = json_encode($data['driver']['earnings']);
+            $current_account->driver_id    = $data['driver']['id'];
+            $current_account->data         = json_encode($data['driver']['earnings']);
             $current_account->save();
 
-            $last_balance = DriversBalance::where([
-                'driver_id' => $data['driver']['id'],
-            ])
-                ->orderBy('tvde_week_id', 'desc')->first();
+            // 🔹 Último saldo
+            $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
+                ->orderBy('tvde_week_id', 'desc')
+                ->first();
 
+            $last = $last_balance ? (float) $last_balance->balance : 0.0;
+            $balance = $last + $total;
+
+            // 🔹 Novo saldo
             $driver_balance = new DriversBalance;
-            $driver_balance->driver_id = $data['driver']['id'];
-            $driver_balance->tvde_week_id = $data['tvde_week_id'];
-            $driver_balance->value = $data['driver']['total'];
-            $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
-            $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
+            $driver_balance->driver_id       = $data['driver']['id'];
+            $driver_balance->tvde_week_id    = $data['tvde_week_id'];
+            $driver_balance->value           = $total;
+            $driver_balance->balance         = $balance;
+            $driver_balance->drivers_balance = $balance;
             $driver_balance->save();
 
             /*
-            $email = $data['driver']['email'];
+        $email = $data['driver']['email'];
 
-            
-            Notification::route('mail', $email)
-                ->notify(new ActivityLaunchesSend());
-            */
+        Notification::route('mail', $email)
+            ->notify(new ActivityLaunchesSend());
+        */
         }
     }
+
 
     public function revalidateData(Request $request)
     {

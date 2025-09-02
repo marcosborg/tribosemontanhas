@@ -13,6 +13,11 @@ class DriversBalance extends Model
 
     public $table = 'drivers_balances';
 
+    protected $casts = [
+        'value'   => 'decimal:2',
+        'balance' => 'decimal:2',
+    ];
+
     protected $dates = [
         'created_at',
         'updated_at',

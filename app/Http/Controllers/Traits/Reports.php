@@ -36,6 +36,7 @@ trait Reports
 
         $drivers = Driver::where('company_id', $company_id)
             ->where('state_id', 1)
+            ->where('id', 566)
             ->orderBy('name')
             ->get()
             ->load([
@@ -299,6 +300,7 @@ trait Reports
 
             //BALANCE
             $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('id', 'desc')->first();
+
             $driver->balance = $driver_balance ? $driver_balance->drivers_balance : 0;
 
             $driver->total = $total_after_vat - $driver->fuel + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
@@ -335,10 +337,10 @@ trait Reports
         }
 
         $totals = collect([
-            'gross_uber' => array_sum($gross_uber),
-            'gross_bolt' => array_sum($gross_bolt),
-            'net_uber' => array_sum($net_uber),
-            'net_bolt' => array_sum($net_bolt),
+            'gross_uber' => isset($gross_uber) ? array_sum($gross_uber) : 0,
+            'gross_bolt' => isset($gross_bolt) ? array_sum($gross_bolt) : 0,
+            'net_uber' => isset($net_uber) ? array_sum($net_uber) : 0,
+            'net_bolt' => isset($net_bolt) ? array_sum($net_bolt) : 0,
             'total_operators' => array_sum($total_operators),
             'total_earnings_after_discount' => array_sum($total_earnings_after_discount),
             'total_fuel_transactions' => array_sum($total_fuel_transactions),
