@@ -23,8 +23,18 @@ class CarTrackController extends Controller
         abort_if(Gate::denies('car_track_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = CarTrack::select(sprintf('%s.*', (new CarTrack)->table));
-            $table = Datatables::of($query);
+            $query = CarTrack::query()
+                ->leftJoin('tvde_weeks', 'tvde_weeks.id', '=', 'car_tracks.tvde_week_id')
+                ->select([
+                    'car_tracks.id',
+                    'car_tracks.date',
+                    'car_tracks.license_plate',
+                    'car_tracks.value',
+                    'tvde_weeks.start_date as tvde_week_start_date',
+                    'car_tracks.deleted_at',
+                ]);
+
+            $table = DataTables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
@@ -44,28 +54,18 @@ class CarTrackController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->addColumn('date', function ($row) {
-                return $row->date ? $row->date : '';
-            });
+            $table->editColumn('id', fn($row) => $row->id ?: '');
+            $table->editColumn('date', fn($row) => $row->date ?: '');
+            $table->editColumn('license_plate', fn($row) => $row->license_plate ?: '');
+            $table->editColumn('value', fn($row) => $row->value ?: '');
+            $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
 
-            $table->editColumn('license_plate', function ($row) {
-                return $row->license_plate ? $row->license_plate : '';
-            });
-            $table->editColumn('value', function ($row) {
-                return $row->value ? $row->value : '';
-            });
-
-            $table->addColumn('tvde_week_start_date', function ($row) {
-                return $row->tvde_week ? $row->tvde_week->start_date : '';
-            });
-
-            $table->rawColumns(['actions', 'placeholder', 'tvde_week']);
+            // já não tens nenhuma coluna HTML chamada 'tvde_week'
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
+
 
         return view('admin.carTracks.index');
     }

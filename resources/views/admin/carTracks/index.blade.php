@@ -99,15 +99,15 @@
     retrieve: true,
     aaSorting: [],
     ajax: "{{ route('admin.car-tracks.index') }}",
-    columns: [
-      { data: 'placeholder', name: 'placeholder' },
-{ data: 'id', name: 'id' },
-{ data: 'tvde_week_start_date', name: 'tvde_week.start_date' },
-{ data: 'date', name: 'date' },
-{ data: 'license_plate', name: 'license_plate' },
-{ data: 'value', name: 'value' },
-{ data: 'actions', name: '{{ trans('global.actions') }}' }
-    ],
+   columns: [
+  { data: 'placeholder', name: 'placeholder' },
+  { data: 'id', name: 'car_tracks.id' },
+  { data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
+  { data: 'date', name: 'car_tracks.date' },
+  { data: 'license_plate', name: 'car_tracks.license_plate' },
+  { data: 'value', name: 'car_tracks.value' },
+  { data: 'actions', name: 'actions' }
+],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
