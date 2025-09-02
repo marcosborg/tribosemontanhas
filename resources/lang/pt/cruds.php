@@ -967,6 +967,8 @@ return [
             'email_helper'          => ' ',
             'iban'                  => 'IBAN',
             'iban_helper'           => ' ',
+            'swift'                  => 'SWIFT/BIC',
+            'swift_helper'           => ' ',
             'address'               => 'Endereço',
             'address_helper'        => ' ',
             'zip'                   => 'Código postal',

@@ -179,6 +179,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.iban_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('swift') ? 'has-error' : '' }}">
+                            <label for="swift">{{ trans('cruds.driver.fields.swift') }}</label>
+                            <input class="form-control" type="text" name="swift" id="swift" value="{{ old('swift', '') }}">
+                            @if($errors->has('swift'))
+                                <span class="help-block" role="alert">{{ $errors->first('swift') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.swift_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('address') ? 'has-error' : '' }}">
                             <label for="address">{{ trans('cruds.driver.fields.address') }}</label>
                             <input class="form-control" type="text" name="address" id="address" value="{{ old('address', '') }}">

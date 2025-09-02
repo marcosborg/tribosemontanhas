@@ -39,6 +39,7 @@ class Driver extends Model
         'citizen_card',
         'email',
         'iban',
+        'swift',
         'address',
         'zip',
         'city',

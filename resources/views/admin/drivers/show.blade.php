@@ -155,6 +155,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.driver.fields.swift') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->swift }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.driver.fields.address') }}
                                     </th>
                                     <td>
