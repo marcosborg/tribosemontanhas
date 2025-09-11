@@ -252,42 +252,28 @@ trait Reports
 
             $total_company_adjustments[] = array_sum($company_expense);
 
-            //CAR TRACK
-
-            $car_track = 0;
-
-            // --- CAR TRACK (Via Verde) ---
+            // --- CAR TRACK (Via Verde) atribuído ao motorista ativo na data ---
             $car_track = 0.0;
 
-            $weekStart = \Carbon\Carbon::parse($tvde_week->start_date)->startOfDay();
-            $weekEnd   = \Carbon\Carbon::parse($tvde_week->end_date)->endOfDay();
-
-            if ($tvde_week->start_date && $tvde_week->end_date) {
-
-                // 1) Encontrar TODAS as utilizações de viatura que se sobrepõem à semana
-                $vehicleUsages = \App\Models\VehicleUsage::with(['vehicle_item:id,license_plate'])
-                    ->where('driver_id', $driver->id)
-                    ->whereDate('start_date', '<=', $weekEnd)
-                    ->where(function ($q) use ($weekStart) {
-                        $q->whereNull('end_date')
-                            ->orWhereDate('end_date', '>=', $weekStart);
+            if ($tvde_week->id) {
+                $car_track = \DB::table('car_tracks as ct')
+                    ->join('vehicle_items as vi', 'vi.license_plate', '=', 'ct.license_plate')
+                    ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
+                    ->where('ct.tvde_week_id', $tvde_week->id)          // registos CarTrack dessa semana
+                    ->where('vu.driver_id', $driver->id)                 // atribuir ao teu motorista
+                    // motorista ativo nessa viatura na data do CarTrack
+                    ->whereColumn('vu.start_date', '<=', 'ct.date')
+                    ->where(function ($q) {
+                        $q->whereNull('vu.end_date')
+                            ->orWhereColumn('vu.end_date', '>=', 'ct.date');
                     })
-                    ->get();
-
-                // 2) Recolher as matrículas das viaturas usadas
-                $plates = $vehicleUsages
-                    ->pluck('vehicle_item.license_plate')
-                    ->filter() // remove nulls
-                    ->unique();
-
-                // 3) Somar os valores de Via Verde (CarTrack) para essas matrículas nessa semana
-                if ($plates->isNotEmpty()) {
-                    $car_track = \App\Models\CarTrack::whereIn('license_plate', $plates)
-                        ->where('tvde_week_id', $tvde_week->id)
-                        ->sum('value');
-                }
+                    // (Opcional) Contar apenas utilização "real"
+                    ->where(function ($q) {
+                        $q->whereNull('vu.usage_exceptions')
+                            ->orWhere('vu.usage_exceptions', 'usage');
+                    })
+                    ->sum('ct.value');
             }
-
 
             $earnings = collect([
                 'uber' => $uber,
