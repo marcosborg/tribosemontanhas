@@ -284,7 +284,7 @@ trait Reports
                 'vat_value' => $vat_value,
                 'total_after_vat' => $total_after_vat,
                 'adjustments' => $adjustments,
-                'fuel_transactions' => $fuel_transactions,
+                'fuel_transactions' => $driver->fuel,
                 'car_hire' => $car_hire ? $car_hire->amount : 0,
                 'company_expense' => $total_company_adjustments,
                 'adjustments_array' => $adjustments_array
