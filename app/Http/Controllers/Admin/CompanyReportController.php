@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use App\Models\CurrentAccount;
 use App\Models\DriversBalance;
 use App\Models\Driver;
+use App\Models\Reimbursement;
 
 class CompanyReportController extends Controller
 {
@@ -176,7 +177,16 @@ class CompanyReportController extends Controller
                 'tvde_week_id' => $week->id,
             ])->latest()->first();
 
+            // ➜ Devoluções validadas (motorista → empresa) nesta semana
+            $reimbursed = Reimbursement::where([
+                'driver_id'    => $driver_id,
+                'tvde_week_id' => $week->id,
+                'verified'     => 1,                 // só as validadas
+            ])->sum('value');
+
             $data = $account ? json_decode($account->data) : null;
+
+            $amount_transferred = ($receipt->amount_transferred ?? 0) - $reimbursed;
 
             $results[] = [
                 'week' => $week,
@@ -193,7 +203,7 @@ class CompanyReportController extends Controller
                 'car_hire' => $data->car_hire ?? 0,
                 'fuel_transactions' => $data->fuel_transactions ?? 0,
                 'driver_balance' => $balance->balance ?? 0,
-                'amount_transferred'   => $receipt->amount_transferred ?? 0,
+                'amount_transferred'   => $amount_transferred,
             ];
         }
 

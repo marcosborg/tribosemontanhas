@@ -49,7 +49,10 @@
                                     {{ number_format($r['driver_balance'], 2, ',', '.') }} €
                                 </strong>
                             </td>
-                            <td>{{ number_format($r['amount_transferred'], 2, ',', '.') }} €</td>
+                            @php $t = $r['amount_transferred'] ?? 0; @endphp
+                            <td style="text-align:right; {{ $t < 0 ? 'color:red;' : ($t > 0 ? 'color:green;' : '') }}">
+                                {{ $t < 0 ? '-' : '' }}{{ number_format(abs($t), 2, ',', '.') }} € 
+                            </td>
                         </tr>
                         @endforeach
                         @if (count($results) == 0)
