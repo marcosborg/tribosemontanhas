@@ -71,7 +71,6 @@ class VehicleUsageController extends Controller
         abort_if(Gate::denies('vehicle_usage_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
         $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         return view('admin.vehicleUsages.create', compact('drivers', 'vehicle_items'));
@@ -81,7 +80,7 @@ class VehicleUsageController extends Controller
     {
         // As datas estão validadas no formato Y-m-d H:i:s, podemos usá-las diretamente
         $startDate = $request->start_date;
-        $endDate = $request->end_date;
+        $endDate   = $request->end_date;
 
         // Criar SEMPRE o novo registo
         $newUsage = VehicleUsage::create($request->all());
@@ -91,7 +90,7 @@ class VehicleUsageController extends Controller
             ->where('id', '!=', $newUsage->id)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->where('start_date', '<=', $endDate)
-                    ->where('end_date', '>=', $startDate);
+                      ->where('end_date', '>=', $startDate);
             })
             ->first();
 
@@ -104,13 +103,11 @@ class VehicleUsageController extends Controller
             ->with('success', "Utilização criada com sucesso (ID {$newUsage->id}).");
     }
 
-
     public function edit(VehicleUsage $vehicleUsage)
     {
         abort_if(Gate::denies('vehicle_usage_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
-
         $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $vehicleUsage->load('driver', 'vehicle_item');
@@ -163,7 +160,7 @@ class VehicleUsageController extends Controller
         $grouped = $usages->groupBy('vehicle_item.license_plate');
         $occupancyStats = [];
         $monthlyStats = [];
-        $monthlyStackedStats = []; // NOVO
+        $monthlyStackedStats = []; // para o gráfico
         $yearlyMap = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
@@ -195,38 +192,37 @@ class VehicleUsageController extends Controller
                     $month = $day->month;
                     $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
 
-                    // Monthly stats simples
+                    // Monthly simples (total de dias em qualquer estado)
                     if (!isset($monthlyStats[$monthKey])) {
                         $monthlyStats[$monthKey] = [
                             'label' => $monthKey,
                             'plate' => $plate,
-                            'year' => (string) $year,
+                            'year'  => (string) $year,
                             'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'days' => 0,
+                            'days'  => 0,
                         ];
                     }
                     $monthlyStats[$monthKey]['days']++;
 
-                    // Monthly stats detalhado para stacked chart
+                    // Monthly detalhado para stacked
                     if (!isset($monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey] = [
-                            'label' => $monthKey,
-                            'plate' => $plate,
-                            'year' => (string) $year,
-                            'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'usage' => 0,
+                            'label'       => $monthKey,
+                            'plate'       => $plate,
+                            'year'        => (string) $year,
+                            'month'       => str_pad($month, 2, '0', STR_PAD_LEFT),
+                            'usage'       => 0,
                             'maintenance' => 0,
-                            'accident' => 0,
-                            'unassigned' => 0,
-                            'personal' => 0,
+                            'accident'    => 0,
+                            'unassigned'  => 0,
+                            'personal'    => 0,
                         ];
                     }
-
                     if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey][$exception]++;
                     }
 
-                    // Yearly stats
+                    // Yearly
                     if (!isset($years[$year])) {
                         $years[$year] = [];
                     }
@@ -238,18 +234,18 @@ class VehicleUsageController extends Controller
                 $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
                 $usedCount = count($usedDays);
                 $occupancyStats[$plate][$year] = [
-                    'used' => $usedCount,
-                    'total' => $totalDays,
+                    'used'    => $usedCount,
+                    'total'   => $totalDays,
                     'percent' => round(($usedCount / $totalDays) * 100, 2),
                 ];
 
                 $yearKey = "$plate ($year)";
                 if (!isset($yearlyMap[$yearKey])) {
                     $yearlyMap[$yearKey] = [
-                        'label' => $yearKey,
-                        'year' => (string) $year,
+                        'label'        => $yearKey,
+                        'year'         => (string) $year,
                         'totalPercent' => 0,
-                        'months' => 0,
+                        'months'       => 0,
                     ];
                 }
             }
@@ -257,7 +253,7 @@ class VehicleUsageController extends Controller
 
         foreach ($monthlyStats as &$stat) {
             $daysInMonth = cal_days_in_month(CAL_GREGORIAN, (int) $stat['month'], (int) $stat['year']);
-            $stat['percent'] = round(($stat['days'] / $daysInMonth) * 100, 2);
+            $stat['percent'] = $daysInMonth > 0 ? round(($stat['days'] / $daysInMonth) * 100, 2) : 0;
 
             $yearKey = "{$stat['plate']} ({$stat['year']})";
             if (isset($yearlyMap[$yearKey])) {
@@ -265,12 +261,13 @@ class VehicleUsageController extends Controller
                 $yearlyMap[$yearKey]['months']++;
             }
         }
+        unset($stat);
 
         $yearlyStats = [];
         foreach ($yearlyMap as $entry) {
             $yearlyStats[] = [
-                'label' => $entry['label'],
-                'year' => $entry['year'],
+                'label'   => $entry['label'],
+                'year'    => $entry['year'],
                 'percent' => $entry['months'] > 0 ? round($entry['totalPercent'] / $entry['months'], 2) : 0,
             ];
         }
@@ -285,13 +282,16 @@ class VehicleUsageController extends Controller
         }
         ksort($availableYears);
 
+        // Reindexar para garantir ordem estável no @json da Blade
+        $monthlyStackedStats = array_values($monthlyStackedStats);
+
         return view('admin.vehicleUsages.usage', compact(
             'grouped',
             'occupancyStats',
             'yearlyStats',
             'monthlyStats',
             'availableYears',
-            'monthlyStackedStats' // NOVO
+            'monthlyStackedStats'
         ));
     }
 }

@@ -1,5 +1,4 @@
 @extends('layouts.admin')
-
 @section('content')
 <div class="content">
     <div class="row">
@@ -20,9 +19,15 @@
                     <div>
                         <!-- Nav tabs -->
                         <ul class="nav nav-tabs" role="tablist">
-                            <li role="presentation" class="active"><a href="#home" role="tab" data-toggle="tab">Linha do Tempo das Viaturas</a></li>
-                            <li role="presentation"><a href="#profile" role="tab" data-toggle="tab">Gráfico da Taxa de Ocupação</a></li>
-                            <li role="presentation"><a href="#messages" role="tab" data-toggle="tab">Detalhe da Ocupação por Viatura</a></li>
+                            <li role="presentation" class="active">
+                                <a href="#home" role="tab" data-toggle="tab">Linha do Tempo das Viaturas</a>
+                            </li>
+                            <li role="presentation">
+                                <a href="#profile" role="tab" data-toggle="tab">Gráfico da Taxa de Ocupação</a>
+                            </li>
+                            <li role="presentation">
+                                <a href="#messages" role="tab" data-toggle="tab">Detalhe da Ocupação por Viatura</a>
+                            </li>
                         </ul>
 
                         <!-- Tab panes -->
@@ -37,28 +42,39 @@
 
                             <!-- Gráfico -->
                             <div role="tabpanel" class="tab-pane" id="profile">
-                                <div class="form-group mt-3">
-                                    <label for="yearFilter">Selecionar Ano:</label>
-                                    <select id="yearFilter" class="form-control" style="max-width: 200px;">
-                                        <option value="all">Todos os anos</option>
-                                        @foreach(array_keys($availableYears) as $year)
-                                            <option value="{{ $year }}">{{ $year }}</option>
-                                        @endforeach
-                                    </select>
+                                <div class="form-inline" style="margin-top:15px;">
+                                    <div class="form-group" style="margin-right:10px;">
+                                        <label for="yearFilter" style="margin-right:6px;">Selecionar Ano:</label>
+                                        <select id="yearFilter" class="form-control" style="max-width: 200px;">
+                                            <option value="all">Todos os anos</option>
+                                            @foreach(array_keys($availableYears) as $year)
+                                                <option value="{{ $year }}">{{ $year }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="monthFilter" style="margin-right:6px;">Selecionar Mês:</label>
+                                        <select id="monthFilter" class="form-control" style="max-width: 200px;">
+                                            <option value="all">Todos os meses</option>
+                                            @for ($m = 1; $m <= 12; $m++)
+                                                <option value="{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}">
+                                                    {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                                                </option>
+                                            @endfor
+                                        </select>
+                                    </div>
                                 </div>
 
-                                <div class="form-group mt-3">
-                                    <label for="monthFilter">Selecionar Mês:</label>
-                                    <select id="monthFilter" class="form-control" style="max-width: 200px;">
-                                        <option value="all">Todos os meses</option>
-                                        @for ($m = 1; $m <= 12; $m++)
-                                            <option value="{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}">{{ DateTime::createFromFormat('!m', $m)->format('F') }}</option>
-                                        @endfor
-                                    </select>
-                                </div>
+                                <h3 id="chartTitle" style="margin-top:20px;">Gráfico da Taxa de Ocupação</h3>
 
-                                <h3 id="chartTitle">Gráfico da Taxa de Ocupação</h3>
-                                <canvas id="occupancyChart" style="width: 100%; height: 400px;"></canvas>
+                                {{-- Altura controlada no CONTÊINER, não no canvas --}}
+                                <div id="occupancyChartContainer" style="width:100%; height:420px;">
+                                    <canvas id="occupancyChart"></canvas>
+                                </div>
+                                <p class="text-muted" style="margin-top:10px;">
+                                    As barras estão ordenadas por <strong>maior percentagem de utilização</strong> (verde).
+                                </p>
                             </div>
 
                             <!-- Detalhe por Viatura -->
@@ -88,7 +104,7 @@
                                     </table>
                                 @endforeach
                             </div>
-                        </div>
+                        </div><!-- /.tab-content -->
                     </div>
                 </div>
             </div>
@@ -104,13 +120,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // === TIMELINE === (sem alterações)
+    // === TIMELINE ===
     const timelineItems = new vis.DataSet([
         @foreach($grouped as $plate => $records)
             @foreach($records as $record)
                 {
                     id: {{ $record->id }},
-                    content: '{{ addslashes($record->driver ? $record->driver->name : ($record->usage_exceptions ? ucfirst($record->usage_exceptions) : 'Sem motorista')) }}',
+                    content: '{{ addslashes($record->driver ? $record->driver->name : ($record->usage_exceptions ? ucfirst($record->usage_exceptions) : "Sem motorista")) }}',
                     start: '{{ \Carbon\Carbon::parse($record->getRawOriginal("start_date"))->toDateString() }}',
                     end: '{{ \Carbon\Carbon::parse($record->getRawOriginal("end_date"))->toDateString() }}',
                     group: '{{ $plate }}',
@@ -138,9 +154,12 @@ document.addEventListener('DOMContentLoaded', function () {
         orientation: 'top'
     });
 
-    // === CHART.JS === STACKED ===
-    const ctx = document.getElementById('occupancyChart').getContext('2d');
-    const stackedStats = @json(array_values($monthlyStackedStats));
+    // === CHART.JS (STACKED HORIZONTAL) ===
+    const ctx        = document.getElementById('occupancyChart').getContext('2d');
+    const container  = document.getElementById('occupancyChartContainer');
+
+    // dados já reindexados pelo controller
+    const stackedStats = @json($monthlyStackedStats, JSON_NUMERIC_CHECK);
 
     const categoryLabels = {
         usage: 'Utilização',
@@ -149,7 +168,6 @@ document.addEventListener('DOMContentLoaded', function () {
         unassigned: 'Sem utilização',
         personal: 'Utilização pessoal'
     };
-
     const categoryColors = {
         usage: '#28a745',
         maintenance: '#fd7e14',
@@ -157,164 +175,127 @@ document.addEventListener('DOMContentLoaded', function () {
         unassigned: '#ffc107',
         personal: '#6f42c1'
     };
-
     const categories = ['usage', 'maintenance', 'accident', 'unassigned', 'personal'];
 
-    let chart;
+    // Criar UMA instância de Chart
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: [], datasets: [] },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false, // usa a altura do contêiner
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}%`
+                    }
+                },
+                legend: { position: 'bottom' }
+            },
+            scales: {
+                x: {
+                    stacked: true,
+                    min: 0,
+                    max: 100,
+                    ticks: { callback: v => v + '%' }
+                },
+                y: { stacked: true }
+            }
+        }
+    });
 
-    function updateStackedChart(filteredData) {
-        const labels = filteredData.map(d => d.label);
-
-        const datasets = categories.map(cat => ({
+    function buildDatasets(filteredData) {
+        return categories.map(cat => ({
             label: categoryLabels[cat],
             backgroundColor: categoryColors[cat],
             data: filteredData.map(stat => {
-                const total = categories.reduce((sum, key) => sum + stat[key], 0);
-                return total > 0 ? (stat[cat] / total * 100).toFixed(2) : 0;
+                const total = categories.reduce((sum, key) => sum + (stat[key] || 0), 0);
+                return total > 0 ? +(((stat[cat] || 0) / total) * 100).toFixed(2) : 0;
             }),
             stack: 'ocupacao'
         }));
-
-        if (chart) chart.destroy();
-
-        chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: datasets
-            },
-            options: {
-                indexAxis: 'y',
-                responsive: true,
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: context => `${context.dataset.label}: ${context.raw}%`
-                        }
-                    },
-                    legend: { position: 'bottom' }
-                },
-                scales: {
-                    x: {
-                        stacked: true,
-                        max: 100,
-                        ticks: {
-                            callback: value => value + '%'
-                        }
-                    },
-                    y: { stacked: true }
-                }
-            }
-        });
     }
 
     function filterStackedStats() {
-        const year = document.getElementById('yearFilter').value;
+        const year  = document.getElementById('yearFilter').value;
         const month = document.getElementById('monthFilter').value;
 
+        // filtra por ano/mês
         let filtered = stackedStats.filter(stat =>
-            (year === 'all' || stat.year === year) &&
-            (month === 'all' || stat.month === month)
+            (year  === 'all' || stat.year  == year) &&
+            (month === 'all' || stat.month == month)
         );
 
-        // Se mês for "all", agrupamos por viatura (independentemente do ano)
+        // se mês = all, agrega por viatura(ano)
         if (month === 'all') {
             const grouped = {};
-
             filtered.forEach(stat => {
-                const label = `${stat.plate} (${stat.year})`; // exemplo: AA-00-XX (2025)
-                if (!grouped[label]) {
-                    grouped[label] = {
-                        label: label,
-                        usage: 0,
-                        maintenance: 0,
-                        accident: 0,
-                        unassigned: 0,
-                        personal: 0,
-                    };
+                const key = `${stat.plate} (${stat.year})`;
+                if (!grouped[key]) {
+                    grouped[key] = { label: key, plate: stat.plate, year: stat.year, usage: 0, maintenance: 0, accident: 0, unassigned: 0, personal: 0 };
                 }
-
-                categories.forEach(cat => {
-                    grouped[label][cat] += stat[cat];
-                });
+                categories.forEach(cat => grouped[key][cat] += (stat[cat] || 0));
             });
-
             filtered = Object.values(grouped);
         }
 
-        // Ordenar pelo valor de 'usage' decrescente (mais bem ocupado primeiro)
-        filtered.sort((a, b) => b.usage - a.usage);
+        // ordenar por % de utilização desc (verde)
+        filtered.sort((a, b) => {
+            const totA = categories.reduce((s, k) => s + (a[k] || 0), 0);
+            const totB = categories.reduce((s, k) => s + (b[k] || 0), 0);
+            const pA = totA ? (a.usage || 0) / totA : 0;
+            const pB = totB ? (b.usage || 0) / totB : 0;
+            if (pB === pA) return ('' + a.label).localeCompare(b.label); // tie-break estável
+            return pB - pA;
+        });
 
-        // 📏 Altura dinâmica por barra (30px por entrada)
-        const BAR_HEIGHT = 10;
-        const canvas = document.getElementById('occupancyChart');
-        canvas.height = filtered.length * BAR_HEIGHT;
+        // Altura dinâmica no CONTÊINER (evita loop de resize do canvas)
+        const BAR_HEIGHT = 20; // px por item
+        const targetHeight = Math.max(320, filtered.length * BAR_HEIGHT);
+        if (container.style.height !== targetHeight + 'px') {
+            container.style.height = targetHeight + 'px';
+            chart.resize(); // pede ao chart para adaptar-se ao novo contêiner
+        }
 
-        updateStackedChart(filtered);
+        // Atualizar gráfico sem destruir
+        chart.data.labels   = filtered.map(d => d.label);
+        chart.data.datasets = buildDatasets(filtered);
+        chart.update();
     }
 
+    // Recalcular quando a aba de gráfico for exibida
+    const tabLink = document.querySelector('a[href="#profile"]');
+    if (tabLink) {
+        if (window.jQuery) {
+            $(tabLink).on('shown.bs.tab', () => { chart.resize(); filterStackedStats(); });
+        } else {
+            tabLink.addEventListener('click', () => {
+                setTimeout(() => { chart.resize(); filterStackedStats(); }, 0);
+            });
+        }
+    }
 
     document.getElementById('yearFilter').addEventListener('change', filterStackedStats);
     document.getElementById('monthFilter').addEventListener('change', filterStackedStats);
 
-    filterStackedStats(); // inicial
+    // Render inicial
+    filterStackedStats();
 });
 </script>
-
 @endsection
-
 
 @section('styles')
 <style>
-    .vis-item.usage-item {
-    background-color: #28a745 !important; /* Verde */
-    border-color: #1e7e34 !important;
-    color: white !important;
-    font-weight: bold;
-}
+/* Canvas ocupa 100% do contêiner */
+#occupancyChart { width:100% !important; height:100% !important; }
 
-.vis-item.maintenance-item {
-    background-color: #fd7e14 !important; /* Laranja */
-    border-color: #e8590c !important;
-    color: white !important;
-    font-weight: bold;
-}
-
-.vis-item.accident-item {
-    background-color: #dc3545 !important; /* Vermelho */
-    border-color: #a71d2a !important;
-    color: white !important;
-    font-weight: bold;
-}
-
-.vis-item.unassigned-item {
-    background-color: #ffc107 !important; /* Amarelo */
-    border-color: #e0a800 !important;
-    color: #333 !important;
-    font-weight: bold;
-}
-
-.vis-item.personal-item {
-    background-color: #6f42c1 !important; /* Roxo */
-    border-color: #5936a2 !important;
-    color: white !important;
-    font-weight: bold;
-}
-
-.vis-item.exception-item {
-    background-color: #ff4d4d !important; /* Vermelho (sem motorista) */
-    border-color: #cc0000 !important;
-    color: white !important;
-    font-weight: bold;
-}
-
-/* Opcional: estilizar explicitamente a utilização normal (sem usage_exceptions, com driver) */
-.vis-item.default-usage-item {
-    background-color: #007bff !important; /* Azul padrão */
-    border-color: #0056b3 !important;
-    color: white !important;
-    font-weight: bold;
-}
-
+/* Cores da timeline por exceção */
+.vis-item.usage-item      { background-color:#28a745 !important; border-color:#1e7e34 !important; color:#fff !important; font-weight:bold; }
+.vis-item.maintenance-item{ background-color:#fd7e14 !important; border-color:#e8590c !important; color:#fff !important; font-weight:bold; }
+.vis-item.accident-item   { background-color:#dc3545 !important; border-color:#a71d2a !important; color:#fff !important; font-weight:bold; }
+.vis-item.unassigned-item { background-color:#ffc107 !important; border-color:#e0a800 !important; color:#333 !important; font-weight:bold; }
+.vis-item.personal-item   { background-color:#6f42c1 !important; border-color:#5936a2 !important; color:#fff !important; font-weight:bold; }
+.vis-item.exception-item  { background-color:#ff4d4d !important; border-color:#cc0000 !important; color:#fff !important; font-weight:bold; }
 </style>
 @endsection
