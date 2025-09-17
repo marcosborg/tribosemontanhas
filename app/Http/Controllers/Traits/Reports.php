@@ -57,6 +57,7 @@ trait Reports
         $total_earnings_after_vat = [];
         $total_car_track = [];
         $total_car_hire = [];
+        $total_net_operators = [];
 
         foreach ($drivers as $driver) {
 
@@ -311,7 +312,7 @@ trait Reports
             $gross_uber[] = $uber_gross;
             $gross_bolt[] = $bolt_gross;
             $total_operators[] = $gross_total;
-            $total_net_operators[] = $net_total;
+            $total_net_operators[] = $net_total ?? 0;
             $net_uber[] = $uber_net;
             $net_bolt[] = $bolt_net;
             $total_earnings_after_discount[] = $earnings_after_discount;
@@ -610,7 +611,7 @@ trait Reports
 
     public function filter($state_id = 1)
     {
-        $company_id = 27;
+        $company_id = 1;
         $tvde_year_id = session()->get('tvde_year_id') ? session()->get('tvde_year_id') : $tvde_year_id = TvdeYear::orderBy('name', 'desc')->first()->id;
         if (session()->has('tvde_month_id')) {
             $tvde_month_id = session()->get('tvde_month_id');
