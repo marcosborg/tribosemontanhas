@@ -1011,7 +1011,7 @@ return [
             'tool_card_helper'      => ' ',
             'cards'                                => 'Cards',
             'cards_helper'                         => ' ',
-            'half_tolls'                                => 'Pagar metade das portagens',
+            'half_tolls'                                => 'Pagar metade do abastecimento',
             'half_tolls_helper'                         => ' ',
         ],
     ],
