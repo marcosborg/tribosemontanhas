@@ -149,6 +149,10 @@ trait Reports
                 }
             }
 
+            if($driver->half_tolls && $fuel_transactions > 0) {
+                $fuel_transactions = $fuel_transactions / 2;
+            }
+
             $driver->fuel = $fuel_transactions;
 
             //TESLA
@@ -275,9 +279,6 @@ trait Reports
                     })
                     ->sum('ct.value');
 
-                if($driver->half_tolls && $car_track > 0) {
-                    $car_track = $car_track / 2;
-                }
             }
 
             $earnings = collect([
