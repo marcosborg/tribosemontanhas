@@ -52,6 +52,7 @@ class Driver extends Model
         'brand',
         'model',
         'notes',
+        'half_tolls',
         'company_id',
         'created_at',
         'updated_at',

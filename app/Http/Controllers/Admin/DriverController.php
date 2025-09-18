@@ -209,6 +209,7 @@ class DriverController extends Controller
 
     public function update(UpdateDriverRequest $request, Driver $driver)
     {
+
         $driver->update($request->all());
         $driver->cards()->sync($request->input('cards', []));
 

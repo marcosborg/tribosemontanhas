@@ -274,6 +274,10 @@ trait Reports
                             ->orWhere('vu.usage_exceptions', 'usage');
                     })
                     ->sum('ct.value');
+
+                if($driver->half_tolls && $car_track > 0) {
+                    $car_track = $car_track / 2;
+                }
             }
 
             $earnings = collect([
@@ -611,7 +615,9 @@ trait Reports
 
     public function filter($state_id = 1)
     {
-        $company_id = 1;
+        
+        $company_id = Company::where('main', true)->first()->id;
+        
         $tvde_year_id = session()->get('tvde_year_id') ? session()->get('tvde_year_id') : $tvde_year_id = TvdeYear::orderBy('name', 'desc')->first()->id;
         if (session()->has('tvde_month_id')) {
             $tvde_month_id = session()->get('tvde_month_id');
