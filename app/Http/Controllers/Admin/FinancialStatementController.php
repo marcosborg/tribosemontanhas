@@ -94,6 +94,7 @@ class FinancialStatementController extends Controller
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
+            'adjustments_array' => data_get($results, 'adjustments_array', []),
         ]);
     }
 

@@ -8,35 +8,32 @@
     @else
     <div class="btn-group btn-group-justified" role="group">
         @foreach ($tvde_years as $tvde_year)
-        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
-            }}</a>
+        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name }}</a>
         @endforeach
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_months as $tvde_month)
-        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{
-            $tvde_month->name
-            }}</a>
+        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{ $tvde_month->name }}</a>
         @endforeach
     </div>
     <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
-            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
-            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">
+            Semana de {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}
+        </a>
         @endforeach
     </div>
     <a href="/admin/financial-statements/driver/0" class="btn btn-default {{ $driver_id == null ? 'disabled selected' : '' }}" style="margin-top: 5px;">Todos</a>
     @foreach ($drivers as $d)
-    <a href="/admin/financial-statements/driver/{{ $d->id }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">{{
-        $d->name }} {{ $d->team->count() > 0 ? '(Team)' : '' }}</a>
+    <a href="/admin/financial-statements/driver/{{ $d->id }}" class="btn btn-default {{ $driver_id == $d->id ? 'disabled selected' : '' }}" style="margin-top: 5px;">
+        {{ $d->name }} {{ $d->team->count() > 0 ? '(Team)' : '' }}
+    </a>
     @endforeach
+
     <div class="row" style="margin-top: 5px;">
         <div class="col-md-5">
             <div class="panel panel-default">
-                <div class="panel-heading">
-                    Atividades por operador
-                </div>
+                <div class="panel-heading">Atividades por operador</div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tbody>
@@ -64,10 +61,9 @@
                     </table>
                 </div>
             </div>
+
             <div class="panel panel-default">
-                <div class="panel-heading">
-                    IVA
-                </div>
+                <div class="panel-heading">IVA</div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
@@ -78,11 +74,10 @@
                 </div>
             </div>
         </div>
+
         <div class="col-md-7">
             <div class="panel panel-default">
-                <div class="panel-heading">
-                    Totais
-                </div>
+                <div class="panel-heading">Totais</div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tbody>
@@ -116,22 +111,62 @@
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                             </tr>
+
+                            {{-- ====================== ACERTOS + POPOVER ====================== --}}
+                            @php
+                                $popoverHtml = '';
+                                if (!empty($adjustments_array)) {
+                                    foreach ($adjustments_array as $adj) {
+                                        $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
+                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
+
+                                        $sign  = ($type === 'deduct') ? '-' : '';
+                                        // usar ponto como separador para manter consistente com o resto da página
+                                        $amtFmt = number_format($amt, 2);
+
+                                        $popoverHtml .= "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
+                                        if ($start || $end) {
+                                            $popoverHtml .= "<br><small>".e($start)." a ".e($end)."</small>";
+                                        }
+                                        $popoverHtml .= "</div>";
+                                    }
+                                }
+                            @endphp
                             <tr>
-                                <th>Acertos</th>
+                                <th>
+                                    Acertos
+                                    @if (!empty($adjustments_array))
+                                        <button type="button"
+                                                class="btn btn-xs btn-default"
+                                                data-toggle="popover"
+                                                data-placement="left"
+                                                data-html="true"
+                                                title="Detalhe dos acertos"
+                                                data-content="{!! $popoverHtml !!}">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    @endif
+                                </th>
                                 <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
                                 <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
                                 <td>{{ number_format($adjustments, 2) }}€</td>
                             </tr>
+                            {{-- =============================================================== --}}
+
                             <tr>
                                 <th>IVA</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
+
                             @php
-                            if ($adjustments && $adjustments > 0) {
-                            $total_net = $total_net + $adjustments;
-                            }
+                                if ($adjustments && $adjustments > 0) {
+                                    $total_net = $total_net + $adjustments;
+                                }
                             @endphp
                             <tr>
                                 <th>Totais</th>
@@ -141,6 +176,7 @@
                             </tr>
                         </tbody>
                     </table>
+
                     @if ($driver_balance && $driver_balance->drivers_balance > 0)
                         <p><small>Saldo transitado: {{ number_format(($total - ($driver_balance->drivers_balance ?? 0)) * -1, 2) }}€</small></p>
                     @else
@@ -148,6 +184,7 @@
                     @endif
                 </div>
             </div>
+
             <div class="panel panel-default">
                 <div class="panel-body">
                     <h3 class="pull-left">Valor semanal sem impostos: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
@@ -167,6 +204,7 @@
                                 <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
+                        </div>
                     </form>
                 </div>
                 @endif
@@ -177,67 +215,53 @@
 </div>
 </div>
 @endsection
+
 @section('styles')
 <style>
-    td {
-        text-align: right;
-    }
-
-    table {
-        font-size: 13px;
-    }
-
-    canvas#electric_racio {
-        pointer-events: none;
-    }
-
+    td { text-align: right; }
+    table { font-size: 13px; }
+    canvas#electric_racio { pointer-events: none; }
+    /* largura máxima do popover para não rebentar layout */
+    .popover { max-width: 420px; }
 </style>
 @endsection
+
 @section('scripts')
 @parent
 <script src="https://malsup.github.io/jquery.form.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+
 <script>
-    $(() => {
-        $('#update-balance').ajaxForm({
-            beforeSubmit: () => {
-                $('#update-balance').LoadingOverlay('show');
-            }
-            , success: () => {
-                $('#update-balance').LoadingOverlay('hide');
-                Swal.fire({
-                    title: 'Atualizado com sucesso'
-                    , icon: 'success'
-                , }).then(() => {
-                    location.reload();
-                });
-            }
-            , error: (error) => {
-                $('#update-balance').LoadingOverlay('hide');
-                var html = '';
-                $.each(error.responseJSON.errors, (i, v) => {
-                    $.each(v, (index, value) => {
-                        html += value + '<br>'
-                    });
-                });
-                Swal.fire({
-                    title: 'Erro de validação'
-                    , html: html
-                    , icon: 'error'
-                , }).then(() => {
-                    location.reload();
-                });
-            }
+    // Inicializar popovers Bootstrap 3
+    $(function () {
+        $('[data-toggle="popover"]').popover({
+            container: 'body',
+            trigger: 'click',
+            html: true
         });
     });
 
+    $(() => {
+        $('#update-balance').ajaxForm({
+            beforeSubmit: () => { $('#update-balance').LoadingOverlay('show'); },
+            success: () => {
+                $('#update-balance').LoadingOverlay('hide');
+                Swal.fire({ title: 'Atualizado com sucesso', icon: 'success' }).then(() => location.reload());
+            },
+            error: (error) => {
+                $('#update-balance').LoadingOverlay('hide');
+                var html = '';
+                $.each(error.responseJSON.errors, (i, v) => {
+                    $.each(v, (index, value) => { html += value + '<br>'; });
+                });
+                Swal.fire({ title: 'Erro de validação', html: html, icon: 'error' }).then(() => location.reload());
+            }
+        });
+    });
 </script>
 @endsection
-<script>
-    console.log({
-        !!$driver_balance!!
-    })
 
+<script>
+    console.log({!! json_encode((bool) $driver_balance) !!})
 </script>
