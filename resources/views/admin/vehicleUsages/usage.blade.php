@@ -85,6 +85,7 @@
                                     <table class="table table-bordered">
                                         <thead>
                                             <tr>
+                                                <th style="width:60px; text-align:center;">#</th>
                                                 <th>Ano</th>
                                                 <th>Dias em uso</th>
                                                 <th>Total de dias</th>
@@ -94,6 +95,7 @@
                                         <tbody>
                                             @foreach($years as $year => $data)
                                                 <tr>
+                                                    <td style="text-align:center;">{{ $loop->iteration }}</td>
                                                     <td>{{ $year }}</td>
                                                     <td>{{ $data['used'] }}</td>
                                                     <td>{{ $data['total'] }}</td>
@@ -140,19 +142,27 @@ document.addEventListener('DOMContentLoaded', function () {
         @endforeach
     ]);
 
+    // numerar grupos sem alterar a ordem de inserção
     const timelineGroups = new vis.DataSet([
+        @php $__grp_i = 1; @endphp
         @foreach($grouped as $plate => $records)
-            { id: '{{ $plate }}', content: '{{ $plate }}' },
+            { id: '{{ $plate }}', content: '{{ $__grp_i++ }}. {{ $plate }}' },
         @endforeach
     ]);
 
-    new vis.Timeline(document.getElementById('timeline'), timelineItems, timelineGroups, {
-        stack: false,
-        groupOrder: 'content',
-        editable: false,
-        margin: { item: 10, axis: 5 },
-        orientation: 'top'
-    });
+    const timeline = new vis.Timeline(
+        document.getElementById('timeline'),
+        timelineItems,
+        timelineGroups,
+        {
+            stack: false,
+            // manter ordem de inserção mesmo com prefixo numérico
+            groupOrder: function (a,b){ return 0; },
+            editable: false,
+            margin: { item: 10, axis: 5 },
+            orientation: 'top'
+        }
+    );
 
     // === CHART.JS (STACKED HORIZONTAL) ===
     const ctx        = document.getElementById('occupancyChart').getContext('2d');
@@ -258,8 +268,8 @@ document.addEventListener('DOMContentLoaded', function () {
             chart.resize(); // pede ao chart para adaptar-se ao novo contêiner
         }
 
-        // Atualizar gráfico sem destruir
-        chart.data.labels   = filtered.map(d => d.label);
+        // === Numeração autoincrementável nos labels, sem mexer na ordem ===
+        chart.data.labels   = filtered.map((d, i) => `${i + 1}. ${d.label}`);
         chart.data.datasets = buildDatasets(filtered);
         chart.update();
     }
