@@ -261,7 +261,3 @@
     });
 </script>
 @endsection
-
-<script>
-    console.log({!! json_encode((bool) $driver_balance) !!})
-</script>
