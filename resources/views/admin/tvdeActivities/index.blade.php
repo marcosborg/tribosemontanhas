@@ -60,6 +60,7 @@
                                 <th>
                                     {{ trans('cruds.tvdeActivity.fields.driver_code') }}
                                 </th>
+                                <th>Existe</th>
                                 <th>
                                     {{ trans('cruds.tvdeActivity.fields.gross') }}
                                 </th>
@@ -130,6 +131,7 @@
 { data: 'tvde_operator_name', name: 'tvde_operator.name' },
 { data: 'company_name', name: 'company.name' },
 { data: 'driver_code', name: 'driver_code' },
+{ data: 'exists', name: 'exists', orderable: false, searchable: false },
 { data: 'gross', name: 'gross' },
 { data: 'net', name: 'net' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }

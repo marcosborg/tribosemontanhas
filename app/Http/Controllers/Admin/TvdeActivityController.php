@@ -26,9 +26,12 @@ class TvdeActivityController extends Controller
 
         if ($request->ajax()) {
             if (session()->get('company_id')) {
-                $query = TvdeActivity::where('company_id', session()->get('company_id'))->with(['tvde_week', 'tvde_operator', 'company'])->select(sprintf('%s.*', (new TvdeActivity)->table));
+                $query = TvdeActivity::where('company_id', session()->get('company_id'))
+                    ->with(['tvde_week', 'tvde_operator', 'company'])
+                    ->select(sprintf('%s.*', (new TvdeActivity)->table));
             } else {
-                $query = TvdeActivity::with(['tvde_week', 'tvde_operator', 'company'])->select(sprintf('%s.*', (new TvdeActivity)->table));
+                $query = TvdeActivity::with(['tvde_week', 'tvde_operator', 'company'])
+                    ->select(sprintf('%s.*', (new TvdeActivity)->table));
             }
 
             $table = Datatables::of($query);
@@ -42,21 +45,19 @@ class TvdeActivityController extends Controller
                 $deleteGate = 'tvde_activity_delete';
                 $crudRoutePart = 'tvde-activities';
 
-                return view(
-                    'partials.datatablesActions',
-                    compact(
-                        'viewGate',
-                        'editGate',
-                        'deleteGate',
-                        'crudRoutePart',
-                        'row'
-                    )
-                );
+                return view('partials.datatablesActions', compact(
+                    'viewGate',
+                    'editGate',
+                    'deleteGate',
+                    'crudRoutePart',
+                    'row'
+                ));
             });
 
             $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
+                return $row->id ?: '';
             });
+
             $table->addColumn('tvde_week_start_date', function ($row) {
                 return $row->tvde_week ? $row->tvde_week->start_date : '';
             });
@@ -70,25 +71,52 @@ class TvdeActivityController extends Controller
             });
 
             $table->editColumn('driver_code', function ($row) {
-                return $row->driver_code ? $row->driver_code : '';
-            });
-            $table->editColumn('gross', function ($row) {
-                return $row->gross ? $row->gross : '';
-            });
-            $table->editColumn('net', function ($row) {
-                return $row->net ? $row->net : '';
+                return $row->driver_code ?: '';
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'tvde_week', 'tvde_operator', 'company']);
+            // ===== NOVA COLUNA: "exists" =====
+            $table->addColumn('exists', function ($row) {
+                // Determinar qual campo procurar no Driver consoante o operador
+                $field = null;
+                $opName = $row->tvde_operator ? mb_strtolower($row->tvde_operator->name, 'UTF-8') : '';
+
+                if (strpos($opName, 'uber') !== false) {
+                    $field = 'uber_uuid';
+                } elseif (strpos($opName, 'bolt') !== false) {
+                    $field = 'bolt_name';
+                }
+
+                $found = false;
+                if ($field && $row->driver_code) {
+                    $found = \App\Models\Driver::where($field, $row->driver_code)->exists();
+                }
+
+                return $found
+                    ? '<span class="label label-success">Existe</span>'
+                    : '<span class="label label-danger">Não existe</span>';
+            });
+            // ================================
+
+            $table->editColumn('gross', function ($row) {
+                return $row->gross ?: '';
+            });
+
+            $table->editColumn('net', function ($row) {
+                return $row->net ?: '';
+            });
+
+            // "exists" contém HTML -> precisa entrar no rawColumns
+            $table->rawColumns(['actions', 'placeholder', 'exists']);
 
             return $table->make(true);
         }
 
         $tvde_weeks = TvdeWeek::all();
-        $companies = Company::all();
+        $companies  = Company::all();
 
         return view('admin.tvdeActivities.index', compact('tvde_weeks', 'companies'));
     }
+
 
     public function create()
     {
@@ -168,7 +196,7 @@ class TvdeActivityController extends Controller
             'week_filter' => 'required'
         ]);
 
-        if($request->company_filter){
+        if ($request->company_filter) {
             $tvde_activities = TvdeActivity::where([
                 'tvde_week_id' => $request->week_filter,
                 'company_id' => $request->company_filter
