@@ -69,11 +69,11 @@
                                 <h3 id="chartTitle" style="margin-top:20px;">Gráfico da Taxa de Ocupação</h3>
 
                                 {{-- Altura controlada no CONTÊINER, não no canvas --}}
-                                <div id="occupancyChartContainer" style="width:100%; height:420px;">
+                                <div id="occupancyChartContainer" style="width:100%; height:420px; position:relative;">
                                     <canvas id="occupancyChart"></canvas>
                                 </div>
                                 <p class="text-muted" style="margin-top:10px;">
-                                    As barras estão ordenadas por <strong>maior percentagem de utilização</strong> (verde).
+                                    As barras estão ordenadas por <strong>maior percentagem de utilização</strong> (verde). O rótulo no fim da barra é o <strong>aluguer da última semana</strong>.
                                 </p>
                             </div>
 
@@ -150,14 +150,13 @@ document.addEventListener('DOMContentLoaded', function () {
         @endforeach
     ]);
 
-    const timeline = new vis.Timeline(
+    new vis.Timeline(
         document.getElementById('timeline'),
         timelineItems,
         timelineGroups,
         {
             stack: false,
-            // manter ordem de inserção mesmo com prefixo numérico
-            groupOrder: function (a,b){ return 0; },
+            groupOrder: function (a,b){ return 0; }, // manter ordem de inserção
             editable: false,
             margin: { item: 10, axis: 5 },
             orientation: 'top'
@@ -187,6 +186,32 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     const categories = ['usage', 'maintenance', 'accident', 'unassigned', 'personal'];
 
+    // --- Plugin: valor do aluguer no fim de cada barra (usa stat.rent) ---
+    const rentLabelPlugin = {
+        id: 'rentLabelPlugin',
+        afterDatasetsDraw(chart, args, pluginOptions) {
+            const { ctx, scales } = chart;
+            const yScale = scales.y;
+            const xScale = scales.x;
+            const rents = chart.$_rents || []; // array alinhado com chart.data.labels
+
+            ctx.save();
+            ctx.textBaseline = 'middle';
+
+            chart.data.labels.forEach((_, i) => {
+                const y = yScale.getPixelForValue(i);
+                const x = xScale.getPixelForValue(100) + 6; // ligeiro offset depois do 100%
+                const text = rents[i] ?? '';
+                if (!text) return;
+
+                ctx.fillStyle = '#111';
+                ctx.fillText(String(text), x, y);
+            });
+
+            ctx.restore();
+        }
+    };
+
     // Criar UMA instância de Chart
     const chart = new Chart(ctx, {
         type: 'bar',
@@ -195,6 +220,9 @@ document.addEventListener('DOMContentLoaded', function () {
             indexAxis: 'y',
             responsive: true,
             maintainAspectRatio: false, // usa a altura do contêiner
+            layout: {
+                padding: { right: 64 } // espaço para o rótulo do aluguer à direita
+            },
             plugins: {
                 tooltip: {
                     callbacks: {
@@ -212,7 +240,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 y: { stacked: true }
             }
-        }
+        },
+        plugins: [rentLabelPlugin]
     });
 
     function buildDatasets(filteredData) {
@@ -243,7 +272,13 @@ document.addEventListener('DOMContentLoaded', function () {
             filtered.forEach(stat => {
                 const key = `${stat.plate} (${stat.year})`;
                 if (!grouped[key]) {
-                    grouped[key] = { label: key, plate: stat.plate, year: stat.year, usage: 0, maintenance: 0, accident: 0, unassigned: 0, personal: 0 };
+                    grouped[key] = {
+                        label: key,
+                        plate: stat.plate,
+                        year: stat.year,
+                        usage: 0, maintenance: 0, accident: 0, unassigned: 0, personal: 0,
+                        rent: stat.rent ?? null // manter rent ao agregar
+                    };
                 }
                 categories.forEach(cat => grouped[key][cat] += (stat[cat] || 0));
             });
@@ -268,9 +303,13 @@ document.addEventListener('DOMContentLoaded', function () {
             chart.resize(); // pede ao chart para adaptar-se ao novo contêiner
         }
 
-        // === Numeração autoincrementável nos labels, sem mexer na ordem ===
+        // === Labels numerados (1., 2., 3., …) sem mexer na ordem ===
         chart.data.labels   = filtered.map((d, i) => `${i + 1}. ${d.label}`);
         chart.data.datasets = buildDatasets(filtered);
+
+        // === Valores de aluguer no fim de cada barra (vêm do controller: stat.rent) ===
+        chart.$_rents = filtered.map(stat => (stat.rent != null ? `${stat.rent} €` : '—'));
+
         chart.update();
     }
 

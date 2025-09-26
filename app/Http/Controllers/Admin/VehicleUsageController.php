@@ -9,11 +9,15 @@ use App\Http\Requests\UpdateVehicleUsageRequest;
 use App\Models\Driver;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
+use App\Models\CarHire;
+use App\Models\TvdeActivity;
+use App\Models\TvdeWeek;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 use Carbon\Carbon;
+use Carbon\CarbonPeriod;
 
 class VehicleUsageController extends Controller
 {
@@ -90,7 +94,7 @@ class VehicleUsageController extends Controller
             ->where('id', '!=', $newUsage->id)
             ->where(function ($query) use ($startDate, $endDate) {
                 $query->where('start_date', '<=', $endDate)
-                      ->where('end_date', '>=', $startDate);
+                    ->where('end_date', '>=', $startDate);
             })
             ->first();
 
@@ -153,46 +157,118 @@ class VehicleUsageController extends Controller
 
     public function usage()
     {
-        $usages = VehicleUsage::with(['vehicle_item'])
+        // --- Carrega usos, agrupado por matrícula ---
+        $usages = VehicleUsage::with(['vehicle_item', 'driver'])
             ->orderBy('start_date')
             ->get();
 
         $grouped = $usages->groupBy('vehicle_item.license_plate');
+
         $occupancyStats = [];
         $monthlyStats = [];
         $monthlyStackedStats = []; // para o gráfico
         $yearlyMap = [];
 
+        // 1) Última semana com dados em tvde_activity -> tvde_week_id
+        $lastActivity = TvdeActivity::query()
+            ->orderByDesc('id')
+            ->first();
+        $lastWeekId = optional($lastActivity)->tvde_week_id;
+
+        // 2) Intervalo da semana (fallback = semana corrente)
+        $weekStart = now()->startOfWeek();
+        $weekEnd   = now()->endOfWeek();
+
+        if ($lastWeekId) {
+            $tw = TvdeWeek::query()->find($lastWeekId);
+            if ($tw && !empty($tw->start_date) && !empty($tw->end_date)) {
+                try {
+                    $weekStart = Carbon::parse($tw->start_date)->startOfDay();
+                    $weekEnd   = Carbon::parse($tw->end_date)->endOfDay();
+                } catch (\Throwable $e) { /* mantém fallback */
+                }
+            }
+        }
+
+        // 3) Mapa de rendas por matrícula (rentByPlate), resolvendo driver via VehicleUsage na semana
+        $rentByPlate = [];
+
+        foreach ($grouped as $plate => $usagesForVehicle) {
+            /** @var VehicleItem|null $vehicleItem */
+            $vehicleItem = optional($usagesForVehicle->first())->vehicle_item;
+
+            if (!$vehicleItem) {
+                $rentByPlate[$plate] = 300;
+                continue;
+            }
+
+            // Driver = usage que INTERSECTA a semana
+            $usageInWeek = VehicleUsage::query()
+                ->where('vehicle_item_id', $vehicleItem->id)
+                ->where('start_date', '<=', $weekEnd)     // começa antes de terminar a semana
+                ->where('end_date', '>=', $weekStart)     // termina depois de começar a semana
+                ->orderByDesc('end_date')
+                ->first();
+
+            $driverId = optional($usageInWeek)->driver_id;
+
+            // Fallback: último usage com driver (se a semana não tiver intersecção)
+            if (!$driverId) {
+                $lastWithDriver = VehicleUsage::query()
+                    ->where('vehicle_item_id', $vehicleItem->id)
+                    ->whereNotNull('driver_id')
+                    ->orderByDesc('end_date')
+                    ->first();
+                $driverId = optional($lastWithDriver)->driver_id;
+            }
+
+            // CarHire (amount) do driver durante a semana (sobreposição)
+            $amount = null;
+            if ($driverId) {
+                $amount = CarHire::query()
+                    ->where('driver_id', $driverId)
+                    ->where(function ($q) use ($weekStart) {
+                        $q->whereNull('end_date')
+                            ->orWhereDate('end_date', '>=', $weekStart->toDateString());
+                    })
+                    ->whereDate('start_date', '<=', $weekEnd->toDateString())
+                    ->orderByDesc('start_date')
+                    ->value('amount');
+            }
+
+            $rentByPlate[$plate] = $amount ?: 300; // fallback visual
+        }
+
+        // 4) Estatísticas (igual ao teu original), acrescentando 'rent' a cada monthKey
         foreach ($grouped as $plate => $usagesForVehicle) {
             $years = [];
 
             foreach ($usagesForVehicle as $usage) {
                 $startRaw = $usage->getRawOriginal('start_date');
-                $endRaw = $usage->getRawOriginal('end_date');
+                $endRaw   = $usage->getRawOriginal('end_date');
 
                 try {
-                    $start = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
+                    $start = Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                 } catch (\Exception $e) {
                     \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
                     continue;
                 }
 
                 try {
-                    $end = \Carbon\Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
+                    $end = Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
                 } catch (\Exception $e) {
                     \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
                     continue;
                 }
 
                 $exception = $usage->usage_exceptions ?? 'usage';
-                $period = \Carbon\CarbonPeriod::create($start, $end);
+                $period = CarbonPeriod::create($start, $end);
 
                 foreach ($period as $day) {
                     $year = $day->year;
                     $month = $day->month;
                     $monthKey = sprintf("%s (%04d-%02d)", $plate, $year, $month);
 
-                    // Monthly simples (total de dias em qualquer estado)
                     if (!isset($monthlyStats[$monthKey])) {
                         $monthlyStats[$monthKey] = [
                             'label' => $monthKey,
@@ -204,7 +280,6 @@ class VehicleUsageController extends Controller
                     }
                     $monthlyStats[$monthKey]['days']++;
 
-                    // Monthly detalhado para stacked
                     if (!isset($monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey] = [
                             'label'       => $monthKey,
@@ -216,13 +291,13 @@ class VehicleUsageController extends Controller
                             'accident'    => 0,
                             'unassigned'  => 0,
                             'personal'    => 0,
+                            'rent'        => $rentByPlate[$plate] ?? null, // << aqui
                         ];
                     }
                     if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey][$exception]++;
                     }
 
-                    // Yearly
                     if (!isset($years[$year])) {
                         $years[$year] = [];
                     }
@@ -231,7 +306,7 @@ class VehicleUsageController extends Controller
             }
 
             foreach ($years as $year => $usedDays) {
-                $totalDays = \Carbon\Carbon::create($year, 1, 1)->daysInYear;
+                $totalDays = Carbon::create($year, 1, 1)->daysInYear;
                 $usedCount = count($usedDays);
                 $occupancyStats[$plate][$year] = [
                     'used'    => $usedCount,
@@ -271,7 +346,6 @@ class VehicleUsageController extends Controller
                 'percent' => $entry['months'] > 0 ? round($entry['totalPercent'] / $entry['months'], 2) : 0,
             ];
         }
-
         usort($yearlyStats, fn($a, $b) => $b['percent'] <=> $a['percent']);
 
         $availableYears = [];
@@ -282,7 +356,7 @@ class VehicleUsageController extends Controller
         }
         ksort($availableYears);
 
-        // Reindexar para garantir ordem estável no @json da Blade
+        // Reindex para @json estável
         $monthlyStackedStats = array_values($monthlyStackedStats);
 
         return view('admin.vehicleUsages.usage', compact(
