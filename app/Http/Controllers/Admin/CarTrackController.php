@@ -10,9 +10,10 @@ use App\Http\Requests\UpdateCarTrackRequest;
 use App\Models\CarTrack;
 use App\Models\TvdeWeek;
 use Gate;
-use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request; 
 
 class CarTrackController extends Controller
 {
@@ -32,6 +33,21 @@ class CarTrackController extends Controller
                     'car_tracks.value',
                     'tvde_weeks.start_date as tvde_week_start_date',
                     'car_tracks.deleted_at',
+                    // === Subquery: motorista no dia da despesa ===
+                    DB::raw("
+                    (
+                        SELECT drivers.name
+                        FROM vehicle_usages vu
+                        INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
+                        INNER JOIN drivers ON drivers.id = vu.driver_id
+                        WHERE vi.license_plate = car_tracks.license_plate
+                          AND vu.deleted_at IS NULL
+                          AND vu.start_date <= car_tracks.date
+                          AND vu.end_date   >= car_tracks.date
+                        ORDER BY vu.end_date DESC
+                        LIMIT 1
+                    ) AS driver_name
+                "),
                 ]);
 
             $table = DataTables::of($query);
@@ -60,12 +76,15 @@ class CarTrackController extends Controller
             $table->editColumn('value', fn($row) => $row->value ?: '');
             $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
 
-            // já não tens nenhuma coluna HTML chamada 'tvde_week'
+            // nova coluna: nome do motorista (ou "Não existe")
+            $table->addColumn('driver_name', function ($row) {
+                return $row->driver_name ?: 'Não existe';
+            });
+
             $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
-
 
         return view('admin.carTracks.index');
     }

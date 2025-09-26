@@ -39,6 +39,7 @@
                                 <th>
                                     {{ trans('cruds.carTrack.fields.license_plate') }}
                                 </th>
+                                <th>Motorista</th>
                                 <th>
                                     {{ trans('cruds.carTrack.fields.value') }}
                                 </th>
@@ -105,6 +106,7 @@
   { data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
   { data: 'date', name: 'car_tracks.date' },
   { data: 'license_plate', name: 'car_tracks.license_plate' },
+  { data: 'driver_name', name: 'driver_name', orderable: false, searchable: false },
   { data: 'value', name: 'car_tracks.value' },
   { data: 'actions', name: 'actions' }
 ],
