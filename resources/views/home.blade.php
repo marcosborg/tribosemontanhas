@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+
 @section('content')
 <div class="content">
     @if ($company_id == 0)
@@ -6,26 +7,71 @@
         Selecione uma empresa para ver os seus extratos.
     </div>
     @else
-    <div class="btn-group btn-group-justified" role="group">
+
+    {{-- ===== DESKTOP: botões (anos/meses/semanas) ===== --}}
+    <div class="btn-group btn-group-justified hidden-xs hidden-sm" role="group">
         @foreach ($tvde_years as $tvde_year)
-        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">{{ $tvde_year->name
-            }}</a>
+        <a href="/admin/financial-statements/year/{{ $tvde_year->id }}" class="btn btn-default {{ $tvde_year->id == $tvde_year_id ? 'disabled selected' : '' }}">
+            {{ $tvde_year->name }}
+        </a>
         @endforeach
     </div>
-    <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
+    <div class="btn-group btn-group-justified hidden-xs hidden-sm" role="group" style="margin-top: 5px;">
         @foreach ($tvde_months as $tvde_month)
-        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">{{
-            $tvde_month->name
-            }}</a>
+        <a href="/admin/financial-statements/month/{{ $tvde_month->id }}" class="btn btn-default {{ $tvde_month->id == $tvde_month_id ? 'disabled selected' : '' }}">
+            {{ $tvde_month->name }}
+        </a>
         @endforeach
     </div>
-    <div class="btn-group btn-group-justified" role="group" style="margin-top: 5px;">
+    <div class="btn-group btn-group-justified hidden-xs hidden-sm" role="group" style="margin-top: 5px;">
         @foreach ($tvde_weeks as $tvde_week)
-        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">Semana de {{
-            \Carbon\Carbon::parse($tvde_week->start_date)->format('d')
-            }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}</a>
+        <a href="/admin/financial-statements/week/{{ $tvde_week->id }}" class="btn btn-default {{ $tvde_week->id == $tvde_week_id ? 'disabled selected' : '' }}">
+            Semana de {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}
+        </a>
         @endforeach
     </div>
+
+    {{-- ===== MOBILE: selects empilhados (só xs/sm) ===== --}}
+    <div class="visible-xs-block visible-sm-block mobile-filters">
+        <div class="panel panel-default" style="margin-top:8px;">
+            <div class="panel-body">
+                <div class="form-group">
+                    <label for="filterYear" class="control-label">Ano</label>
+                    <select id="filterYear" class="form-control">
+                        @foreach ($tvde_years as $tvde_year)
+                            <option value="{{ $tvde_year->id }}" {{ $tvde_year->id == $tvde_year_id ? 'selected' : '' }}>
+                                {{ $tvde_year->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top:8px;">
+                    <label for="filterMonth" class="control-label">Mês</label>
+                    <select id="filterMonth" class="form-control">
+                        @foreach ($tvde_months as $tvde_month)
+                            <option value="{{ $tvde_month->id }}" {{ $tvde_month->id == $tvde_month_id ? 'selected' : '' }}>
+                                {{ $tvde_month->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-top:8px;">
+                    <label for="filterWeek" class="control-label">Semana</label>
+                    <select id="filterWeek" class="form-control">
+                        @foreach ($tvde_weeks as $tvde_week)
+                            <option value="{{ $tvde_week->id }}" {{ $tvde_week->id == $tvde_week_id ? 'selected' : '' }}>
+                                {{ \Carbon\Carbon::parse($tvde_week->start_date)->format('d') }} a {{ \Carbon\Carbon::parse($tvde_week->end_date)->format('d') }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
     <div class="row" style="margin-top: 20px;">
         <div class="col-md-5">
             <div class="panel panel-default">
@@ -144,12 +190,13 @@
                 </div>
             </div>
         </div>
+
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
                     <div class="pull-left">
-                    <h4>Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h4>
-                    <h3>Saldo atual: <span style="font-weight: 800;">{{ $driver_balance->balance ?? 0 }}</span>€</h3>
+                        <h4>Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h4>
+                        <h3>Saldo atual: <span style="font-weight: 800;">{{ $driver_balance->balance ?? 0 }}</span>€</h3>
                     </div>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
@@ -167,10 +214,12 @@
                                 <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
+                        </div>
                     </form>
                 </div>
                 @endif
             </div>
+
             <div class="panel panel-default">
                 <div class="panel-heading">
                     Recibo
@@ -198,12 +247,12 @@
                             </tr>
                         </tbody>
                     </table>
+
                     @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                    <form method="POST" action="{{ route("admin.receipts.store") }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('admin.receipts.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
-                        <input type="hidden" name="balance" value="{{ $driver_balance->drivers_balance }}">
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
@@ -232,31 +281,28 @@
                                 <input type="hidden" name="tvde_week_id" id="tvde_week_id" value="{{ $tvde_week_id }}">
                             </div>
                         </div>
-                        
+
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">Recibo verde</label>
-                            <div class="needsclick dropzone" id="file-dropzone">
-                            </div>
+                            <div class="needsclick dropzone" id="file-dropzone"></div>
                             @if($errors->has('file'))
                             <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.receipt.fields.file_helper') }}</span>
                         </div>
                         <div class="form-group">
-                            <button class="btn btn-success" type="submit">
-                                Enviar recibo verde
-                            </button>
+                            <button class="btn btn-success" type="submit">Enviar recibo verde</button>
                         </div>
                     </form>
+
                     @if (!$expenseReceipt)
-                    <form method="POST" action="{{ route("admin.expense-receipts.store") }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('admin.expense-receipts.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <div class="form-group {{ $errors->has('receipts') ? 'has-error' : '' }}">
                             <label for="receipts">Recibos de despesas</label>
-                            <div class="needsclick dropzone" id="receipts-dropzone">
-                            </div>
+                            <div class="needsclick dropzone" id="receipts-dropzone"></div>
                             @if($errors->has('receipts'))
                                 <span class="help-block" role="alert">{{ $errors->first('receipts') }}</span>
                             @endif
@@ -282,21 +328,18 @@
                             <span class="help-block">{{ trans('cruds.expenseReceipt.fields.verified_helper') }}</span>
                         </div>
                         <div class="form-group">
-                            <button class="btn btn-danger" type="submit">
-                                Enviar recibos de despesas
-                            </button>
+                            <button class="btn btn-danger" type="submit">Enviar recibos de despesas</button>
                         </div>
                     </form>
                     @else
-                    <form method="POST" action="{{ route("admin.expense-receipts.update", [$expenseReceipt->id]) }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('admin.expense-receipts.update', [$expenseReceipt->id]) }}" enctype="multipart/form-data">
                         @method('PUT')
                         @csrf
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <div class="form-group {{ $errors->has('receipts') ? 'has-error' : '' }}">
                             <label for="receipts">{{ trans('cruds.expenseReceipt.fields.receipts') }}</label>
-                            <div class="needsclick dropzone" id="receipts-dropzone">
-                            </div>
+                            <div class="needsclick dropzone" id="receipts-dropzone"></div>
                             @if($errors->has('receipts'))
                                 <span class="help-block" role="alert">{{ $errors->first('receipts') }}</span>
                             @endif
@@ -323,9 +366,7 @@
                         </div>
                         @if (!$expenseReceipt->verified)
                         <div class="form-group">
-                            <button class="btn btn-danger" type="submit">
-                                {{ trans('global.save') }}
-                            </button>
+                            <button class="btn btn-danger" type="submit">{{ trans('global.save') }}</button>
                         </div>
                         @endif
                     </form>
@@ -335,13 +376,14 @@
                         O saldo não permite o envio de recibos.
                     </div>
                     @endif
+
                     <hr>
-                    <form method="POST" action="{{ route("admin.reimbursements.store") }}" enctype="multipart/form-data">
+
+                    <form method="POST" action="{{ route('admin.reimbursements.store') }}" enctype="multipart/form-data">
                         @csrf
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">Devolução de valores</label>
-                            <div class="needsclick dropzone" id="file-dropzone">
-                            </div>
+                            <div class="needsclick dropzone" id="file-dropzone"></div>
                             @if($errors->has('file'))
                                 <span class="help-block" role="alert">{{ $errors->first('file') }}</span>
                             @endif
@@ -351,11 +393,10 @@
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
                         <input type="hidden" name="tvde_week_id" value="{{ $tvde_week_id }}">
                         <div class="form-group">
-                            <button class="btn btn-danger" type="submit">
-                                Gravar valores devolvidos
-                            </button>
+                            <button class="btn btn-danger" type="submit">Gravar valores devolvidos</button>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
@@ -364,277 +405,235 @@
 </div>
 </div>
 @endsection
+
 @section('styles')
 <style>
-    td {
-        text-align: right;
-    }
+    td { text-align: right; }
+    table { font-size: 13px; }
+    canvas#electric_racio { pointer-events: none; }
 
-    table {
-        font-size: 13px;
-    }
-
-    canvas#electric_racio {
-        pointer-events: none;
-    }
-
+    /* Mobile filters */
+    .mobile-filters .form-control { width: 100%; }
 </style>
 @endsection
+
 @section('scripts')
 @parent
 <script src="https://malsup.github.io/jquery.form.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js">
-</script>
+<script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+
 <script>
+    // Navegação dos selects (mobile)
+    (function(){
+        var $year  = $('#filterYear');
+        var $month = $('#filterMonth');
+        var $week  = $('#filterWeek');
+
+        if ($year.length)  $year.on('change', function(){ window.location.href = '/admin/financial-statements/year/'  + this.value; });
+        if ($month.length) $month.on('change',function(){ window.location.href = '/admin/financial-statements/month/' + this.value; });
+        if ($week.length)  $week.on('change', function(){ window.location.href = '/admin/financial-statements/week/'  + this.value; });
+    })();
+
+    // Ajax do update-balance
     $(() => {
         $('#update-balance').ajaxForm({
-            beforeSubmit: () => {
-                $('#update-balance').LoadingOverlay('show');
-            }
-            , success: () => {
+            beforeSubmit: () => { $('#update-balance').LoadingOverlay('show'); },
+            success: () => {
                 $('#update-balance').LoadingOverlay('hide');
-                Swal.fire({
-                    title: 'Atualizado com sucesso'
-                    , icon: 'success'
-                , }).then(() => {
-                    location.reload();
-                });
-            }
-            , error: (error) => {
+                Swal.fire({ title: 'Atualizado com sucesso', icon: 'success' }).then(() => { location.reload(); });
+            },
+            error: (error) => {
                 $('#update-balance').LoadingOverlay('hide');
                 var html = '';
                 $.each(error.responseJSON.errors, (i, v) => {
-                    $.each(v, (index, value) => {
-                        html += value + '<br>'
-                    });
+                    $.each(v, (index, value) => { html += value + '<br>' });
                 });
-                Swal.fire({
-                    title: 'Erro de validação'
-                    , html: html
-                    , icon: 'error'
-                , }).then(() => {
-                    location.reload();
-                });
+                Swal.fire({ title: 'Erro de validação', html: html, icon: 'error' }).then(() => { location.reload(); });
             }
         });
     });
-
 </script>
+
 <script>
+    // Dropzone do "Recibo verde"
     Dropzone.options.fileDropzone = {
-        url: '{{ route('admin.receipts.storeMedia') }}'
-        , maxFilesize: 2, // MB
-        maxFiles: 1
-        , addRemoveLinks: true
-        , headers: {
-            'X-CSRF-TOKEN': "{{ csrf_token() }}"
-        }
-        , params: {
-            size: 2
-        }
-        , success: function(file, response) {
+        url: '{{ route('admin.receipts.storeMedia') }}',
+        maxFilesize: 2, // MB
+        maxFiles: 1,
+        addRemoveLinks: true,
+        headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+        params: { size: 2 },
+        success: function(file, response) {
             $('form').find('input[name="file"]').remove()
             $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
-        }
-        , removedfile: function(file) {
+        },
+        removedfile: function(file) {
             file.previewElement.remove()
             if (file.status !== 'error') {
                 $('form').find('input[name="file"]').remove()
                 this.options.maxFiles = this.options.maxFiles + 1
             }
-        }
-        , init: function() {
+        },
+        init: function() {
             @if(isset($receipt) && $receipt->file)
-            var file = {!! json_encode($receipt->file) !!}
-            this.options.addedfile.call(this, file)
-            file.previewElement.classList.add('dz-complete')
-            $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
-            this.options.maxFiles = this.options.maxFiles - 1
+            var file = {!! json_encode($receipt->file) !!};
+            this.options.addedfile.call(this, file);
+            file.previewElement.classList.add('dz-complete');
+            $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">');
+            this.options.maxFiles = this.options.maxFiles - 1;
             @endif
-        }
-        , error: function(file, response) {
-            if ($.type(response) === 'string') {
-                var message = response //dropzone sends it's own error messages in string
-            } else {
-                var message = response.errors.file
+        },
+        error: function(file, response) {
+            var message = $.type(response) === 'string' ? response : response.errors.file;
+            file.previewElement.classList.add('dz-error');
+            var _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]');
+            var _results = [];
+            for (var _i = 0, _len = _ref.length; _i < _len; _i++) {
+                var node = _ref[_i];
+                _results.push(node.textContent = message);
             }
-            file.previewElement.classList.add('dz-error')
-            _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
-            _results = []
-            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-                node = _ref[_i]
-                _results.push(node.textContent = message)
-            }
-
-            return _results
+            return _results;
         }
     }
-
 </script>
+
 @if (!$expenseReceipt)
 <script>
     var uploadedReceiptsMap = {}
-Dropzone.options.receiptsDropzone = {
-    url: '{{ route('admin.expense-receipts.storeMedia') }}',
-    maxFilesize: 5, // MB
-    addRemoveLinks: true,
-    headers: {
-      'X-CSRF-TOKEN': "{{ csrf_token() }}"
-    },
-    params: {
-      size: 5
-    },
-    success: function (file, response) {
-      $('form').append('<input type="hidden" name="receipts[]" value="' + response.name + '">')
-      uploadedReceiptsMap[file.name] = response.name
-    },
-    removedfile: function (file) {
-      file.previewElement.remove()
-      var name = ''
-      if (typeof file.file_name !== 'undefined') {
-        name = file.file_name
-      } else {
-        name = uploadedReceiptsMap[file.name]
-      }
-      $('form').find('input[name="receipts[]"][value="' + name + '"]').remove()
-    },
-    init: function () {
-@if(isset($expenseReceipt) && $expenseReceipt->receipts)
-          var files =
-            {!! json_encode($expenseReceipt->receipts) !!}
-              for (var i in files) {
-              var file = files[i]
-              this.options.addedfile.call(this, file)
-              file.previewElement.classList.add('dz-complete')
-              $('form').append('<input type="hidden" name="receipts[]" value="' + file.file_name + '">')
+    Dropzone.options.receiptsDropzone = {
+        url: '{{ route('admin.expense-receipts.storeMedia') }}',
+        maxFilesize: 5, // MB
+        addRemoveLinks: true,
+        headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+        params: { size: 5 },
+        success: function (file, response) {
+            $('form').append('<input type="hidden" name="receipts[]" value="' + response.name + '">')
+            uploadedReceiptsMap[file.name] = response.name
+        },
+        removedfile: function (file) {
+            file.previewElement.remove()
+            var name = ''
+            if (typeof file.file_name !== 'undefined') {
+                name = file.file_name
+            } else {
+                name = uploadedReceiptsMap[file.name]
             }
-@endif
-    },
-     error: function (file, response) {
-         if ($.type(response) === 'string') {
-             var message = response //dropzone sends it's own error messages in string
-         } else {
-             var message = response.errors.file
-         }
-         file.previewElement.classList.add('dz-error')
-         _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
-         _results = []
-         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-             node = _ref[_i]
-             _results.push(node.textContent = message)
-         }
-
-         return _results
-     }
-}
+            $('form').find('input[name="receipts[]"][value="' + name + '"]').remove()
+        },
+        init: function () {
+            @if(isset($expenseReceipt) && $expenseReceipt->receipts)
+                var files = {!! json_encode($expenseReceipt->receipts) !!};
+                for (var i in files) {
+                    var file = files[i];
+                    this.options.addedfile.call(this, file);
+                    file.previewElement.classList.add('dz-complete');
+                    $('form').append('<input type="hidden" name="receipts[]" value="' + file.file_name + '">');
+                }
+            @endif
+        },
+        error: function (file, response) {
+            var message = $.type(response) === 'string' ? response : response.errors.file;
+            file.previewElement.classList.add('dz-error');
+            var _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]');
+            var _results = [];
+            for (var _i = 0, _len = _ref.length; _i < _len; _i++) {
+                var node = _ref[_i];
+                _results.push(node.textContent = message);
+            }
+            return _results;
+        }
+    }
 </script>
 @else
 <script>
     var uploadedReceiptsMap = {}
-Dropzone.options.receiptsDropzone = {
-    url: '{{ route('admin.expense-receipts.storeMedia') }}',
-    maxFilesize: 5, // MB
-    addRemoveLinks: false,
-    headers: {
-      'X-CSRF-TOKEN': "{{ csrf_token() }}"
-    },
-    params: {
-      size: 5
-    },
-    success: function (file, response) {
-      $('form').append('<input type="hidden" name="receipts[]" value="' + response.name + '">')
-      uploadedReceiptsMap[file.name] = response.name
-    },
-    removedfile: function (file) {
-      file.previewElement.remove()
-      var name = ''
-      if (typeof file.file_name !== 'undefined') {
-        name = file.file_name
-      } else {
-        name = uploadedReceiptsMap[file.name]
-      }
-      $('form').find('input[name="receipts[]"][value="' + name + '"]').remove()
-    },
-    init: function () {
-@if(isset($expenseReceipt) && $expenseReceipt->receipts)
-          var files =
-            {!! json_encode($expenseReceipt->receipts) !!}
-              for (var i in files) {
-              var file = files[i]
-              this.options.addedfile.call(this, file)
-              file.previewElement.classList.add('dz-complete')
-              $('form').append('<input type="hidden" name="receipts[]" value="' + file.file_name + '">')
+    Dropzone.options.receiptsDropzone = {
+        url: '{{ route('admin.expense-receipts.storeMedia') }}',
+        maxFilesize: 5, // MB
+        addRemoveLinks: false,
+        headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+        params: { size: 5 },
+        success: function (file, response) {
+            $('form').append('<input type="hidden" name="receipts[]" value="' + response.name + '">')
+            uploadedReceiptsMap[file.name] = response.name
+        },
+        removedfile: function (file) {
+            file.previewElement.remove()
+            var name = ''
+            if (typeof file.file_name !== 'undefined') {
+                name = file.file_name
+            } else {
+                name = uploadedReceiptsMap[file.name]
             }
-@endif
-    },
-     error: function (file, response) {
-         if ($.type(response) === 'string') {
-             var message = response //dropzone sends it's own error messages in string
-         } else {
-             var message = response.errors.file
-         }
-         file.previewElement.classList.add('dz-error')
-         _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
-         _results = []
-         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-             node = _ref[_i]
-             _results.push(node.textContent = message)
-         }
-
-         return _results
-     }
-}
+            $('form').find('input[name="receipts[]"][value="' + name + '"]').remove()
+        },
+        init: function () {
+            @if(isset($expenseReceipt) && $expenseReceipt->receipts)
+                var files = {!! json_encode($expenseReceipt->receipts) !!};
+                for (var i in files) {
+                    var file = files[i];
+                    this.options.addedfile.call(this, file);
+                    file.previewElement.classList.add('dz-complete');
+                    $('form').append('<input type="hidden" name="receipts[]" value="' + file.file_name + '">');
+                }
+            @endif
+        },
+        error: function (file, response) {
+            var message = $.type(response) === 'string' ? response : response.errors.file;
+            file.previewElement.classList.add('dz-error');
+            var _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]');
+            var _results = [];
+            for (var _i = 0, _len = _ref.length; _i < _len; _i++) {
+                var node = _ref[_i];
+                _results.push(node.textContent = message);
+            }
+            return _results;
+        }
+    }
 </script>
 @endif
-<script>
-    Dropzone.options.fileDropzone = {
-    url: '{{ route('admin.reimbursements.storeMedia') }}',
-    maxFilesize: 2, // MB
-    maxFiles: 1,
-    addRemoveLinks: true,
-    headers: {
-      'X-CSRF-TOKEN': "{{ csrf_token() }}"
-    },
-    params: {
-      size: 2
-    },
-    success: function (file, response) {
-      $('form').find('input[name="file"]').remove()
-      $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
-    },
-    removedfile: function (file) {
-      file.previewElement.remove()
-      if (file.status !== 'error') {
-        $('form').find('input[name="file"]').remove()
-        this.options.maxFiles = this.options.maxFiles + 1
-      }
-    },
-    init: function () {
-@if(isset($reimbursement) && $reimbursement->file)
-      var file = {!! json_encode($reimbursement->file) !!}
-          this.options.addedfile.call(this, file)
-      file.previewElement.classList.add('dz-complete')
-      $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">')
-      this.options.maxFiles = this.options.maxFiles - 1
-@endif
-    },
-     error: function (file, response) {
-         if ($.type(response) === 'string') {
-             var message = response //dropzone sends it's own error messages in string
-         } else {
-             var message = response.errors.file
-         }
-         file.previewElement.classList.add('dz-error')
-         _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
-         _results = []
-         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-             node = _ref[_i]
-             _results.push(node.textContent = message)
-         }
 
-         return _results
-     }
-}
+<script>
+    // Dropzone da devolução de valores (atenção: usa o mesmo id "file-dropzone" do recibo verde no original)
+    Dropzone.options.fileDropzone = {
+        url: '{{ route('admin.reimbursements.storeMedia') }}',
+        maxFilesize: 2, // MB
+        maxFiles: 1,
+        addRemoveLinks: true,
+        headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+        params: { size: 2 },
+        success: function (file, response) {
+            $('form').find('input[name="file"]').remove()
+            $('form').append('<input type="hidden" name="file" value="' + response.name + '">')
+        },
+        removedfile: function (file) {
+            file.previewElement.remove()
+            if (file.status !== 'error') {
+                $('form').find('input[name="file"]').remove()
+                this.options.maxFiles = this.options.maxFiles + 1
+            }
+        },
+        init: function () {
+            @if(isset($reimbursement) && $reimbursement->file)
+            var file = {!! json_encode($reimbursement->file) !!};
+            this.options.addedfile.call(this, file);
+            file.previewElement.classList.add('dz-complete');
+            $('form').append('<input type="hidden" name="file" value="' + file.file_name + '">');
+            this.options.maxFiles = this.options.maxFiles - 1;
+            @endif
+        },
+        error: function (file, response) {
+            var message = $.type(response) === 'string' ? response : response.errors.file;
+            file.previewElement.classList.add('dz-error');
+            var _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]');
+            var _results = [];
+            for (var _i = 0, _len = _ref.length; _i < _len; _i++) {
+                var node = _ref[_i];
+                _results.push(node.textContent = message);
+            }
+            return _results;
+        }
+    }
 </script>
 @endsection
