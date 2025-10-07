@@ -121,7 +121,7 @@ class ReceiptController extends Controller
             return $table->make(true);
         }
 
-        $drivers = Driver::get();
+        $drivers = Driver::orderBy('name')->get();
         $companies = Company::all();
         $tvde_weeks = TvdeWeek::get();
 
