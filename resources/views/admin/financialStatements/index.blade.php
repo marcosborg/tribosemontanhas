@@ -176,12 +176,7 @@
                             </tr>
                         </tbody>
                     </table>
-
-                    @if ($driver_balance && $driver_balance->drivers_balance > 0)
-                        <p><small>Saldo transitado: {{ number_format(($total - ($driver_balance->drivers_balance ?? 0)) * -1, 2) }}€</small></p>
-                    @else
-                        <p><small>Saldo transitado: {{ number_format(($total + ($driver_balance->drivers_balance ?? 0)) * -1, 2) }}€</small></p>
-                    @endif
+                    <p><small>Saldo transitado: {{ number_format($driver_balance->drivers_balance ?? 0) }}€</small></p>
                 </div>
             </div>
 
@@ -197,11 +192,11 @@
                 <div class="panel-footer">
                     <form action="/admin/financial-statements/update-balance" method="post" id="update-balance">
                         @csrf
-                        <input type="hidden" name="driver_balance_id" value="{{ $driver_balance->id ?? 0 }}">
+                        <input type="hidden" name="driver_balance_id" value="{{ $actual_balance->id ?? 0 }}">
                         <div class="form-inline">
                             <div class="input-group">
                                 <div class="input-group-addon">Saldo (€)</div>
-                                <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
+                                <input type="text" class="form-control" value="{{ $actual_balance->drivers_balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
                         </div>

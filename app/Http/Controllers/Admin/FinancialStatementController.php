@@ -60,13 +60,22 @@ class FinancialStatementController extends Controller
             if ($results) {
                 $results = json_decode($results->data);
             }
-
         } else {
             session()->put('driver_id', 540);
             return redirect()->back();
         }
 
-        $driver_balance = DriversBalance::where([
+        // Penúltimo saldo do motorista até (e incluindo) a semana selecionada
+        $balances = DriversBalance::where('driver_id', $driver_id)
+            ->where('tvde_week_id', '<=', $tvde_week_id)
+            ->orderByDesc('tvde_week_id')
+            ->take(2)
+            ->get();
+
+        // se existirem 2 registos, usa o 2º (penúltimo); senão, usa o único que houver
+        $driver_balance = $balances->count() >= 2 ? $balances[1] : $balances->first();
+
+        $actual_balance = DriversBalance::where([
             'driver_id' => $driver_id,
             'tvde_week_id' => $tvde_week_id
         ])->first();
@@ -95,6 +104,7 @@ class FinancialStatementController extends Controller
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
             'adjustments_array' => data_get($results, 'adjustments_array', []),
+            'actual_balance' => $actual_balance ?? null,
         ]);
     }
 
@@ -331,7 +341,6 @@ class FinancialStatementController extends Controller
                     $backgrounds[] = '#00a65a94';
                 }
             }
-
         }
 
         $chart1 = "https://quickchart.io/chart?c={type:'bar',data:{labels:" . json_encode($labels) . ",datasets:[{borderWidth: 1, label:'Valor faturado',data:" . json_encode($earnings) . "}]}}";
@@ -422,8 +431,8 @@ class FinancialStatementController extends Controller
             'chart1' => $chart1,
             'chart2' => $chart2,
         ])->setOption([
-                    'isRemoteEnabled' => true,
-                ]);
+            'isRemoteEnabled' => true,
+        ]);
 
 
         if ($request->download) {
@@ -434,7 +443,6 @@ class FinancialStatementController extends Controller
         } else {
             return $pdf->stream();
         }
-
     }
 
     public function updateBalance(Request $request)
@@ -450,5 +458,4 @@ class FinancialStatementController extends Controller
         $drivers_balance->drivers_balance = $request->balance;
         $drivers_balance->save();
     }
-
 }
