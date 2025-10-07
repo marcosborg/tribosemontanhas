@@ -219,30 +219,38 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             indexAxis: 'y',
             responsive: true,
-            maintainAspectRatio: false, // usa a altura do contêiner
-            layout: {
-                padding: { right: 64 } // espaço para o rótulo do aluguer à direita
-            },
+            maintainAspectRatio: false,
+            layout: { padding: { right: 64 } },
+
             plugins: {
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}%`
-                    }
-                },
-                legend: { position: 'bottom' }
+            tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${ctx.raw}%` } },
+            legend: { position: 'bottom' }
             },
+
             scales: {
-                x: {
-                    stacked: true,
-                    min: 0,
-                    max: 100,
-                    ticks: { callback: v => v + '%' }
+            x: {
+                stacked: true,
+                min: 0,
+                max: 100,
+                // Mostra todos os valores do eixo X também (se quiser)
+                ticks: { stepSize: 10, autoSkip: false, callback: v => v + '%' }
+            },
+            y: {
+                stacked: true,
+                // <- o que resolve os “pares” a desaparecer
+                ticks: {
+                autoSkip: false,   // não salta rótulos
+                padding: 4,
+                crossAlign: 'near' // evita cortar o texto
                 },
-                y: { stacked: true }
+                // dá um bocadinho mais de largura ao eixo para não cortar "1. ABC..."
+                afterFit(scale) { scale.width += 24; }
+            }
             }
         },
         plugins: [rentLabelPlugin]
-    });
+        });
+
 
     function buildDatasets(filteredData) {
         return categories.map(cat => ({
