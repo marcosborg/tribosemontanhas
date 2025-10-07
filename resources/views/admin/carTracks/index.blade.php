@@ -14,6 +14,7 @@
             </div>
         </div>
     @endcan
+
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
@@ -21,49 +22,44 @@
                     {{ trans('cruds.carTrack.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CarTrack">
+                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-CarTrack" style="width:100%">
                         <thead>
                             <tr>
-                                <th width="10">
-
-                                </th>
-                                <th>
-                                    {{ trans('cruds.carTrack.fields.id') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.carTrack.fields.tvde_week') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.carTrack.fields.date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.carTrack.fields.license_plate') }}
-                                </th>
+                                <th width="10"></th>
+                                <th>{{ trans('cruds.carTrack.fields.id') }}</th>
+                                <th>{{ trans('cruds.carTrack.fields.tvde_week') }}</th>
+                                <th>{{ trans('cruds.carTrack.fields.date') }}</th>
+                                <th>{{ trans('cruds.carTrack.fields.license_plate') }}</th>
                                 <th>Motorista</th>
-                                <th>
-                                    {{ trans('cruds.carTrack.fields.value') }}
-                                </th>
-                                <th>
-                                    &nbsp;
-                                </th>
+                                <th>{{ trans('cruds.carTrack.fields.value') }}</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            <tr>
+                                <td></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="Pesquisar motorista"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td></td>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
 @endsection
+
 @section('scripts')
 @parent
 <script>
-    $(function () {
+$(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('car_track_delete')
+
+  @can('car_track_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
   let deleteButton = {
     text: deleteButtonTrans,
@@ -73,25 +69,22 @@
       var ids = $.map(dt.rows({ selected: true }).data(), function (entry) {
           return entry.id
       });
-
       if (ids.length === 0) {
         alert('{{ trans('global.datatables.zero_selected') }}')
-
         return
       }
-
       if (confirm('{{ trans('global.areYouSure') }}')) {
         $.ajax({
           headers: {'x-csrf-token': _token},
           method: 'POST',
           url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
+          data: { ids: ids, _method: 'DELETE' }
+        }).done(function () { location.reload() })
       }
     }
   }
   dtButtons.push(deleteButton)
-@endcan
+  @endcan
 
   let dtOverrideGlobals = {
     buttons: dtButtons,
@@ -100,27 +93,49 @@
     retrieve: true,
     aaSorting: [],
     ajax: "{{ route('admin.car-tracks.index') }}",
-   columns: [
-  { data: 'placeholder', name: 'placeholder' },
-  { data: 'id', name: 'car_tracks.id' },
-  { data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
-  { data: 'date', name: 'car_tracks.date' },
-  { data: 'license_plate', name: 'car_tracks.license_plate' },
-  { data: 'driver_name', name: 'driver_name', orderable: false, searchable: false },
-  { data: 'value', name: 'car_tracks.value' },
-  { data: 'actions', name: 'actions' }
-],
+    columns: [
+      { data: 'placeholder',           name: 'placeholder', searchable: false, orderable: false },
+      { data: 'id',                     name: 'car_tracks.id' },
+      { data: 'tvde_week_start_date',   name: 'tvde_weeks.start_date' },
+      { data: 'date',                   name: 'car_tracks.date' },
+      { data: 'license_plate',          name: 'car_tracks.license_plate' },
+      // IMPORTANTE: deixar searchable:true (default) para ativar o filterColumn no server
+      { data: 'driver_name',            name: 'driver_name', orderable: false },
+      { data: 'value',                  name: 'car_tracks.value' },
+      { data: 'actions',                name: 'actions', searchable: false, orderable: false }
+    ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
   };
-  let table = $('.datatable-CarTrack').DataTable(dtOverrideGlobals);
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-  
-});
 
+  let table = $('.datatable-CarTrack').DataTable(dtOverrideGlobals);
+
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
+      $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+  });
+
+  // Pesquisa por coluna (com suporte a column-visibility)
+  let visibleColumnsIndexes = null;
+  $(document).on('input', '.datatable-CarTrack thead .search', function () {
+      let strict = $(this).attr('strict') || false
+      let value  = strict && this.value ? "^" + this.value + "$" : this.value
+
+      let index = $(this).closest('th').index()
+      if (visibleColumnsIndexes !== null) index = visibleColumnsIndexes[index]
+
+      table
+        .column(index)
+        .search(value, strict)
+        .draw()
+  });
+
+  table.on('column-visibility.dt', function(){
+      visibleColumnsIndexes = []
+      table.columns(":visible").every(function(colIdx){
+          visibleColumnsIndexes.push(colIdx)
+      })
+  });
+});
 </script>
 @endsection

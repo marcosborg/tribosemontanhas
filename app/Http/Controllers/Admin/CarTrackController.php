@@ -13,7 +13,7 @@ use Gate;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request; 
+use Illuminate\Http\Request;
 
 class CarTrackController extends Controller
 {
@@ -33,18 +33,21 @@ class CarTrackController extends Controller
                     'car_tracks.value',
                     'tvde_weeks.start_date as tvde_week_start_date',
                     'car_tracks.deleted_at',
-                    // === Subquery: motorista no dia da despesa ===
+
+                    // === Subquery corrigida (datas por DATE(), soft-deletes, matrícula normalizada) ===
                     DB::raw("
                     (
-                        SELECT drivers.name
+                        SELECT d.name
                         FROM vehicle_usages vu
                         INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
-                        INNER JOIN drivers ON drivers.id = vu.driver_id
-                        WHERE vi.license_plate = car_tracks.license_plate
+                        INNER JOIN drivers d        ON d.id  = vu.driver_id
+                        WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
                           AND vu.deleted_at IS NULL
-                          AND vu.start_date <= car_tracks.date
-                          AND vu.end_date   >= car_tracks.date
-                        ORDER BY vu.end_date DESC
+                          AND vi.deleted_at IS NULL
+                          AND d.deleted_at  IS NULL
+                          AND DATE(vu.start_date) <= DATE(car_tracks.date)
+                          AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
+                        ORDER BY vu.start_date DESC
                         LIMIT 1
                     ) AS driver_name
                 "),
@@ -79,6 +82,26 @@ class CarTrackController extends Controller
             // nova coluna: nome do motorista (ou "Não existe")
             $table->addColumn('driver_name', function ($row) {
                 return $row->driver_name ?: 'Não existe';
+            });
+
+            // >>> Permitir pesquisa no alias 'driver_name' (global search e por coluna)
+            $table->filterColumn('driver_name', function ($query, $keyword) {
+                $keyword = trim($keyword);
+                if ($keyword === '') return;
+
+                $query->whereExists(function ($q) use ($keyword) {
+                    $q->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
+                        ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                        ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('vi.deleted_at')
+                        ->whereNull('d.deleted_at')
+                        ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
+                        ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))')
+                        ->where('d.name', 'like', "%{$keyword}%");
+                });
             });
 
             $table->rawColumns(['actions', 'placeholder']);
