@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+
 @section('content')
 <div class="content">
     @can('driver_create')
@@ -14,6 +15,7 @@
             </div>
         </div>
     @endcan
+
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
@@ -21,60 +23,51 @@
                     {{ trans('cruds.driver.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-Driver">
+                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-Driver" style="width:100%">
                         <thead>
                             <tr>
-                                <th width="10">
-
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.id') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.user') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.user.fields.email') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.code') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.contract_vat') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.state') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.uber_uuid') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.bolt_name') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.driver.fields.company') }}
-                                </th>
-                                <th>
-                                    &nbsp;
-                                </th>
+                                <th width="10"></th>
+                                <th>{{ trans('cruds.driver.fields.id') }}</th>
+                                <th>{{ trans('cruds.driver.fields.user') }}</th>
+                                <th>{{ trans('cruds.user.fields.email') }}</th>
+                                <th>{{ trans('cruds.driver.fields.code') }}</th>
+                                <th>{{ trans('cruds.driver.fields.contract_vat') }}</th>
+                                <th>{{ trans('cruds.driver.fields.state') }}</th>
+                                <th>{{ trans('cruds.driver.fields.uber_uuid') }}</th>
+                                <th>{{ trans('cruds.driver.fields.bolt_name') }}</th>
+                                <th>{{ trans('cruds.driver.fields.company') }}</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            {{-- Filtros por coluna --}}
+                            <tr>
+                                <th></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th></th>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
 @endsection
+
 @section('scripts')
 @parent
 <script>
-    $(function () {
+$(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('driver_delete')
+
+  @can('driver_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
   let deleteButton = {
     text: deleteButtonTrans,
@@ -87,7 +80,6 @@
 
       if (ids.length === 0) {
         alert('{{ trans('global.datatables.zero_selected') }}')
-
         return
       }
 
@@ -96,13 +88,13 @@
           headers: {'x-csrf-token': _token},
           method: 'POST',
           url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
+          data: { ids: ids, _method: 'DELETE' }
+        }).done(function () { location.reload() })
       }
     }
   }
   dtButtons.push(deleteButton)
-@endcan
+  @endcan
 
   let dtOverrideGlobals = {
     buttons: dtButtons,
@@ -112,29 +104,58 @@
     aaSorting: [],
     ajax: "{{ route('admin.drivers.index') }}",
     columns: [
-      { data: 'placeholder', name: 'placeholder' },
-{ data: 'id', name: 'id' },
-{ data: 'user_name', name: 'user.name' },
-{ data: 'user.email', name: 'user.email' },
-{ data: 'code', name: 'code' },
-{ data: 'contract_vat_name', name: 'contract_vat.name' },
-{ data: 'state_name', name: 'state.name' },
-{ data: 'uber_uuid', name: 'uber_uuid' },
-{ data: 'bolt_name', name: 'bolt_name' },
-{ data: 'company_name', name: 'company.name' },
-{ data: 'actions', name: '{{ trans('global.actions') }}' }
+      { data: 'placeholder',   name: 'placeholder', orderable: false, searchable: false },
+      { data: 'id',            name: 'drivers.id' },
+
+      // Relacionais — usamos os aliases que configurámos no controller e filterColumn
+      { data: 'user_name',     name: 'user_name' },
+      { data: 'user.email',    name: 'user.email' },
+
+      { data: 'code',               name: 'drivers.code' },
+      { data: 'contract_vat_name',  name: 'contract_vat_name' },
+      { data: 'state_name',         name: 'state_name' },
+      { data: 'uber_uuid',          name: 'drivers.uber_uuid' },
+      { data: 'bolt_name',          name: 'drivers.bolt_name' },
+      { data: 'company_name',       name: 'company_name' },
+
+      { data: 'actions',       name: 'actions', orderable: false, searchable: false },
     ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
   };
-  let table = $('.datatable-Driver').DataTable(dtOverrideGlobals);
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-  
-});
 
+  let table = $('.datatable-Driver').DataTable(dtOverrideGlobals);
+
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
+    $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+  });
+
+  // Pesquisa por coluna (inputs no segundo thead)
+  let visibleColumnsIndexes = null;
+  $(document).on('input change', '.datatable-Driver thead .search', function () {
+      const $el = $(this);
+      const strict = $el.attr('strict') || false; // se quiseres selects com strict, podes usar
+      const rawVal = $el.val();
+      const value  = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
+
+      let index = $el.closest('th').index();
+      if (visibleColumnsIndexes !== null) {
+        index = visibleColumnsIndexes[index];
+      }
+
+      table
+        .column(index)
+        .search(value, !!strict) // usa regex quando strict = true
+        .draw();
+  });
+
+  table.on('column-visibility.dt', function(){
+      visibleColumnsIndexes = [];
+      table.columns(':visible').every(function(colIdx) {
+          visibleColumnsIndexes.push(colIdx);
+      });
+  });
+});
 </script>
 @endsection

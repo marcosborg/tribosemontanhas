@@ -3,80 +3,113 @@
 @section('content')
 <div class="content">
     @can('receipt_create')
-    <div style="margin-bottom: 10px;" class="row">
-        <div class="col-lg-12">
-            <a class="btn btn-success" href="{{ route('admin.receipts.create') }}">
-                {{ trans('global.add') }} {{ trans('cruds.receipt.title_singular') }}
-            </a>
-            @if (url()->current() == url('/admin/receipts/paid'))
-            <a href="/admin/receipts" class="btn btn-primary pull-right">Ver não pagos</a>
-            @else
-            <a href="/admin/receipts/paid" class="btn btn-primary pull-right">Ver histórico dos recibos pagos</a>
-            @endif
+        <div class="row" style="margin-bottom:10px;">
+            <div class="col-lg-12">
+                <a class="btn btn-success" href="{{ route('admin.receipts.create') }}">
+                    {{ trans('global.add') }} {{ trans('cruds.receipt.title_singular') }}
+                </a>
+
+                @if (url()->current() == url('/admin/receipts/paid'))
+                    <a href="/admin/receipts" class="btn btn-primary pull-right">Ver não pagos</a>
+                @else
+                    <a href="/admin/receipts/paid" class="btn btn-primary pull-right">Ver histórico dos recibos pagos</a>
+                @endif
+            </div>
         </div>
-    </div>
     @endcan
+
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
                     {{ trans('cruds.receipt.title_singular') }} {{ trans('global.list') }}
                 </div>
+
                 <div class="panel-body">
-                    <table
-                        class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-Receipt">
+                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-Receipt" style="width:100%">
                         <thead>
-                            <tr>
-                                <th width="10"></th>
-                                <th>{{ trans('cruds.receipt.fields.id') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.driver') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.value') }}</th>
-                                <th>IVA</th>
-                                <th>RF</th>
-                                <th>Valor do recibo</th>
-                                <th>{{ trans('cruds.receipt.fields.file') }}</th>
-                                <th>Saldo atual</th>
-                                <th>{{ trans('cruds.receipt.fields.verified') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.amount_transferred') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.paid') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.tvde_week') }}</th>
-                                <th>{{ trans('cruds.receipt.fields.created_at') }}</th>
-                                <th>&nbsp;</th>
-                            </tr>
-                            <tr class="dt-filters">
-                                <td></td>
-                                <td></td>
-                                <td>
-                                    <select class="search">
-                                        <option value>{{ trans('global.all') }}</option>
-                                        @foreach($drivers as $key => $item)
-                                            <option value="{{ $item->name }}">{{ $item->name }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                                <td>
-                                    <select class="search">
-                                        <option value>{{ trans('global.all') }}</option>
-                                        @foreach($tvde_weeks as $key => $item)
-                                            <option value="{{ $item->start_date }}">{{ $item->start_date }}</option>
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
+                        <tr>
+                            <th width="10"></th>
+                            <th>{{ trans('cruds.receipt.fields.id') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.driver') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.value') }}</th>
+                            <th>IVA</th>
+                            <th>RF</th>
+                            <th>Valor do recibo</th>
+                            <th>{{ trans('cruds.receipt.fields.file') }}</th>
+                            <th>Saldo atual</th>
+                            <th>{{ trans('cruds.receipt.fields.verified') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.amount_transferred') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.paid') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.tvde_week') }}</th>
+                            <th>{{ trans('cruds.receipt.fields.created_at') }}</th>
+                            <th>&nbsp;</th>
+                        </tr>
+                        {{-- Filtros por coluna (apenas onde o servidor suporta) --}}
+                        <tr class="dt-filters">
+                            <th></th>
+                            <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+
+                            {{-- Driver --}}
+                            <th>
+                                <select class="search form-control input-sm" strict="true">
+                                    <option value="">{{ trans('global.all') }}</option>
+                                    @foreach($drivers as $d)
+                                        <option value="{{ $d->name }}">{{ $d->name }}</option>
+                                    @endforeach
+                                </select>
+                            </th>
+
+                            {{-- Value --}}
+                            <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+
+                            {{-- NÃO pesquisáveis --}}
+                            <th class="text-muted">&mdash;</th>
+                            <th class="text-muted">&mdash;</th>
+                            <th class="text-muted">&mdash;</th>
+                            <th class="text-muted">&mdash;</th>
+                            <th class="text-muted">&mdash;</th>
+
+                            {{-- Verified --}}
+                            <th>
+                                <select class="search form-control input-sm" strict="true">
+                                    <option value="">{{ trans('global.all') }}</option>
+                                    <option value="1">Sim</option>
+                                    <option value="0">Não</option>
+                                </select>
+                            </th>
+
+                            {{-- Amount transferred --}}
+                            <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+
+                            {{-- Paid --}}
+                            <th>
+                                <select class="search form-control input-sm" strict="true">
+                                    <option value="">{{ trans('global.all') }}</option>
+                                    <option value="1">Sim</option>
+                                    <option value="0">Não</option>
+                                </select>
+                            </th>
+
+                            {{-- Semana (start_date) --}}
+                            <th>
+                                <select class="search form-control input-sm" strict="true">
+                                    <option value="">{{ trans('global.all') }}</option>
+                                    @foreach($tvde_weeks as $w)
+                                        <option value="{{ $w->start_date }}">{{ $w->start_date }}</option>
+                                    @endforeach
+                                </select>
+                            </th>
+
+                            {{-- created_at --}}
+                            <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+
+                            <th></th>
+                        </tr>
                         </thead>
                     </table>
                 </div>
+
             </div>
         </div>
     </div>
@@ -85,27 +118,21 @@
 
 @section('scripts')
 @parent
-{{-- FixedHeader (CSS + JS) --}}
-<link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.4.0/css/fixedHeader.dataTables.min.css">
-<script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
-
 <script>
-$(function () {
-  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
+(function($){
+
+  // Mostra erros do DataTables em vez de ficar “A processar…”
+  $.fn.dataTable.ext.errMode = 'none';
+
+  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
   @can('receipt_delete')
-  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
-  let deleteButton = {
-    text: deleteButtonTrans,
+  dtButtons.push({
+    text: '{{ trans('global.datatables.delete') }}',
     url: "{{ route('admin.receipts.massDestroy') }}",
     className: 'btn-danger',
     action: function (e, dt, node, config) {
       var ids = $.map(dt.rows({ selected: true }).data(), function (entry) { return entry.id });
-
-      if (ids.length === 0) {
-        alert('{{ trans('global.datatables.zero_selected') }}')
-        return
-      }
-
+      if (ids.length === 0) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
       if (confirm('{{ trans('global.areYouSure') }}')) {
         $.ajax({
           headers: {'x-csrf-token': _token},
@@ -115,77 +142,76 @@ $(function () {
         }).done(function () { location.reload() })
       }
     }
-  }
-  dtButtons.push(deleteButton)
+  });
   @endcan
 
-  let dtOverrideGlobals = {
-    buttons: dtButtons,
-    processing: true,
-    serverSide: true,
-    retrieve: true,
-    aaSorting: [],
-    ajax: "/admin/receipts{{ url()->current() == url('/admin/receipts/paid') ? '/paid' : '' }}",
+  const table = $('.datatable-Receipt').DataTable({
+    buttons     : dtButtons,
+    processing  : true,
+    serverSide  : true,
+    retrieve    : true,
+    aaSorting   : [],
+    ajax: {
+      url: "/admin/receipts{{ url()->current() == url('/admin/receipts/paid') ? '/paid' : '' }}",
+      type: 'GET',
+      error: function(xhr){
+        // ajuda a diagnosticar quando “fica a processar”
+        let msg = 'Erro ao carregar dados.';
+        try { msg += '\n\n' + (xhr.responseJSON?.message || xhr.responseText || ''); } catch(e){}
+        alert(msg);
+      }
+    },
     columns: [
-      { data: 'placeholder', name: 'placeholder' },
-      { data: 'id', name: 'id' },
-      { data: 'driver_name', name: 'driver.name' },
-      { data: 'value', name: 'value' },
-      { data: 'iva', name: 'iva' },
-      { data: 'rf', name: 'rf' },
-      { data: 'final', name: 'final' },
-      { data: 'file', name: 'file', sortable: false, searchable: false },
-      { data: 'receipt_value', name: 'receipt_value', sortable: false, searchable: false },
-      { data: 'verified', name: 'verified' },
-      { data: 'amount_transferred', name: 'amount_transferred'},
-      { data: 'paid', name: 'paid'},
-      { data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
-      { data: 'created_at', name: 'created_at' },
-      { data: 'actions', name: '{{ trans('global.actions') }}' }
+      { data: 'placeholder',          name: 'placeholder',               orderable:false, searchable:false },
+      { data: 'id',                    name: 'receipts.id' },
+      { data: 'driver_name',           name: 'driver_name',              orderable:false, searchable:true  }, // controller: filterColumn('driver_name', ...)
+      { data: 'value',                 name: 'receipts.value' },
+
+      // calculadas / HTML -> não pesquisar/ordenar
+      { data: 'iva',                   name: 'iva',                      orderable:false, searchable:false },
+      { data: 'rf',                    name: 'rf',                       orderable:false, searchable:false },
+      { data: 'final',                 name: 'final',                    orderable:false, searchable:false },
+      { data: 'file',                  name: 'file',                     orderable:false, searchable:false },
+      { data: 'receipt_value',         name: 'receipt_value',            orderable:false, searchable:false },
+
+      // booleanos (controller faz filterColumn)
+      { data: 'verified',              name: 'verified',                 orderable:false, searchable:true  },
+      { data: 'amount_transferred',    name: 'receipts.amount_transferred' },
+      { data: 'paid',                  name: 'paid',                     orderable:false, searchable:true  },
+
+      { data: 'tvde_week_start_date',  name: 'tvde_week_start_date',     searchable:true  }, // controller: filterColumn(...)
+      { data: 'created_at',            name: 'receipts.created_at' },
+      { data: 'actions',               name: 'actions',                  orderable:false, searchable:false }
     ],
     orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
+    order: [[1,'desc']],
     pageLength: 100,
-  };
-
-  // Init DataTable
-  let table = $('.datatable-Receipt').DataTable(dtOverrideGlobals);
-
-  // === FixedHeader ===
-  // tenta detetar uma navbar fixa para compensar a altura
-  var headerOffset = 0;
-  var $fixedBars = $('.navbar-fixed-top, .main-header .navbar, .navbar').filter(function(){
-      return $(this).css('position') === 'fixed';
-  });
-  if ($fixedBars.length) headerOffset = $fixedBars.first().outerHeight() || 0;
-
-  new $.fn.dataTable.FixedHeader(table, {
-      header: true,
-      footer: false,
-      headerOffset: headerOffset
+    language: {
+      processing: 'A processar…'
+    }
   });
 
-  // Ajustar colunas quando muda de tab (e reposicionar header fixo)
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
-      table.columns.adjust().draw(false);
+  // Se o servidor devolver erro, mostra aviso
+  table.on('error.dt', function (e, settings, techNote, message) {
+    alert('DataTables error: ' + message);
   });
 
-  // === Filtros no header (funcionam no header original e no clonado) ===
+  // === Filtros por coluna (linha “dt-filters”) ===
   let visibleColumnsIndexes = null;
 
   function applyColumnFilter(inputEl){
-      let strict = $(inputEl).attr('strict') || false;
-      let value  = strict && inputEl.value ? "^" + inputEl.value + "$" : inputEl.value;
+      const strict = $(inputEl).attr('strict') || false;
+      const raw    = inputEl.value;
+      const value  = strict && raw !== '' ? '^' + raw + '$' : raw;
 
-      // índice da coluna deste filtro
       let index = $(inputEl).closest('th').index();
       if (visibleColumnsIndexes !== null) index = visibleColumnsIndexes[index];
 
-      table.column(index).search(value, strict).draw();
+      // NOTA: só adicionámos campos de filtro nas colunas pesquisáveis.
+      table.column(index).search(value, !!strict, false).draw();
   }
 
-  // delega eventos tanto no wrapper do DataTables como no documento (para o header clonado)
-  $(document).on('input change', '.dataTables_wrapper thead .search, .FixedHeader_Cloned thead .search', function(){
+  $('.datatable-Receipt thead').on('input change', '.search', function(){
       applyColumnFilter(this);
   });
 
@@ -196,36 +222,40 @@ $(function () {
       });
   });
 
-});
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
+      table.columns.adjust().draw(false);
+  });
+
+})(jQuery);
 </script>
 
+{{-- Ações existentes --}}
 <script>
-    checkPay = (receipt_id) => {
-        if($('#verified-' + receipt_id).prop('checked') == true){
-            $('#check-' + receipt_id).attr('disabled', 'true');
-            $.get('/admin/receipts/checkPay/' + receipt_id).then((resp) => {
-                console.log(resp);
-            });
-        } else {
-            alert('Falta verificar o recibo.');
-            $('#check-' + receipt_id).prop('checked', false);
-        }
-    }
+function checkPay (receipt_id) {
+  if($('#verified-' + receipt_id).prop('checked') == true){
+      $('#check-' + receipt_id).attr('disabled', 'true');
+      $.get('/admin/receipts/checkPay/' + receipt_id);
+  } else {
+      alert('Falta verificar o recibo.');
+      $('#check-' + receipt_id).prop('checked', false);
+  }
+}
 
-    checkVerified = (receipt_id) => {
-        var receipt_value = $('#receipt_value-' + receipt_id).val();
-        var amount_transferred = $('#amount_transferred-' + receipt_id).val();
-        if(receipt_value.length > 0 && amount_transferred.length > 0){
-            $('#verified-' + receipt_id).attr('disabled', 'true');
-            $.get('/admin/receipts/checkVerified/' + receipt_id + '/' + receipt_value + '/' + amount_transferred).then((resp) => {
-                $('#receipt_value-' + receipt_id).attr('disabled', 'true');
-                $('#amount_transferred-' + receipt_id).attr('disabled', 'true');
-            });
-        } else {
-            alert('Valor do recibo e quantia a transferir obrigatórios.');
-            $('#verified-' + receipt_id).prop('checked', false);
-            $('#amount_transferred-' + receipt_id).prop('checked', false);
-        }
-    }
+function checkVerified (receipt_id) {
+  var receipt_value = $('#receipt_value-' + receipt_id).val();
+  var amount_transferred = $('#amount_transferred-' + receipt_id).val();
+  if(receipt_value.length > 0 && amount_transferred.length > 0){
+      $('#verified-' + receipt_id).attr('disabled', 'true');
+      $.get('/admin/receipts/checkVerified/' + receipt_id + '/' + receipt_value + '/' + amount_transferred)
+        .then(() => {
+          $('#receipt_value-' + receipt_id).attr('disabled', 'true');
+          $('#amount_transferred-' + receipt_id).attr('disabled', 'true');
+        });
+  } else {
+      alert('Valor do recibo e quantia a transferir obrigatórios.');
+      $('#verified-' + receipt_id).prop('checked', false);
+      $('#amount_transferred-' + receipt_id).prop('checked', false);
+  }
+}
 </script>
 @endsection

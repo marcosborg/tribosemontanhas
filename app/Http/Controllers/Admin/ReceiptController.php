@@ -24,20 +24,18 @@ class ReceiptController extends Controller
 
     public function index(Request $request)
     {
-
         abort_if(Gate::denies('receipt_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
+            $onlyPaid = url()->current() == url('/admin/receipts/paid') ? 1 : 0;
 
-            $query = Receipt::where('paid', url()->current() == url('/admin/receipts/paid') ? 1 : 0)
+            $query = Receipt::query()
+                ->where('paid', $onlyPaid)
                 ->with(['driver.company', 'tvde_week'])
                 ->leftJoin('tvde_weeks', 'receipts.tvde_week_id', '=', 'tvde_weeks.id')
-                ->select([
-                    'receipts.*',
-                    'tvde_weeks.start_date as tvde_week_start_date',
-                ]);
+                ->select(['receipts.*', 'tvde_weeks.start_date as tvde_week_start_date']);
 
-            $table = Datatables::of($query);
+            $table = DataTables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
@@ -48,81 +46,112 @@ class ReceiptController extends Controller
                 $deleteGate = 'receipt_delete';
                 $crudRoutePart = 'receipts';
 
-                return view(
-                    'partials.datatablesActions',
-                    compact(
-                        'viewGate',
-                        'editGate',
-                        'deleteGate',
-                        'crudRoutePart',
-                        'row'
-                    )
-                );
+                return view('partials.datatablesActions', compact(
+                    'viewGate',
+                    'editGate',
+                    'deleteGate',
+                    'crudRoutePart',
+                    'row'
+                ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
+            $table->editColumn('id', fn($row) => $row->id ?: '');
+            $table->addColumn('driver_name', fn($row) => optional($row->driver)->name ?: '');
+            $table->editColumn('value', fn($row) => $row->value ?: '');
+            $table->editColumn('balance', fn($row) => $row->balance ?: '');
 
-            $table->addColumn('driver_name', function ($row) {
-                return $row->driver ? $row->driver->name : '';
-            });
-
-            $table->editColumn('value', function ($row) {
-                return $row->value ? $row->value : '';
-            });
-            $table->editColumn('balance', function ($row) {
-                return $row->balance ? $row->balance : '';
-            });
-
+            // cálculos/HTML (mantém como tinhas)
             $table->editColumn('iva', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->iva / 100;
-                $value = number_format(($row->balance * $factor), 2, '.');
-                return $driver ? $value : '';
+                return $driver ? number_format(($row->balance * $factor), 2, '.') : '';
             });
-
             $table->editColumn('rf', function ($row) {
                 $driver = Driver::find($row->driver->id)->load('contract_vat');
                 $factor = $driver->contract_vat->rf / 100;
-                $value = number_format(- ($row->balance * $factor), 2, '.');
-                return $driver ? $value : '';
+                return $driver ? number_format(- ($row->balance * $factor), 2, '.') : '';
+            });
+            $table->editColumn('final', fn($row) => number_format($row->balance, 2, '.', ''));
+
+            $table->editColumn(
+                'file',
+                fn($row) =>
+                $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : ''
+            );
+            $table->editColumn(
+                'receipt_value',
+                fn($row) =>
+                '<input id="receipt_value-' . $row->id . '" type="number" value="' . $row->verified_value . '" ' . ($row->verified ? 'disabled' : '') . '>'
+            );
+            $table->editColumn(
+                'verified',
+                fn($row) =>
+                '<input id="verified-' . $row->id . '" onclick="checkVerified(' . $row->id . ')" type="checkbox" ' . ($row->verified ? 'disabled checked' : '') . '>'
+            );
+            $table->editColumn(
+                'paid',
+                fn($row) =>
+                '<input id="check-' . $row->id . '" onclick="checkPay(' . $row->id . ')" type="checkbox" ' . ($row->paid ? 'disabled checked' : '') . '>'
+            );
+            $table->editColumn(
+                'amount_transferred',
+                fn($row) =>
+                '<input id="amount_transferred-' . $row->id . '" type="number" value="' . $row->amount_transferred . '" ' . ($row->verified ? 'disabled' : '') . '>'
+            );
+            $table->addColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
+
+            // -------- Filtros por coluna (como já tinhas) --------
+            $strip = fn($v) => trim($v, '^$');
+
+            $table->filterColumn('driver_name', function ($query, $keyword) use ($strip) {
+                $kw = $strip($keyword);
+                $query->whereHas('driver', fn($q) => $q->where('name', 'like', "%{$kw}%"));
             });
 
-            $table->editColumn('final', function ($row) {
-                $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $final = number_format($row->balance, 2, '.', '');
-                return $driver ? $final : '';
+            $table->filterColumn('tvde_week_start_date', function ($query, $keyword) use ($strip) {
+                $kw = $strip($keyword);
+                $query->where('tvde_weeks.start_date', 'like', "%{$kw}%");
             });
 
-            $table->editColumn('file', function ($row) {
-                return $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : '';
-            });
-            $table->editColumn('receipt_value', function ($row) {
-                return '<input id="receipt_value-' . $row->id . '" type="number" value="' . $row->verified_value . '" ' . ($row->verified ? 'disabled' : '') . '>';
-            });
-            $table->editColumn('verified', function ($row) {
-                return '<input id="verified-' . $row->id . '" onclick="checkVerified(' . $row->id . ')" type="checkbox" ' . ($row->verified ? 'disabled' : '') . ' ' . ($row->verified ? 'checked' : null) . '>';
-            });
-            $table->editColumn('paid', function ($row) {
-                return '<input id="check-' . $row->id . '" onclick="checkPay(' . $row->id . ')" type="checkbox" ' . ($row->paid ? 'disabled' : '') . ' ' . ($row->paid ? 'checked' : null) . '>';
+            $table->filterColumn('verified', function ($query, $keyword) {
+                if ($keyword === '1' || $keyword === '0') {
+                    $query->where('receipts.verified', $keyword);
+                }
             });
 
-            $table->editColumn('amount_transferred', function ($row) {
-                return '<input id="amount_transferred-' . $row->id . '" type="number" value="' . $row->amount_transferred . '" ' . ($row->verified ? 'disabled' : '') . '>';
+            $table->filterColumn('paid', function ($query, $keyword) {
+                if ($keyword === '1' || $keyword === '0') {
+                    $query->where('receipts.paid', $keyword);
+                }
             });
 
-            $table->addColumn('tvde_week_start_date', function ($row) {
-                return $row->tvde_week ? $row->tvde_week->start_date : '';
+            // -------- Filtro GLOBAL (caixa "Procurar") --------
+            $table->filter(function ($query) use ($request) {
+                $search = data_get($request->input('search'), 'value');
+                if ($search !== null && $search !== '') {
+                    $search = trim($search, '^$');
+                    $query->where(function ($q) use ($search) {
+                        $q->where('receipts.id', 'like', "%{$search}%")
+                            ->orWhere('receipts.value', 'like', "%{$search}%")
+                            ->orWhere('receipts.amount_transferred', 'like', "%{$search}%")
+                            ->orWhere('tvde_weeks.start_date', 'like', "%{$search}%")
+                            ->orWhereDate('receipts.created_at', 'like', "%{$search}%")
+                            ->orWhereHas(
+                                'driver',
+                                fn($qq) =>
+                                $qq->where('name', 'like', "%{$search}%")
+                            );
+                    });
+                }
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'driver', 'file', 'receipt_value', 'amount_transferred', 'paid', 'verified', 'tvde_week']);
+            $table->rawColumns(['actions', 'placeholder', 'file', 'receipt_value', 'amount_transferred', 'paid', 'verified']);
 
             return $table->make(true);
         }
 
-        $drivers = Driver::orderBy('name')->get();
-        $companies = Company::all();
+        $drivers    = Driver::orderBy('name')->get();
+        $companies  = Company::all();
         $tvde_weeks = TvdeWeek::get();
 
         return view('admin.receipts.index', compact('drivers', 'companies', 'tvde_weeks'));

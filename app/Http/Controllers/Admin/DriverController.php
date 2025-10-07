@@ -31,7 +31,9 @@ class DriverController extends Controller
         abort_if(Gate::denies('driver_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = Driver::with(['user', 'card', 'cards', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])->select(sprintf('%s.*', (new Driver)->table));
+            $query = Driver::with(['user', 'card', 'cards', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company'])
+                ->select(sprintf('%s.*', (new Driver)->table));
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -52,95 +54,35 @@ class DriverController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->addColumn('user_name', function ($row) {
-                return $row->user ? $row->user->name : '';
-            });
+            $table->editColumn('id', fn($row) => $row->id ?: '');
 
-            $table->editColumn('user.email', function ($row) {
-                return $row->user ? (is_string($row->user) ? $row->user : $row->user->email) : '';
-            });
-            $table->editColumn('code', function ($row) {
-                return $row->code ? $row->code : '';
-            });
-            $table->editColumn('name', function ($row) {
-                return $row->name ? $row->name : '';
-            });
-            
-            $table->addColumn('local_name', function ($row) {
-                return $row->local ? $row->local->name : '';
-            });
+            // Colunas derivadas / relações
+            $table->addColumn('user_name', fn($row) => $row->user?->name ?: '');
+            $table->editColumn('user.email', fn($row) => $row->user ? (is_string($row->user) ? $row->user : $row->user->email) : '');
+            $table->editColumn('code', fn($row) => $row->code ?: '');
 
-            $table->addColumn('contract_vat_name', function ($row) {
-                return $row->contract_vat ? $row->contract_vat->name : '';
-            });
+            $table->addColumn('contract_vat_name', fn($row) => $row->contract_vat?->name ?: '');
+            $table->addColumn('state_name',        fn($row) => $row->state?->name ?: '');
+            $table->addColumn('company_name',      fn($row) => $row->company?->name ?: '');
 
-            $table->editColumn('contract_vat.percent', function ($row) {
-                return $row->contract_vat ? (is_string($row->contract_vat) ? $row->contract_vat : $row->contract_vat->percent) : '';
-            });
-            $table->editColumn('contract_vat.tips', function ($row) {
-                return $row->contract_vat ? (is_string($row->contract_vat) ? $row->contract_vat : $row->contract_vat->tips) : '';
-            });
+            $table->editColumn('uber_uuid',  fn($row) => $row->uber_uuid ?: '');
+            $table->editColumn('bolt_name',  fn($row) => $row->bolt_name ?: '');
 
-            $table->editColumn('reason', function ($row) {
-                return $row->reason ? $row->reason : '';
+            // === Filtros por coluna (relações) ===
+            $table->filterColumn('user_name', function ($q, $k) {
+                $q->whereHas('user', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
-            $table->editColumn('phone', function ($row) {
-                return $row->phone ? $row->phone : '';
+            $table->filterColumn('user.email', function ($q, $k) {
+                $q->whereHas('user', fn($qq) => $qq->where('email', 'like', "%{$k}%"));
             });
-            $table->editColumn('payment_vat', function ($row) {
-                return $row->payment_vat ? $row->payment_vat : '';
+            $table->filterColumn('contract_vat_name', function ($q, $k) {
+                $q->whereHas('contract_vat', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
-            $table->editColumn('citizen_card', function ($row) {
-                return $row->citizen_card ? $row->citizen_card : '';
+            $table->filterColumn('state_name', function ($q, $k) {
+                $q->whereHas('state', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
-            $table->editColumn('email', function ($row) {
-                return $row->email ? $row->email : '';
-            });
-            $table->editColumn('iban', function ($row) {
-                return $row->iban ? $row->iban : '';
-            });
-            $table->editColumn('address', function ($row) {
-                return $row->address ? $row->address : '';
-            });
-            $table->editColumn('zip', function ($row) {
-                return $row->zip ? $row->zip : '';
-            });
-            $table->editColumn('city', function ($row) {
-                return $row->city ? $row->city : '';
-            });
-            $table->addColumn('state_name', function ($row) {
-                return $row->state ? $row->state->name : '';
-            });
-
-            $table->editColumn('driver_license', function ($row) {
-                return $row->driver_license ? $row->driver_license : '';
-            });
-            $table->editColumn('driver_vat', function ($row) {
-                return $row->driver_vat ? $row->driver_vat : '';
-            });
-            $table->editColumn('uber_uuid', function ($row) {
-                return $row->uber_uuid ? $row->uber_uuid : '';
-            });
-            $table->editColumn('bolt_name', function ($row) {
-                return $row->bolt_name ? $row->bolt_name : '';
-            });
-            $table->editColumn('license_plate', function ($row) {
-                return $row->license_plate ? $row->license_plate : '';
-            });
-            $table->editColumn('brand', function ($row) {
-                return $row->brand ? $row->brand : '';
-            });
-            $table->editColumn('model', function ($row) {
-                return $row->model ? $row->model : '';
-            });
-            $table->editColumn('notes', function ($row) {
-                return $row->notes ? $row->notes : '';
-            });
-            $table->addColumn('company_name', function ($row) {
-                return $row->company ? $row->company->name : '';
+            $table->filterColumn('company_name', function ($q, $k) {
+                $q->whereHas('company', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
 
             $table->rawColumns(['actions', 'placeholder', 'user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company']);
