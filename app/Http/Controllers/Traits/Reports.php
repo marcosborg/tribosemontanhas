@@ -257,23 +257,44 @@ trait Reports
 
             if ($tvde_week->id) {
                 $car_track = \DB::table('car_tracks as ct')
-                    ->join('vehicle_items as vi', 'vi.license_plate', '=', 'ct.license_plate')
-                    ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
-                    ->where('ct.tvde_week_id', $tvde_week->id)          // registos CarTrack dessa semana
-                    ->where('vu.driver_id', $driver->id)                 // atribuir ao teu motorista
-                    // motorista ativo nessa viatura na data do CarTrack
-                    ->whereColumn('vu.start_date', '<=', 'ct.date')
-                    ->where(function ($q) {
-                        $q->whereNull('vu.end_date')
-                            ->orWhereColumn('vu.end_date', '>=', 'ct.date');
-                    })
-                    // (Opcional) Contar apenas utilização "real"
-                    ->where(function ($q) {
-                        $q->whereNull('vu.usage_exceptions')
-                            ->orWhere('vu.usage_exceptions', 'usage');
+                    ->where('ct.tvde_week_id', $tvde_week->id)
+                    ->whereNull('ct.deleted_at') // não somar itens apagados
+                    ->whereExists(function ($q) use ($driver) {
+                        $q->select(\DB::raw(1))
+                            ->from('vehicle_items as vi')
+                            ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
+                            // normalizar matrícula para casar
+                            ->whereRaw('REPLACE(UPPER(vi.license_plate), " ", "") = REPLACE(UPPER(ct.license_plate), " ", "")')
+                            // soft deletes
+                            ->whereNull('vi.deleted_at')
+                            ->whereNull('vu.deleted_at')
+                            // condutor
+                            ->where('vu.driver_id', $driver->id)
+                            // ativo na DATA (ignorar horas)
+                            ->whereRaw('DATE(vu.start_date) <= DATE(ct.date)')
+                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(ct.date))')
+                            // só “utilização real” (se queres mesmo manter esta regra)
+                            ->where(function ($s) {
+                                $s->whereNull('vu.usage_exceptions')
+                                    ->orWhere('vu.usage_exceptions', 'usage');
+                            })
+
+                            // ---- TIE-BREAK opcional (evita overlaps entre usos) ----
+                            // escolhe o USO mais recente que cobre a data
+                            ->whereRaw('vu.id = (
+                    SELECT vu2.id
+                    FROM vehicle_usages vu2
+                    WHERE vu2.vehicle_item_id = vu.vehicle_item_id
+                      AND vu2.deleted_at IS NULL
+                      AND DATE(vu2.start_date) <= DATE(ct.date)
+                      AND (vu2.end_date IS NULL OR DATE(vu2.end_date) >= DATE(ct.date))
+                    ORDER BY vu2.start_date DESC
+                    LIMIT 1
+              )');
                     })
                     ->sum('ct.value');
             }
+
 
             $earnings = collect([
                 'uber' => $uber,
