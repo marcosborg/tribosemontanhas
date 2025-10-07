@@ -26,6 +26,7 @@ use App\Models\CompanyData;
 use App\Models\CarTrack;
 use App\Models\TeslaCharging;
 use App\Models\VehicleUsage;
+use Carbon\Carbon;
 
 trait Reports
 {
@@ -154,32 +155,40 @@ trait Reports
 
             $tesla_total = 0;
 
-            // Buscar todos carregamentos Tesla na semana
-            $tesla_chargings = TeslaCharging::whereBetween('datetime', [$tvde_week->start_date, $tvde_week->end_date])->get();
+            // Usa os valores "raw" da semana (sem os accessors de formatação)
+            $weekStart = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+            $weekEnd   = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+
+            // Buscar todos carregamentos Tesla dentro da semana (INCLUSIVO seg e dom)
+            $tesla_chargings = TeslaCharging::whereBetween('datetime', [$weekStart, $weekEnd])->get();
 
             foreach ($tesla_chargings as $charging) {
                 // Procurar VehicleUsage do carro do carregamento na data do charging
                 $usage = VehicleUsage::whereHas('vehicle_item', function ($query) use ($charging) {
-                    $query->whereRaw('REPLACE(UPPER(license_plate), "-", "") = ?', [
-                        str_replace('-', '', strtoupper($charging->license))
-                    ]);
+                    $query->whereRaw(
+                        'REPLACE(UPPER(license_plate), "-", "") = ?',
+                        [str_replace('-', '', strtoupper($charging->license))]
+                    );
                 })
+                    // início <= datetime
                     ->where('start_date', '<=', $charging->datetime)
+                    // fim >= datetime OU sem fim (ainda a usar)
                     ->where(function ($query) use ($charging) {
-                        $query->where('end_date', '>=', $charging->datetime)
-                            ->orWhereNull('end_date');
+                        $query->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $charging->datetime);
                     })
                     ->first();
 
                 // Se usage encontrado e pertence a este driver, soma valor
-                if ($usage && $usage->driver_id === $driver->id) {
-                    $tesla_total += $charging->value;
+                if ($usage && (int) $usage->driver_id === (int) $driver->id) {
+                    $tesla_total += (float) $charging->value;
                 }
             }
 
             // Soma TeslaCharging ao total de combustível do driver
             $driver->fuel += $tesla_total;
 
+            // se precisares no total:
             $total_fuel_transactions[] = $driver->fuel;
 
             //CAR HIRE
