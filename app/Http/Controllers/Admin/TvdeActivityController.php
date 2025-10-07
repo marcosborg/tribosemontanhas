@@ -15,6 +15,8 @@ use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class TvdeActivityController extends Controller
 {
@@ -25,24 +27,47 @@ class TvdeActivityController extends Controller
         abort_if(Gate::denies('tvde_activity_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
+            // Base
+            $base = TvdeActivity::query()
+                ->with(['tvde_week', 'tvde_operator', 'company'])
+                ->leftJoin('tvde_operators', 'tvde_operators.id', '=', 'tvde_activities.tvde_operator_id')
+                ->select([
+                    'tvde_activities.*',
+
+                    // === Flag de existência (1/0) com base no operador ===
+                    DB::raw("
+                CASE
+                  WHEN LOWER(tvde_operators.name) LIKE '%uber%' THEN
+                    EXISTS(
+                      SELECT 1 FROM drivers d
+                      WHERE d.deleted_at IS NULL
+                        AND d.uber_uuid = tvde_activities.driver_code
+                    )
+                  WHEN LOWER(tvde_operators.name) LIKE '%bolt%' THEN
+                    EXISTS(
+                      SELECT 1 FROM drivers d
+                      WHERE d.deleted_at IS NULL
+                        AND d.bolt_name = tvde_activities.driver_code
+                    )
+                  ELSE 0
+                END AS exists_flag
+            "),
+                ]);
+
+            // Filtro por empresa (mantendo a tua lógica)
             if (session()->get('company_id')) {
-                $query = TvdeActivity::where('company_id', session()->get('company_id'))
-                    ->with(['tvde_week', 'tvde_operator', 'company'])
-                    ->select(sprintf('%s.*', (new TvdeActivity)->table));
-            } else {
-                $query = TvdeActivity::with(['tvde_week', 'tvde_operator', 'company'])
-                    ->select(sprintf('%s.*', (new TvdeActivity)->table));
+                $base->where('tvde_activities.company_id', session()->get('company_id'));
             }
 
-            $table = Datatables::of($query);
+            $table = Datatables::of($base);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate = 'tvde_activity_show';
-                $editGate = 'tvde_activity_edit';
-                $deleteGate = 'tvde_activity_delete';
+                $viewGate      = 'tvde_activity_show';
+                $editGate      = 'tvde_activity_edit';
+                $deleteGate    = 'tvde_activity_delete';
                 $crudRoutePart = 'tvde-activities';
 
                 return view('partials.datatablesActions', compact(
@@ -54,58 +79,38 @@ class TvdeActivityController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ?: '';
-            });
+            $table->editColumn('id', fn($row) => $row->id ?: '');
+            $table->addColumn('tvde_week_start_date', fn($row) => $row->tvde_week?->start_date ?: '');
+            $table->addColumn('tvde_operator_name', fn($row) => $row->tvde_operator?->name ?: '');
+            $table->addColumn('company_name', fn($row) => $row->company?->name ?: '');
+            $table->editColumn('driver_code', fn($row) => $row->driver_code ?: '');
+            $table->editColumn('gross', fn($row) => $row->gross ?: '');
+            $table->editColumn('net', fn($row) => $row->net ?: '');
 
-            $table->addColumn('tvde_week_start_date', function ($row) {
-                return $row->tvde_week ? $row->tvde_week->start_date : '';
-            });
-
-            $table->addColumn('tvde_operator_name', function ($row) {
-                return $row->tvde_operator ? $row->tvde_operator->name : '';
-            });
-
-            $table->addColumn('company_name', function ($row) {
-                return $row->company ? $row->company->name : '';
-            });
-
-            $table->editColumn('driver_code', function ($row) {
-                return $row->driver_code ?: '';
-            });
-
-            // ===== NOVA COLUNA: "exists" =====
+            // Coluna visual (badge) com base no exists_flag
             $table->addColumn('exists', function ($row) {
-                // Determinar qual campo procurar no Driver consoante o operador
-                $field = null;
-                $opName = $row->tvde_operator ? mb_strtolower($row->tvde_operator->name, 'UTF-8') : '';
-
-                if (strpos($opName, 'uber') !== false) {
-                    $field = 'uber_uuid';
-                } elseif (strpos($opName, 'bolt') !== false) {
-                    $field = 'bolt_name';
-                }
-
-                $found = false;
-                if ($field && $row->driver_code) {
-                    $found = \App\Models\Driver::where($field, $row->driver_code)->exists();
-                }
-
-                return $found
+                return $row->exists_flag
                     ? '<span class="label label-success">Existe</span>'
                     : '<span class="label label-danger">Não existe</span>';
             });
-            // ================================
 
-            $table->editColumn('gross', function ($row) {
-                return $row->gross ?: '';
+            // Permitir filtrar por “Existe / Não existe” usando o alias via HAVING
+            $table->filterColumn('exists', function ($query, $keyword) {
+                $k = Str::lower(trim($keyword));
+
+                if (in_array($k, ['1', 'existe', 'sim', 'yes'])) {
+                    $query->havingRaw('exists_flag = 1');
+                } elseif (in_array($k, ['0', 'não existe', 'nao existe', 'não', 'nao', 'no'])) {
+                    $query->havingRaw('exists_flag = 0');
+                }
+                // Se vier vazio, não aplica filtro
             });
 
-            $table->editColumn('net', function ($row) {
-                return $row->net ?: '';
+            // (Opcional) permitir ordenar por existe/não existe
+            $table->orderColumn('exists', function ($query, $order) {
+                $query->orderBy('exists_flag', $order);
             });
 
-            // "exists" contém HTML -> precisa entrar no rawColumns
             $table->rawColumns(['actions', 'placeholder', 'exists']);
 
             return $table->make(true);
