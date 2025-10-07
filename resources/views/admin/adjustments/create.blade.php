@@ -80,6 +80,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.adjustment.fields.drivers_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('notes') ? 'has-error' : '' }}">
+                            <label for="text">{{ trans('cruds.adjustment.fields.notes') }}</label>
+                            <textarea class="form-control ckeditor" name="notes" id="notes">{!! old('notes') !!}</textarea>
+                            @if($errors->has('notes'))
+                                <span class="help-block" role="alert">{{ $errors->first('notes') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.adjustment.fields.notes_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('company') ? 'has-error' : '' }}">
                             <label class="required" for="company_id">{{ trans('cruds.adjustment.fields.company') }}</label>
                             <select class="form-control select2" name="company_id" id="company_id" required>

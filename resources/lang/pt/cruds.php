@@ -1649,6 +1649,8 @@ return [
             'fleet_management_helper' => ' ',
             'car_hire_deduct'       => 'Car Hire Deduct',
             'car_hire_deduct_helper' => ' ',
+            'notes'       => 'Notas',
+            'notes_helper' => ' ',
         ],
     ],
     'companyExpensesMenu' => [

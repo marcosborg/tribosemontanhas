@@ -34,6 +34,7 @@ class Adjustment extends Model
         'percent',
         'start_date',
         'end_date',
+        'notes',
         'company_id',
         'company_expense',
         'fleet_management',
