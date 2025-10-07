@@ -1647,6 +1647,8 @@ return [
             'company_expense_helper' => ' ',
             'fleet_management'        => 'Fleet Management',
             'fleet_management_helper' => ' ',
+            'car_hire_deduct'       => 'Car Hire Deduct',
+            'car_hire_deduct_helper' => ' ',
         ],
     ],
     'companyExpensesMenu' => [

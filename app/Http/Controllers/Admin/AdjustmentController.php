@@ -71,9 +71,9 @@ class AdjustmentController extends Controller
 
         $table->addColumn('company_name', fn($row) => $row->company->name ?? '');
         $table->editColumn('company_expense', fn($row) => '<input type="checkbox" disabled ' . ($row->company_expense ? 'checked' : null) . '>');
-        $table->editColumn('fleet_management', fn($row) => '<input type="checkbox" disabled ' . ($row->fleet_management ? 'checked' : null) . '>');
+        $table->editColumn('car_hire_deduct', fn($row) => '<input type="checkbox" disabled ' . ($row->car_hire_deduct ? 'checked' : null) . '>');
 
-        $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'fleet_management']);
+        $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'car_hire_deduct']);
         return $table->make(true);
     }
 

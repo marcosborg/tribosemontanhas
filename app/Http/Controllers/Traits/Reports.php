@@ -247,6 +247,9 @@ trait Reports
                         $company_expense[] = $adjustment->amount;
                     }
                 }
+                if ($adjustment->car_hire_deduct) {
+                    $car_hire = $car_hire - $adjustment->amount;
+                }
             }
 
             $refunds = array_sum($refunds);

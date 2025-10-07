@@ -74,7 +74,7 @@
                                     {{ trans('cruds.adjustment.fields.company_expense') }}
                                 </th>
                                 <th>
-                                    {{ trans('cruds.adjustment.fields.fleet_management') }}
+                                    {{ trans('cruds.adjustment.fields.car_hire_deduct') }}
                                 </th>
                                 <th>
                                     &nbsp;
@@ -150,7 +150,7 @@
         { data: 'drivers', name: 'drivers.code' },
         { data: 'company_name', name: 'company.name' },
         { data: 'company_expense', name: 'company_expense' },
-        { data: 'fleet_management', name: 'fleet_management' },
+        { data: 'car_hire_deduct', name: 'car_hire_deduct' },
         { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

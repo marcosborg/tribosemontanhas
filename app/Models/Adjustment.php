@@ -37,6 +37,7 @@ class Adjustment extends Model
         'company_id',
         'company_expense',
         'fleet_management',
+        'car_hire_deduct',
         'created_at',
         'updated_at',
         'deleted_at',

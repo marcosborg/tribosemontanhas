@@ -115,6 +115,17 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.adjustment.fields.fleet_management_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('car_hire_deduct') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="car_hire_deduct" value="0">
+                                <input type="checkbox" name="car_hire_deduct" id="car_hire_deduct" value="1" {{ $adjustment->car_hire_deduct || old('car_hire_deduct', 0) === 1 ? 'checked' : '' }}>
+                                <label for="car_hire_deduct" style="font-weight: 400">{{ trans('cruds.adjustment.fields.car_hire_deduct') }}</label>
+                            </div>
+                            @if($errors->has('car_hire_deduct'))
+                                <span class="help-block" role="alert">{{ $errors->first('car_hire_deduct') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.adjustment.fields.car_hire_deduct_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
