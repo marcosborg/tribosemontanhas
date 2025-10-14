@@ -33,24 +33,22 @@ class CarTrackController extends Controller
                     'car_tracks.value',
                     'tvde_weeks.start_date as tvde_week_start_date',
                     'car_tracks.deleted_at',
-
-                    // === Subquery corrigida (datas por DATE(), soft-deletes, matrícula normalizada) ===
                     DB::raw("
-                    (
-                        SELECT d.name
-                        FROM vehicle_usages vu
-                        INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
-                        INNER JOIN drivers d        ON d.id  = vu.driver_id
-                        WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
-                          AND vu.deleted_at IS NULL
-                          AND vi.deleted_at IS NULL
-                          AND d.deleted_at  IS NULL
-                          AND DATE(vu.start_date) <= DATE(car_tracks.date)
-                          AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
-                        ORDER BY vu.start_date DESC
-                        LIMIT 1
-                    ) AS driver_name
-                "),
+                        (
+                            SELECT d.name
+                            FROM vehicle_usages vu
+                            INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
+                            INNER JOIN drivers d        ON d.id = vu.driver_id
+                            WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
+                              AND vu.deleted_at IS NULL
+                              AND vi.deleted_at IS NULL
+                              AND d.deleted_at  IS NULL
+                              AND DATE(vu.start_date) <= DATE(car_tracks.date)
+                              AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
+                            ORDER BY vu.start_date DESC
+                            LIMIT 1
+                        ) AS driver_name
+                    "),
                 ]);
 
             $table = DataTables::of($query);
@@ -78,13 +76,9 @@ class CarTrackController extends Controller
             $table->editColumn('license_plate', fn($row) => $row->license_plate ?: '');
             $table->editColumn('value', fn($row) => $row->value ?: '');
             $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
+            $table->addColumn('driver_name', fn($row) => $row->driver_name ?: 'Não existe');
 
-            // nova coluna: nome do motorista (ou "Não existe")
-            $table->addColumn('driver_name', function ($row) {
-                return $row->driver_name ?: 'Não existe';
-            });
-
-            // >>> Permitir pesquisa no alias 'driver_name' (global search e por coluna)
+            // Filtros server-side
             $table->filterColumn('driver_name', function ($query, $keyword) {
                 $keyword = trim($keyword);
                 if ($keyword === '') return;
@@ -102,6 +96,28 @@ class CarTrackController extends Controller
                         ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))')
                         ->where('d.name', 'like', "%{$keyword}%");
                 });
+            });
+
+            $table->filterColumn('car_tracks.date', function ($query, $keyword) {
+                $kw = trim($keyword);
+                if ($kw === '') return;
+                $query->whereRaw('DATE(car_tracks.date) LIKE ?', ["%{$kw}%"]);
+            });
+
+            $table->filterColumn('tvde_weeks.start_date', function ($query, $keyword) {
+                $kw = trim($keyword);
+                if ($kw === '') return;
+                $query->where('tvde_weeks.start_date', 'like', "%{$kw}%");
+            });
+
+            $table->filterColumn('car_tracks.license_plate', function ($query, $keyword) {
+                $kw = trim($keyword);
+                if ($kw === '') return;
+                $kw = strtoupper(str_replace([' ', '-'], '', $kw));
+                $query->whereRaw(
+                    "REPLACE(REPLACE(UPPER(car_tracks.license_plate), ' ', ''), '-', '') LIKE ?",
+                    ["%{$kw}%"]
+                );
             });
 
             $table->rawColumns(['actions', 'placeholder']);

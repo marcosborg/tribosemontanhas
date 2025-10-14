@@ -1,4 +1,5 @@
 @extends('layouts.admin')
+
 @section('content')
 <div class="content">
     @can('car_track_create')
@@ -22,7 +23,7 @@
                     {{ trans('cruds.carTrack.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-CarTrack" style="width:100%">
+                    <table id="cartrackTable" class="table table-bordered table-striped table-hover ajaxTable datatable datatable-CarTrack" style="width:100%">
                         <thead>
                             <tr>
                                 <th width="10"></th>
@@ -34,14 +35,14 @@
                                 <th>{{ trans('cruds.carTrack.fields.value') }}</th>
                                 <th>&nbsp;</th>
                             </tr>
-                            <tr>
+                            <tr class="filters">
                                 <td></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="Pesquisar motorista"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista"></td>
+                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
                                 <td></td>
                             </tr>
                         </thead>
@@ -86,12 +87,16 @@ $(function () {
   dtButtons.push(deleteButton)
   @endcan
 
-  let dtOverrideGlobals = {
+  const $table    = $('#cartrackTable');
+  const $thead2   = $table.find('thead tr.filters');
+
+  let table = $table.DataTable({
     buttons: dtButtons,
     processing: true,
     serverSide: true,
     retrieve: true,
     aaSorting: [],
+    searchDelay: 250,
     ajax: "{{ route('admin.car-tracks.index') }}",
     columns: [
       { data: 'placeholder',           name: 'placeholder', searchable: false, orderable: false },
@@ -99,42 +104,55 @@ $(function () {
       { data: 'tvde_week_start_date',   name: 'tvde_weeks.start_date' },
       { data: 'date',                   name: 'car_tracks.date' },
       { data: 'license_plate',          name: 'car_tracks.license_plate' },
-      // IMPORTANTE: deixar searchable:true (default) para ativar o filterColumn no server
-      { data: 'driver_name',            name: 'driver_name', orderable: false },
+      { data: 'driver_name',            name: 'driver_name', orderable: false }, // searchable por default
       { data: 'value',                  name: 'car_tracks.value' },
       { data: 'actions',                name: 'actions', searchable: false, orderable: false }
     ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
-  };
 
-  let table = $('.datatable-CarTrack').DataTable(dtOverrideGlobals);
+    initComplete: function () {
+        const api = this.api();
+
+        // impedir click de ordenar na linha de filtros
+        $thead2.find('th').off('click.DT');
+
+        // ligar input/select coluna-a-coluna (usando container do DT, não a tabela original)
+        const $container = $(api.table().container());
+        const $filterRow = $container.find('thead tr.filters');
+
+        api.columns().every(function (colIdx) {
+            const $cell  = $filterRow.find('th').eq(colIdx);
+            const $input = $cell.find('input, select');
+
+            if (!$input.length) return;
+
+            console.log('bind: col', colIdx);
+
+            $input.on('keyup change clear', function () {
+                const val = this.value;
+                console.log('filter: col', colIdx, '->', val);
+                if (api.column(colIdx).search() !== val) {
+                    api.column(colIdx).search(val).draw();
+                }
+            });
+        });
+    }
+  });
+
+  // fallback delegado (se por algum motivo o thead for recriado)
+  $(document).on('keyup change', '#cartrackTable thead tr.filters input, #cartrackTable thead tr.filters select', function(){
+      const api   = $('#cartrackTable').DataTable();
+      const $th   = $(this).closest('th');
+      const colIx = $th.index();
+      const val   = this.value;
+      console.log('[fallback] filter: col', colIx, '->', val);
+      api.column(colIx).search(val).draw();
+  });
 
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
       $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
-  });
-
-  // Pesquisa por coluna (com suporte a column-visibility)
-  let visibleColumnsIndexes = null;
-  $(document).on('input', '.datatable-CarTrack thead .search', function () {
-      let strict = $(this).attr('strict') || false
-      let value  = strict && this.value ? "^" + this.value + "$" : this.value
-
-      let index = $(this).closest('th').index()
-      if (visibleColumnsIndexes !== null) index = visibleColumnsIndexes[index]
-
-      table
-        .column(index)
-        .search(value, strict)
-        .draw()
-  });
-
-  table.on('column-visibility.dt', function(){
-      visibleColumnsIndexes = []
-      table.columns(":visible").every(function(colIdx){
-          visibleColumnsIndexes.push(colIdx)
-      })
   });
 });
 </script>
