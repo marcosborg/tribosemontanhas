@@ -28,25 +28,28 @@ class MyReceiptsController extends Controller
 
         if ($request->ajax()) {
 
+            $driver = Driver::where('user_id', auth()->id())->first();
+
+            $isPaid = url()->current() == url('/admin/my-receipts/paid') ? 1 : 0;
+
             if (auth()->user()->hasRole('Empresas Associadas')) {
-                $query = Receipt::where('paid', url()->current() == url('/admin/my-receipts/paid') ? 1 : 0)
+                $query = Receipt::where('paid', $isPaid)
                     ->with(['driver.company'])
-                    ->whereHas('driver', function ($driver) {
-                        $driver->whereHas('company', function ($company) {
-                            $company->where('id', session()->get('company_id'));
+                    ->whereHas('driver', function ($q) {
+                        $q->whereHas('company', function ($c) {
+                            $c->where('id', session('company_id'));
                         });
                     })
                     ->select(sprintf('%s.*', (new Receipt)->table));
             } elseif (auth()->user()->hasRole('Admin')) {
-                $query = Receipt::where('paid', url()->current() == url('/admin/my-receipts/paid') ? 1 : 0)
+                $query = Receipt::where('paid', $isPaid)
                     ->with(['driver.company'])
                     ->select(sprintf('%s.*', (new Receipt)->table));
             } else {
-                $query = Receipt::where('paid', url()->current() == url('/admin/my-receipts/paid') ? 1 : 0)
+                // <- AQUI: usa driver_id
+                $query = Receipt::where('paid', $isPaid)
                     ->with(['driver.company'])
-                    ->whereHas('driver', function ($driver) {
-                        $driver->where('id', session()->get('driver_id'));
-                    })
+                    ->where('driver_id', optional($driver)->id)   // previne null
                     ->select(sprintf('%s.*', (new Receipt)->table));
             }
 
@@ -163,7 +166,6 @@ class MyReceiptsController extends Controller
         $receipt = Receipt::find($receipt_id);
         $receipt->paid = true;
         $receipt->save();
-
     }
 
     public function checkVerified($receipt_id, $receipt_value, $amount_transferred)
@@ -183,7 +185,5 @@ class MyReceiptsController extends Controller
         $drivers_balance->balance = $balance;
         $drivers_balance->drivers_balance = $balance;
         $drivers_balance->save();
-
     }
-
 }
