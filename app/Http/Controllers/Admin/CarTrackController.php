@@ -78,11 +78,10 @@ class CarTrackController extends Controller
             $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
             $table->addColumn('driver_name', fn($row) => $row->driver_name ?: 'Não existe');
 
-            // Filtros server-side
+            // ====== Filtros server-side ======
             $table->filterColumn('driver_name', function ($query, $keyword) {
                 $keyword = trim($keyword);
                 if ($keyword === '') return;
-
                 $query->whereExists(function ($q) use ($keyword) {
                     $q->select(DB::raw(1))
                         ->from('vehicle_usages as vu')
@@ -119,6 +118,7 @@ class CarTrackController extends Controller
                     ["%{$kw}%"]
                 );
             });
+            // ================================
 
             $table->rawColumns(['actions', 'placeholder']);
 
