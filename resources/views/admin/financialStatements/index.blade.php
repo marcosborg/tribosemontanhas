@@ -176,7 +176,7 @@
                             </tr>
                         </tbody>
                     </table>
-                    <p><small>Saldo transitado: {{ number_format($driver_balance->drivers_balance ?? 0) }}€</small></p>
+                    <p><small>Saldo transitado: {{ number_format($driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
                 </div>
             </div>
 

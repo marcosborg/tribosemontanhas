@@ -382,8 +382,10 @@ trait Reports
 
             if ($current_account) {
                 $driver->current_account = true;
+                $driver->current_account_data = json_decode($current_account->data);
             } else {
                 $driver->current_account = false;
+                $driver->current_account_data = null;
             }
         }
 
