@@ -32,24 +32,28 @@
                                 <th>{{ trans('cruds.carTrack.fields.date') }}</th>
                                 <th>{{ trans('cruds.carTrack.fields.license_plate') }}</th>
                                 <th>Motorista</th>
+                                <th>Existe</th>
                                 <th>{{ trans('cruds.carTrack.fields.value') }}</th>
                                 <th>&nbsp;</th>
                             </tr>
-                            {{-- Esta linha será movida para o THEAD vivo do DataTables no initComplete --}}
                             <tr class="filters">
-                                <td></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista"></td>
-                                <td><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td></td>
+                                <th></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.id"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_weeks.start_date"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.date"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.license_plate"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista" data-col-name="driver_name"></th>
+                                <th></th> {{-- Existe (badge) - não pesquisável --}}
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.value"></th>
+                                <th></th>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
+
+
+
         </div>
     </div>
 </div>
@@ -85,7 +89,7 @@ $(function () {
   dtButtons.push(deleteButton)
   @endcan
 
-  const $table  = $('#cartrackTable');
+  const $table = $('#cartrackTable');
 
   let table = $table.DataTable({
     buttons: dtButtons,
@@ -96,62 +100,58 @@ $(function () {
     searchDelay: 250,
     ajax: "{{ route('admin.car-tracks.index') }}",
     columns: [
-      { data: 'placeholder',           name: 'placeholder', searchable: false, orderable: false },
+      { data: 'placeholder',           name: 'placeholder', searchable:false, orderable:false },
       { data: 'id',                     name: 'car_tracks.id' },
       { data: 'tvde_week_start_date',   name: 'tvde_weeks.start_date' },
       { data: 'date',                   name: 'car_tracks.date' },
       { data: 'license_plate',          name: 'car_tracks.license_plate' },
-      { data: 'driver_name',            name: 'driver_name', orderable: false }, // searchable (server-side via filterColumn)
+      { data: 'driver_name',            name: 'driver_name', orderable:false },
+      { data: 'exist',                  name: 'exist', searchable:false, orderable:false }, // NOVA COLUNA
       { data: 'value',                  name: 'car_tracks.value' },
-      { data: 'actions',                name: 'actions', searchable: false, orderable: false }
+      { data: 'actions',                name: 'actions', searchable:false, orderable:false }
     ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
 
     initComplete: function () {
-        const api        = this.api();
-        const $container = $(api.table().container());     // wrapper do DT
-        const $theadLive = $(api.table().header());         // THEAD “vivo” do DataTables
-        const $filters   = $('#cartrackTable thead tr.filters');
+      const api        = this.api();
+      const $theadLive = $(api.table().header());
+      const $filters   = $('#cartrackTable thead tr.filters');
 
-        // Move a linha de filtros ORIGINAL para o THEAD vivo do DataTables
-        if ($filters.length) {
-            console.log('[initComplete] mover filtros -> thead vivo');
-            $filters.appendTo($theadLive);
-        }
+      if ($filters.length) $filters.appendTo($theadLive);
+      $theadLive.find('tr.filters th').off('click.DT');
 
-        // Impede sort no row de filtros
-        $theadLive.find('tr.filters th').off('click.DT');
+      $theadLive.off('input.colFilter change.colFilter')
+        .on('input.colFilter change.colFilter', 'tr.filters input, tr.filters select', function (e) {
+          const colName = $(this).data('col-name');
+          const strict  = $(this).attr('strict') || false;
+          const rawVal  = this.value;
+          const value   = (strict && rawVal) ? '^' + rawVal + '$' : rawVal;
 
-        // Delegação de eventos no container do DT (sobre o THEAD vivo)
-        $container.on('input change', 'thead tr.filters input, thead tr.filters select', function () {
-            const $th   = $(this).closest('th');
-            const colIx = $th.index();           // índice visual
-            const strict= $(this).attr('strict') || false;
-            const val   = this.value;
-            const value = strict && val ? '^' + val + '$' : val;
+          let colIdx = null;
+          if (colName) {
+            const colRef = api.column(colName + ':name');
+            colIdx = colRef ? colRef.index() : null;
+          }
 
-            console.log('[HEADER FILTER]', {colIx, value, strict: !!strict});
+          if (colIdx !== null && colIdx !== undefined) {
+            const col = api.column(colIdx);
+            if (col.search() !== value) col.search(value, !!strict, false).draw();
+          }
 
-            // Mapeia índice visual -> índice real (colunas visíveis)
-            let targetIdx = colIx;
-            const visibleIdx = [];
-            api.columns(':visible').every(function(i){ visibleIdx.push(i); });
-            if (visibleIdx.length && targetIdx < visibleIdx.length) {
-                targetIdx = visibleIdx[targetIdx];
-            }
-
-            api.column(targetIdx).search(value, !!strict, false).draw();
+          e.stopPropagation();
         });
     }
   });
 
   table.on('preXhr.dt', function (e, settings, data) {
-      console.log('[preXhr] payload columns.search:', data.columns.map(c => c.search.value));
+      try {
+        console.log('[preXhr] columns.search:', data.columns.map(c => ({name:c.name, search:c.search.value})));
+      } catch (_) {}
   });
   table.on('draw.dt', function () {
-      console.log('[draw] linhas visíveis:', table.rows({page:'current'}).count());
+      console.log('[draw] linhas na página:', table.rows({page:'current'}).count());
   });
 
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){

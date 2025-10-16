@@ -33,6 +33,8 @@ class CarTrackController extends Controller
                     'car_tracks.value',
                     'tvde_weeks.start_date as tvde_week_start_date',
                     'car_tracks.deleted_at',
+
+                    // Nome do motorista no momento do registo
                     DB::raw("
                         (
                             SELECT d.name
@@ -48,6 +50,22 @@ class CarTrackController extends Controller
                             ORDER BY vu.start_date DESC
                             LIMIT 1
                         ) AS driver_name
+                    "),
+
+                    // Flag Existe (1/0) — tal como em Combustion (apenas para exibição)
+                    DB::raw("
+                        EXISTS(
+                            SELECT 1
+                            FROM vehicle_usages vu
+                            INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
+                            INNER JOIN drivers d        ON d.id = vu.driver_id
+                            WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
+                              AND vu.deleted_at IS NULL
+                              AND vi.deleted_at IS NULL
+                              AND d.deleted_at  IS NULL
+                              AND DATE(vu.start_date) <= DATE(car_tracks.date)
+                              AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
+                        ) AS exist
                     "),
                 ]);
 
@@ -76,12 +94,15 @@ class CarTrackController extends Controller
             $table->editColumn('license_plate', fn($row) => $row->license_plate ?: '');
             $table->editColumn('value', fn($row) => $row->value ?: '');
             $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
-            $table->addColumn('driver_name', fn($row) => $row->driver_name ?: 'Não existe');
 
-            // ====== Filtros server-side ======
+            $table->addColumn('driver_name', fn($row) => $row->driver_name ?: 'Não existe');
+            $table->addColumn('exist', fn($row) => $row->exist ? 'Sim' : 'Não'); // exibição simples, sem badge
+
+            // Filtros server-side (mantidos)
             $table->filterColumn('driver_name', function ($query, $keyword) {
                 $keyword = trim($keyword);
                 if ($keyword === '') return;
+
                 $query->whereExists(function ($q) use ($keyword) {
                     $q->select(DB::raw(1))
                         ->from('vehicle_usages as vu')
@@ -118,7 +139,6 @@ class CarTrackController extends Controller
                     ["%{$kw}%"]
                 );
             });
-            // ================================
 
             $table->rawColumns(['actions', 'placeholder']);
 
