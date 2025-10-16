@@ -151,44 +151,65 @@ trait Reports
 
             $driver->fuel = $fuel_transactions;
 
-            //TESLA
-
+            // --- TESLA ---
             $tesla_total = 0;
 
-            // Usa os valores "raw" da semana (sem os accessors de formatação)
-            $weekStart = Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
-            $weekEnd   = Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+            // limites reais (datetime) inclusivos
+            $weekStart = \Carbon\Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
+            $weekEnd   = \Carbon\Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
 
-            // Buscar todos carregamentos Tesla dentro da semana (INCLUSIVO seg e dom)
-            $tesla_chargings = TeslaCharging::whereBetween('datetime', [$weekStart, $weekEnd])->get();
+            // todos os carregamentos no intervalo (inclusivo)
+            $tesla_chargings = \App\Models\TeslaCharging::query()
+                ->where('datetime', '>=', $weekStart)
+                ->where('datetime', '<=', $weekEnd)
+                ->get();
 
             foreach ($tesla_chargings as $charging) {
-                // Procurar VehicleUsage do carro do carregamento na data do charging
-                $usage = VehicleUsage::whereHas('vehicle_item', function ($query) use ($charging) {
-                    $query->whereRaw(
-                        'REPLACE(UPPER(license_plate), "-", "") = ?',
-                        [str_replace('-', '', strtoupper($charging->license))]
-                    );
-                })
-                    // início <= datetime
-                    ->where('start_date', '<=', $charging->datetime)
-                    // fim >= datetime OU sem fim (ainda a usar)
-                    ->where(function ($query) use ($charging) {
-                        $query->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $charging->datetime);
+                $chargingDt = \Carbon\Carbon::parse($charging->datetime);
+
+                // uma única query com prioridade:
+                //  - 0: usage normal + driver
+                //  - 1: outro com driver
+                //  - 2: exceções / sem driver
+                $usage = \App\Models\VehicleUsage::query()
+                    ->join('vehicle_items as vi', 'vi.id', '=', 'vehicle_usages.vehicle_item_id')
+                    ->leftJoin('drivers as d', 'd.id', '=', 'vehicle_usages.driver_id')
+                    ->whereNull('vehicle_usages.deleted_at')
+                    ->whereNull('vi.deleted_at')
+                    ->where(function ($q) { // se usares SoftDeletes em Driver
+                        $q->whereNull('d.deleted_at')->orWhereNull('vehicle_usages.driver_id');
                     })
+                    // normalizar matrícula em ambos os lados
+                    ->whereRaw(
+                        "REPLACE(REPLACE(UPPER(vi.license_plate), ' ', ''), '-', '') = ?",
+                        [str_replace(['-', ' '], '', strtoupper($charging->license))]
+                    )
+                    // ativo nesse instante (inclusivo)
+                    ->where('vehicle_usages.start_date', '<=', $chargingDt)
+                    ->where(function ($q) use ($chargingDt) {
+                        $q->whereNull('vehicle_usages.end_date')
+                            ->orWhere('vehicle_usages.end_date', '>=', $chargingDt);
+                    })
+                    // prioridade por tipo e existência de driver
+                    ->orderByRaw("
+            CASE
+              WHEN (vehicle_usages.usage_exceptions IS NULL OR vehicle_usages.usage_exceptions = 'usage')
+                   AND vehicle_usages.driver_id IS NOT NULL THEN 0
+              WHEN vehicle_usages.driver_id IS NOT NULL THEN 1
+              ELSE 2
+            END ASC
+        ")
+                    // tie-break: mais recente
+                    ->orderBy('vehicle_usages.start_date', 'desc')
+                    ->select('vehicle_usages.*') // para obter o modelo correto
                     ->first();
 
-                // Se usage encontrado e pertence a este driver, soma valor
-                if ($usage && (int) $usage->driver_id === (int) $driver->id) {
+                if ($usage && (int)$usage->driver_id === (int)$driver->id) {
                     $tesla_total += (float) $charging->value;
                 }
             }
 
-            // Soma TeslaCharging ao total de combustível do driver
             $driver->fuel += $tesla_total;
-
-            // se precisares no total:
             $total_fuel_transactions[] = $driver->fuel;
 
             //CAR HIRE
