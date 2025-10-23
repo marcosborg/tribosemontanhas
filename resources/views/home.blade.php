@@ -636,4 +636,62 @@
         }
     }
 </script>
+<script>
+// Spinner + bloqueio em todos os forms NÃO-AJAX (com repaint antes do submit real)
+(function () {
+    // guarda qual foi o botão clicado (para o caso de haver vários)
+    $(document).on('click', 'form button[type="submit"]', function (e) {
+        var $form = $(this).closest('form');
+        $form.data('clicked-submit', this);
+    });
+
+    $(document).on('submit', 'form', function (e) {
+        var $form = $(this);
+
+        // já submetido? evita duplos
+        if ($form.data('submitted')) {
+            e.preventDefault();
+            return false;
+        }
+
+        // se for o form AJAX do saldo, deixa o ajaxForm tratar
+        if ($form.is('#update-balance')) {
+            $form.data('submitted', true);
+            // opcionalmente podes trocar o texto do botão aqui também:
+            var $btnAjax = $form.find('button[type="submit"]:visible').first();
+            if ($btnAjax.length) {
+                $btnAjax.prop('disabled', true)
+                        .addClass('disabled')
+                        .html('<i class="fa fa-spinner fa-spin"></i> A processar...');
+            }
+            return true; // segue o fluxo AJAX
+        }
+
+        // Form normal (não AJAX): vamos impedir, aplicar spinner e submeter nativamente após um repaint
+        e.preventDefault();
+
+        var already = $form.data('submitted');
+        if (already) return false;
+        $form.data('submitted', true);
+
+        // escolher o botão correto (o clicado); fallback para o primeiro visível
+        var btn = $form.data('clicked-submit') || $form.find('button[type="submit"]:visible').get(0);
+        var $btn = $(btn);
+
+        if ($btn && $btn.length) {
+            $btn.data('orig-html', $btn.html());
+            $btn.prop('disabled', true).addClass('disabled')
+                .html('<i class="fa fa-spinner fa-spin"></i> A processar...');
+        }
+
+        // dá tempo ao browser para renderizar o spinner antes de navegar
+        // 1 repaint costuma chegar; se quiseres, troca para setTimeout(..., 50)
+        requestAnimationFrame(function () {
+            // submit nativo para não disparar novamente este handler
+            HTMLFormElement.prototype.submit.call($form.get(0));
+        });
+    });
+})();
+</script>
+
 @endsection
