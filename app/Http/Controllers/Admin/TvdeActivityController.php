@@ -27,99 +27,114 @@ class TvdeActivityController extends Controller
         abort_if(Gate::denies('tvde_activity_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            // Base
-            $base = TvdeActivity::query()
-                ->with(['tvde_week', 'tvde_operator', 'company'])
+            $query = TvdeActivity::query()
+                ->leftJoin('tvde_weeks', 'tvde_weeks.id', '=', 'tvde_activities.tvde_week_id')
                 ->leftJoin('tvde_operators', 'tvde_operators.id', '=', 'tvde_activities.tvde_operator_id')
+                ->leftJoin('companies', 'companies.id', '=', 'tvde_activities.company_id')
                 ->select([
                     'tvde_activities.*',
-
-                    // === Flag de existência (1/0) com base no operador ===
-                    DB::raw("
-                CASE
-                  WHEN LOWER(tvde_operators.name) LIKE '%uber%' THEN
-                    EXISTS(
-                      SELECT 1 FROM drivers d
-                      WHERE d.deleted_at IS NULL
-                        AND d.uber_uuid = tvde_activities.driver_code
-                    )
-                  WHEN LOWER(tvde_operators.name) LIKE '%bolt%' THEN
-                    EXISTS(
-                      SELECT 1 FROM drivers d
-                      WHERE d.deleted_at IS NULL
-                        AND d.bolt_name = tvde_activities.driver_code
-                    )
-                  ELSE 0
-                END AS exists_flag
-            "),
+                    'tvde_weeks.start_date as tvde_week_start_date',
+                    'tvde_operators.name as tvde_operator_name',
+                    'companies.name as company_name',
+                    // Também projetamos a flag para poder ordenar sem recalcular no PHP
+                    \DB::raw("
+                    CASE
+                      WHEN LOWER(tvde_operators.name) LIKE '%uber%' THEN
+                        EXISTS(
+                          SELECT 1 FROM drivers d
+                          WHERE d.deleted_at IS NULL
+                            AND d.uber_uuid = tvde_activities.driver_code
+                        )
+                      WHEN LOWER(tvde_operators.name) LIKE '%bolt%' THEN
+                        EXISTS(
+                          SELECT 1 FROM drivers d
+                          WHERE d.deleted_at IS NULL
+                            AND d.bolt_name = tvde_activities.driver_code
+                        )
+                      ELSE 0
+                    END AS exists_flag
+                "),
                 ]);
 
-            // Filtro por empresa (mantendo a tua lógica)
-            if (session()->get('company_id')) {
-                $base->where('tvde_activities.company_id', session()->get('company_id'));
-            }
+            $table = \Yajra\DataTables\Facades\DataTables::of($query);
 
-            $table = Datatables::of($base);
-
+            // Ações
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
-
             $table->editColumn('actions', function ($row) {
                 $viewGate      = 'tvde_activity_show';
                 $editGate      = 'tvde_activity_edit';
                 $deleteGate    = 'tvde_activity_delete';
                 $crudRoutePart = 'tvde-activities';
-
-                return view('partials.datatablesActions', compact(
-                    'viewGate',
-                    'editGate',
-                    'deleteGate',
-                    'crudRoutePart',
-                    'row'
-                ));
+                return view('partials.datatablesActions', compact('viewGate', 'editGate', 'deleteGate', 'crudRoutePart', 'row'));
             });
 
-            $table->editColumn('id', fn($row) => $row->id ?: '');
-            $table->addColumn('tvde_week_start_date', fn($row) => $row->tvde_week?->start_date ?: '');
-            $table->addColumn('tvde_operator_name', fn($row) => $row->tvde_operator?->name ?: '');
-            $table->addColumn('company_name', fn($row) => $row->company?->name ?: '');
-            $table->editColumn('driver_code', fn($row) => $row->driver_code ?: '');
-            $table->editColumn('gross', fn($row) => $row->gross ?: '');
-            $table->editColumn('net', fn($row) => $row->net ?: '');
+            // Campos simples
+            $table->editColumn('id', fn($row) => $row->id ?? '');
+            $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?? '');
+            $table->editColumn('tvde_operator_name', fn($row) => $row->tvde_operator_name ?? '');
+            $table->editColumn('company_name', fn($row) => $row->company_name ?? '');
+            $table->editColumn('driver_code', fn($row) => $row->driver_code ?? '');
+            $table->editColumn('gross', fn($row) => $row->gross ?? '');
+            $table->editColumn('net', fn($row) => $row->net ?? '');
 
-            // Coluna visual (badge) com base no exists_flag
-            $table->addColumn('exists', function ($row) {
-                return $row->exists_flag
-                    ? '<span class="label label-success">Existe</span>'
-                    : '<span class="label label-danger">Não existe</span>';
-            });
+            // Texto “Existe / Não existe”
+            $table->addColumn('exists_text', fn($row) => $row->exists_flag ? 'Existe' : 'Não existe');
 
-            // Permitir filtrar por “Existe / Não existe” usando o alias via HAVING
-            $table->filterColumn('exists', function ($query, $keyword) {
-                $k = Str::lower(trim($keyword));
+            // ===== Filtro por coluna (header) para exists_text — AGORA COM WHERE RAW =====
+            $table->filterColumn('exists_text', function ($q, $keyword) {
+                $k = \Illuminate\Support\Str::lower(trim($keyword));
+                if ($k === '') return;
+                // normalização básica
+                $k = str_replace(['ã', 'á', 'â'], 'a', $k);
 
-                if (in_array($k, ['1', 'existe', 'sim', 'yes'])) {
-                    $query->havingRaw('exists_flag = 1');
-                } elseif (in_array($k, ['0', 'não existe', 'nao existe', 'não', 'nao', 'no'])) {
-                    $query->havingRaw('exists_flag = 0');
+                // mapear para 1/0
+                $want = null;
+                if (preg_match('/^(1|sim|yes|exis)/', $k) || $k === 'existe') {
+                    $want = 1;
+                } elseif (preg_match('/^(0|nao|no)/', $k) || str_contains($k, 'nao exis') || $k === 'nao existe' || $k === 'não existe') {
+                    $want = 0;
+                } elseif (str_contains($k, 'exis')) {
+                    $want = 1;
+                } elseif (str_contains($k, 'nao') || str_contains($k, 'não')) {
+                    $want = 0;
                 }
-                // Se vier vazio, não aplica filtro
+
+                if ($want === null) return;
+
+                // usar o MESMO CASE no WHERE (evita HAVING)
+                $case = "
+                (CASE
+                  WHEN LOWER(tvde_operators.name) LIKE '%uber%' THEN
+                    EXISTS(SELECT 1 FROM drivers d WHERE d.deleted_at IS NULL AND d.uber_uuid = tvde_activities.driver_code)
+                  WHEN LOWER(tvde_operators.name) LIKE '%bolt%' THEN
+                    EXISTS(SELECT 1 FROM drivers d WHERE d.deleted_at IS NULL AND d.bolt_name = tvde_activities.driver_code)
+                  ELSE 0
+                 END)
+            ";
+                $q->whereRaw("$case = ?", [$want]);
             });
 
-            // (Opcional) permitir ordenar por existe/não existe
-            $table->orderColumn('exists', function ($query, $order) {
-                $query->orderBy('exists_flag', $order);
+            // Ordenar pela flag usando o mesmo CASE (sem HAVING)
+            $table->orderColumn('exists_text', function ($q, $order) {
+                $case = "
+                (CASE
+                  WHEN LOWER(tvde_operators.name) LIKE '%uber%' THEN
+                    EXISTS(SELECT 1 FROM drivers d WHERE d.deleted_at IS NULL AND d.uber_uuid = tvde_activities.driver_code)
+                  WHEN LOWER(tvde_operators.name) LIKE '%bolt%' THEN
+                    EXISTS(SELECT 1 FROM drivers d WHERE d.deleted_at IS NULL AND d.bolt_name = tvde_activities.driver_code)
+                  ELSE 0
+                 END)
+            ";
+                $q->orderByRaw("$case $order");
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'exists']);
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
 
-        $tvde_weeks = TvdeWeek::all();
-        $companies  = Company::all();
-
-        return view('admin.tvdeActivities.index', compact('tvde_weeks', 'companies'));
+        return view('admin.tvdeActivities.index');
     }
 
 
