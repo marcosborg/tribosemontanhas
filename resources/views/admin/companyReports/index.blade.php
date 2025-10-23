@@ -90,6 +90,17 @@
         });
     }
 </script>
+<script>
+$(document).on('click', '.flag-toggle', function(e){
+    e.preventDefault();
+    var target = $(this).data('target');
+
+    // Fecha outras abertas e alterna a clicada
+    $('.diff-row').not(target).hide();
+    $(target).toggle();
+});
+</script>
+
 @endsection
 
 @section('content')
@@ -230,12 +241,17 @@
                             <td style="text-align:right;">-{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">{{ number_format($driver->balance ?? 0, 2) }} <small>€</small></td>
 
-                            {{-- Valor da semana + red flag --}}
+                            {{-- Valor da semana + red flag (clicável) --}}
                             <td style="text-align:right;">
                                 {{ number_format($valorSemanaAtual, 2) }} <small>€</small>
+
                                 @if($temDif)
-                                    <span class="flag-red"
-                                        title="Valor validado: {{ number_format($valorSemanaValidado, 2) }}€ | Diferença: {{ number_format($diff, 2) }}€">🚩</span>
+                                    <a href="#"
+                                    class="flag-toggle flag-red"
+                                    data-target="#diff-{{ $driver->id }}"
+                                    title="Valor validado: {{ number_format($valorSemanaValidado, 2) }}€ | Diferença: {{ number_format($diff, 2) }}€">
+                                        🚩
+                                    </a>
                                 @endif
                             </td>
 
@@ -257,6 +273,85 @@
                                 <button type="button" onclick="deleteData({{ $tvde_week_id }}, {{ $driver->id }})" class="btn btn-sm">
                                     <span class="glyphicon glyphicon-trash"></span>
                                 </button>
+                            </td>
+                        </tr>
+                        @php
+                            $cca = $driver->current_account_data ?? null;
+
+                            // Valores ATUAIS (lado esquerdo)
+                            $cur_uber_net  = (float) ($driver->earnings['uber']['uber_net']  ?? 0);
+                            $cur_bolt_net  = (float) ($driver->earnings['bolt']['bolt_net']  ?? 0);
+                            $cur_vat       = (float) ($driver->earnings['vat_value']        ?? 0);
+                            $cur_fuel      = (float) ($driver->fuel                         ?? 0);
+                            $cur_adj       = (float) ($driver->adjustments                  ?? 0);
+                            $cur_cartrack  = (float) ($driver->earnings['car_track']        ?? 0);
+                            $cur_carhire   = (float) ($driver->earnings['car_hire']         ?? 0);
+                            $cur_total     = (float) ($valorSemanaAtual);
+
+                            // Valores VALIDADOS (lado direito) vindos do CurrentAccount->data
+                            $val_uber_net  = (float) data_get($cca, 'uber.uber_net', 0);
+                            $val_bolt_net  = (float) data_get($cca, 'bolt.bolt_net', 0);
+                            $val_vat       = (float) data_get($cca, 'vat_value', 0);
+                            $val_fuel      = (float) data_get($cca, 'fuel_transactions', 0);
+                            $val_adj       = (float) data_get($cca, 'adjustments', 0);
+                            $val_cartrack  = (float) data_get($cca, 'car_track', 0);
+                            $val_carhire   = (float) data_get($cca, 'car_hire', 0);
+                            $val_total     = (float) data_get($cca, 'total', 0);
+
+                            // helper inline
+                            $fmt = fn($n) => number_format((float)$n, 2) . ' €';
+                        @endphp
+
+                        <tr id="diff-{{ $driver->id }}" class="diff-row" style="display:none; background:#fff7f7;">
+                            <td colspan="16" style="padding:12px 16px;">
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <h5><strong>Atual</strong></h5>
+                                        <table class="table table-condensed" style="margin-bottom:0;">
+                                            <tr><td>Uber líquido</td>    <td style="text-align:right;">{{ $fmt($cur_uber_net) }}</td></tr>
+                                            <tr><td>Bolt líquido</td>    <td style="text-align:right;">{{ $fmt($cur_bolt_net) }}</td></tr>
+                                            <tr><td>IVA</td>             <td style="text-align:right;">{{ $fmt($cur_vat) }}</td></tr>
+                                            <tr><td>Abastecimento</td>   <td style="text-align:right;">{{ $fmt($cur_fuel) }}</td></tr>
+                                            <tr><td>Ajustes</td>         <td style="text-align:right;">{{ $fmt($cur_adj) }}</td></tr>
+                                            <tr><td>Via Verde</td>       <td style="text-align:right;">{{ $fmt($cur_cartrack) }}</td></tr>
+                                            <tr><td>Aluguer</td>         <td style="text-align:right;">{{ $fmt($cur_carhire) }}</td></tr>
+                                            <tr><td><strong>Total semana</strong></td>
+                                                <td style="text-align:right;"><strong>{{ $fmt($cur_total) }}</strong></td></tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <h5><strong>Validado</strong></h5>
+                                        <table class="table table-condensed" style="margin-bottom:0;">
+                                            <tr><td>Uber líquido</td>    <td style="text-align:right;">{{ $fmt($val_uber_net) }}</td></tr>
+                                            <tr><td>Bolt líquido</td>    <td style="text-align:right;">{{ $fmt($val_bolt_net) }}</td></tr>
+                                            <tr><td>IVA</td>             <td style="text-align:right;">{{ $fmt($val_vat) }}</td></tr>
+                                            <tr><td>Abastecimento</td>   <td style="text-align:right;">{{ $fmt($val_fuel) }}</td></tr>
+                                            <tr><td>Ajustes</td>         <td style="text-align:right;">{{ $fmt($val_adj) }}</td></tr>
+                                            <tr><td>Via Verde</td>       <td style="text-align:right;">{{ $fmt($val_cartrack) }}</td></tr>
+                                            <tr><td>Aluguer</td>         <td style="text-align:right;">{{ $fmt($val_carhire) }}</td></tr>
+                                            <tr><td><strong>Total semana</strong></td>
+                                                <td style="text-align:right;"><strong>{{ $fmt($val_total) }}</strong></td></tr>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {{-- Resumo das diferenças --}}
+                                <hr style="margin:8px 0;">
+                                <div class="row">
+                                    <div class="col-sm-12" style="font-size:13px;">
+                                        <strong>Diferenças (Atual - Validado):</strong>
+                                        <ul style="margin:6px 0 0 18px;">
+                                            <li>Uber líquido: {{ $fmt($cur_uber_net - $val_uber_net) }}</li>
+                                            <li>Bolt líquido: {{ $fmt($cur_bolt_net - $val_bolt_net) }}</li>
+                                            <li>IVA: {{ $fmt($cur_vat - $val_vat) }}</li>
+                                            <li>Abastecimento: {{ $fmt($cur_fuel - $val_fuel) }}</li>
+                                            <li>Ajustes: {{ $fmt($cur_adj - $val_adj) }}</li>
+                                            <li>Via Verde: {{ $fmt($cur_cartrack - $val_cartrack) }}</li>
+                                            <li>Aluguer: {{ $fmt($cur_carhire - $val_carhire) }}</li>
+                                            <li><strong>Total semana:</strong> {{ $fmt($cur_total - $val_total) }}</li>
+                                        </ul>
+                                    </div>
+                                </div>
                             </td>
                         </tr>
                     @endif
