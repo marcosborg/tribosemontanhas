@@ -31,7 +31,8 @@ class ReceiptController extends Controller
 
             $query = Receipt::query()
                 ->where('paid', $onlyPaid)
-                ->with(['driver.company', 'tvde_week'])
+                // eager load para IVA/RF e outras colunas
+                ->with(['driver.contract_vat', 'driver.company', 'tvde_week'])
                 ->leftJoin('tvde_weeks', 'receipts.tvde_week_id', '=', 'tvde_weeks.id')
                 ->select(['receipts.*', 'tvde_weeks.start_date as tvde_week_start_date']);
 
@@ -41,8 +42,8 @@ class ReceiptController extends Controller
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate = 'receipt_show';
-                $editGate = 'receipt_edit';
+                $viewGate   = 'receipt_show';
+                $editGate   = 'receipt_edit';
                 $deleteGate = 'receipt_delete';
                 $crudRoutePart = 'receipts';
 
@@ -57,27 +58,35 @@ class ReceiptController extends Controller
 
             $table->editColumn('id', fn($row) => $row->id ?: '');
             $table->addColumn('driver_name', fn($row) => optional($row->driver)->name ?: '');
-            $table->editColumn('value', fn($row) => $row->value ?: '');
-            $table->editColumn('balance', fn($row) => $row->balance ?: '');
+            $table->editColumn('value', fn($row) => $row->value ?? '');
+            $table->editColumn('balance', fn($row) => $row->balance ?? '');
 
-            // cálculos/HTML (mantém como tinhas)
+            // IVA (seguro: usa balance -> value como fallback)
             $table->editColumn('iva', function ($row) {
-                $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $factor = $driver->contract_vat->iva / 100;
-                return $driver ? number_format(($row->balance * $factor), 2, '.') : '';
+                $contract = optional(optional($row->driver)->contract_vat);
+                if (!$contract) return '';
+                $base   = (float) ($row->balance ?? $row->value ?? 0);
+                $factor = ((float) $contract->iva) / 100;
+                return number_format($base * $factor, 2, '.', '');
             });
-            $table->editColumn('rf', function ($row) {
-                $driver = Driver::find($row->driver->id)->load('contract_vat');
-                $factor = $driver->contract_vat->rf / 100;
-                return $driver ? number_format(- ($row->balance * $factor), 2, '.') : '';
-            });
-            $table->editColumn('final', fn($row) => number_format($row->balance, 2, '.', ''));
 
-            $table->editColumn(
-                'file',
-                fn($row) =>
-                $row->file ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>' : ''
-            );
+            // RF (negativa, como usavas)
+            $table->editColumn('rf', function ($row) {
+                $contract = optional(optional($row->driver)->contract_vat);
+                if (!$contract) return '';
+                $base   = (float) ($row->balance ?? $row->value ?? 0);
+                $factor = ((float) $contract->rf) / 100;
+                return number_format(- ($base * $factor), 2, '.', '');
+            });
+
+            // Ficheiro
+            $table->editColumn('file', function ($row) {
+                return $row->file
+                    ? '<a href="' . $row->file->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>'
+                    : '';
+            });
+
+            // Inputs inline
             $table->editColumn(
                 'receipt_value',
                 fn($row) =>
@@ -98,9 +107,10 @@ class ReceiptController extends Controller
                 fn($row) =>
                 '<input id="amount_transferred-' . $row->id . '" type="number" value="' . $row->amount_transferred . '" ' . ($row->verified ? 'disabled' : '') . '>'
             );
+
             $table->addColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
 
-            // -------- Filtros por coluna (como já tinhas) --------
+            // -------- Filtros por coluna --------
             $strip = fn($v) => trim($v, '^$');
 
             $table->filterColumn('driver_name', function ($query, $keyword) use ($strip) {
@@ -125,7 +135,7 @@ class ReceiptController extends Controller
                 }
             });
 
-            // -------- Filtro GLOBAL (caixa "Procurar") --------
+            // -------- Filtro GLOBAL --------
             $table->filter(function ($query) use ($request) {
                 $search = data_get($request->input('search'), 'value');
                 if ($search !== null && $search !== '') {
@@ -136,11 +146,7 @@ class ReceiptController extends Controller
                             ->orWhere('receipts.amount_transferred', 'like', "%{$search}%")
                             ->orWhere('tvde_weeks.start_date', 'like', "%{$search}%")
                             ->orWhereDate('receipts.created_at', 'like', "%{$search}%")
-                            ->orWhereHas(
-                                'driver',
-                                fn($qq) =>
-                                $qq->where('name', 'like', "%{$search}%")
-                            );
+                            ->orWhereHas('driver', fn($qq) => $qq->where('name', 'like', "%{$search}%"));
                     });
                 }
             });

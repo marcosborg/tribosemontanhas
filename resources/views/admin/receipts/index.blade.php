@@ -119,20 +119,24 @@
 @section('scripts')
 @parent
 <script>
-(function($){
+$(function () {
+  // Igual ao Drivers: clonar os botões globais e acrescentar o mass delete (se permitido)
+  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 
-  // Mostra erros do DataTables em vez de ficar “A processar…”
-  $.fn.dataTable.ext.errMode = 'none';
-
-  let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons);
   @can('receipt_delete')
-  dtButtons.push({
-    text: '{{ trans('global.datatables.delete') }}',
+  let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
+  let deleteButton = {
+    text: deleteButtonTrans,
     url: "{{ route('admin.receipts.massDestroy') }}",
     className: 'btn-danger',
     action: function (e, dt, node, config) {
       var ids = $.map(dt.rows({ selected: true }).data(), function (entry) { return entry.id });
-      if (ids.length === 0) { alert('{{ trans('global.datatables.zero_selected') }}'); return; }
+
+      if (ids.length === 0) {
+        alert('{{ trans('global.datatables.zero_selected') }}')
+        return
+      }
+
       if (confirm('{{ trans('global.areYouSure') }}')) {
         $.ajax({
           headers: {'x-csrf-token': _token},
@@ -142,94 +146,82 @@
         }).done(function () { location.reload() })
       }
     }
-  });
+  }
+  dtButtons.push(deleteButton)
   @endcan
 
-  const table = $('.datatable-Receipt').DataTable({
-    buttons     : dtButtons,
-    processing  : true,
-    serverSide  : true,
-    retrieve    : true,
-    aaSorting   : [],
-    ajax: {
-      url: "/admin/receipts{{ url()->current() == url('/admin/receipts/paid') ? '/paid' : '' }}",
-      type: 'GET',
-      error: function(xhr){
-        // ajuda a diagnosticar quando “fica a processar”
-        let msg = 'Erro ao carregar dados.';
-        try { msg += '\n\n' + (xhr.responseJSON?.message || xhr.responseText || ''); } catch(e){}
-        alert(msg);
-      }
-    },
+  let dtOverrideGlobals = {
+    buttons: dtButtons,
+    processing: true,
+    serverSide: true,
+    retrieve: true,
+    aaSorting: [],
+    ajax: "{{ url()->current() == url('/admin/receipts/paid') ? route('admin.receipts.paid') : route('admin.receipts.index') }}",
     columns: [
-      { data: 'placeholder',          name: 'placeholder',               orderable:false, searchable:false },
+      { data: 'placeholder',          name: 'placeholder',                 orderable:false, searchable:false },
       { data: 'id',                    name: 'receipts.id' },
-      { data: 'driver_name',           name: 'driver_name',              orderable:false, searchable:true  }, // controller: filterColumn('driver_name', ...)
+      { data: 'driver_name',           name: 'driver_name' }, // filterColumn no controller
       { data: 'value',                 name: 'receipts.value' },
 
-      // calculadas / HTML -> não pesquisar/ordenar
-      { data: 'iva',                   name: 'iva',                      orderable:false, searchable:false },
-      { data: 'rf',                    name: 'rf',                       orderable:false, searchable:false },
-      { data: 'final',                 name: 'final',                    orderable:false, searchable:false },
-      { data: 'file',                  name: 'file',                     orderable:false, searchable:false },
-      { data: 'receipt_value',         name: 'receipt_value',            orderable:false, searchable:false },
+      // calculadas / HTML -> não pesquisar/ordenar (igual ao que tens)
+      { data: 'iva',                   name: 'iva',                        orderable:false, searchable:false },
+      { data: 'rf',                    name: 'rf',                         orderable:false, searchable:false },
+      { data: 'receipt_value',         name: 'receipt_value',              orderable:false, searchable:false },
+      { data: 'file',                  name: 'file',                       orderable:false, searchable:false },
+      { data: 'balance',               name: 'receipts.balance',           orderable:false, searchable:false },
 
-      // booleanos (controller faz filterColumn)
-      { data: 'verified',              name: 'verified',                 orderable:false, searchable:true  },
+      // booleanos (controller já trata filterColumn)
+      { data: 'verified',              name: 'verified' },
       { data: 'amount_transferred',    name: 'receipts.amount_transferred' },
-      { data: 'paid',                  name: 'paid',                     orderable:false, searchable:true  },
+      { data: 'paid',                  name: 'paid' },
 
-      { data: 'tvde_week_start_date',  name: 'tvde_week_start_date',     searchable:true  }, // controller: filterColumn(...)
+      // semana (alias vindo do select) + created_at
+      { data: 'tvde_week_start_date',  name: 'tvde_week_start_date' },
       { data: 'created_at',            name: 'receipts.created_at' },
-      { data: 'actions',               name: 'actions',                  orderable:false, searchable:false }
+
+      { data: 'actions',               name: 'actions',                    orderable:false, searchable:false }
     ],
     orderCellsTop: true,
-    order: [[1,'desc']],
+    order: [[ 1, 'desc' ]],
     pageLength: 100,
-    language: {
-      processing: 'A processar…'
-    }
+  };
+
+  let table = $('.datatable-Receipt').DataTable(dtOverrideGlobals);
+
+  // Ajuste em tabs (igual ao Drivers)
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
+    $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
   });
 
-  // Se o servidor devolver erro, mostra aviso
-  table.on('error.dt', function (e, settings, techNote, message) {
-    alert('DataTables error: ' + message);
-  });
-
-  // === Filtros por coluna (linha “dt-filters”) ===
+  // Pesquisa por coluna (inputs/selects do segundo thead) — igual ao Drivers
   let visibleColumnsIndexes = null;
+  $(document).on('input change', '.datatable-Receipt thead .search', function () {
+      const $el   = $(this);
+      const strict = $el.attr('strict') || false;
+      const rawVal = $el.val();
+      const value  = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
 
-  function applyColumnFilter(inputEl){
-      const strict = $(inputEl).attr('strict') || false;
-      const raw    = inputEl.value;
-      const value  = strict && raw !== '' ? '^' + raw + '$' : raw;
+      let index = $el.closest('th').index();
+      if (visibleColumnsIndexes !== null) {
+        index = visibleColumnsIndexes[index];
+      }
 
-      let index = $(inputEl).closest('th').index();
-      if (visibleColumnsIndexes !== null) index = visibleColumnsIndexes[index];
-
-      // NOTA: só adicionámos campos de filtro nas colunas pesquisáveis.
-      table.column(index).search(value, !!strict, false).draw();
-  }
-
-  $('.datatable-Receipt thead').on('input change', '.search', function(){
-      applyColumnFilter(this);
+      table
+        .column(index)
+        .search(value, !!strict)
+        .draw();
   });
 
   table.on('column-visibility.dt', function(){
       visibleColumnsIndexes = [];
-      table.columns(':visible').every(function(colIdx){
+      table.columns(':visible').every(function(colIdx) {
           visibleColumnsIndexes.push(colIdx);
       });
   });
-
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
-      table.columns.adjust().draw(false);
-  });
-
-})(jQuery);
+});
 </script>
 
-{{-- Ações existentes --}}
+{{-- Ações (mantidas iguais às tuas) --}}
 <script>
 function checkPay (receipt_id) {
   if($('#verified-' + receipt_id).prop('checked') == true){
