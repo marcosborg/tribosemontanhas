@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Models\Driver;
 use App\Models\User;
 use App\Notifications\NewReceipt;
@@ -22,7 +23,7 @@ class MyReceiptsController extends Controller
         abort_if(Gate::denies('my_receipt_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if (!session()->has('company_id')) {
-            $company_id = auth()->user()->company->id;
+            $company_id = Company::first()->id;
             session()->put('company_id', $company_id);
         }
 
