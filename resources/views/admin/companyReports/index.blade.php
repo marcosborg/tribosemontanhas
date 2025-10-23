@@ -66,6 +66,7 @@
         }
     });
 
+    // Inicializa popovers dos ícones de ajustes
     $(function() { $('[data-toggle="popover"]').popover() })
 
     function deleteData(tvde_week_id, driver_id) {
@@ -169,6 +170,33 @@
                             $temCCA = (bool) ($driver->current_account ?? false);
                             $diff   = round($valorSemanaAtual - $valorSemanaValidado, 2);
                             $temDif = $temCCA && abs($diff) >= 0.01;
+
+                            // Array/collection de ajustes (pode vir como array associativo/objetos)
+                            $ajustes = $driver->earnings['adjustments_array'] ?? [];
+                            $ajustesList = collect($ajustes)->map(function($a){
+                                // $a pode ser array ou objeto
+                                $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
+                                $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
+                                $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
+                                $notes = is_array($a) ? ($a['notes'] ?? '') : ($a->notes ?? '');
+                                $sd    = is_array($a) ? ($a['start_date'] ?? '') : ($a->start_date ?? '');
+                                $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
+                                $sign  = $type === 'deduct' ? '-' : '+';
+
+                                // Escapes
+                                $nameEsc  = e($name);
+                                $notesEsc = e($notes);
+                                $sdEsc    = e($sd);
+                                $edEsc    = e($ed);
+
+                                $dates = trim(($sdEsc || $edEsc) ? "{$sdEsc} a {$edEsc}" : '');
+
+                                return "<div style='margin-bottom:6px;'>
+                                            <strong>{$nameEsc}</strong>" . ($dates ? " <small>({$dates})</small>" : "") . "<br>
+                                            {$sign}" . number_format($amount, 2) . "€
+                                            " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
+                                        </div>";
+                            })->implode('');
                         @endphp
 
                         <tr>
@@ -176,11 +204,28 @@
 
                             <td style="text-align:right;">{{ number_format($driver->earnings['uber']['uber_net'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
+
                             <td style="text-align:right; color:red;">- {{ number_format($driver->earnings['vat_value'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">-{{ number_format($driver->fuel ?? 0, 2) }} <small>€</small></td>
+
+                            {{-- ================= AJUSTES com ícone/Popover ================= --}}
                             <td style="text-align:right;">
                                 {{ number_format($driver->adjustments ?? 0, 2) }} <small>€</small>
+                                @if(!empty($ajustes) && count($ajustes))
+                                    <a tabindex="0"
+                                       class="flag-red"
+                                       role="button"
+                                       data-toggle="popover"
+                                       data-trigger="focus"
+                                       data-html="true"
+                                       title="Ajustes"
+                                       data-content="{!! $ajustesList !!}">
+                                        <span class="glyphicon glyphicon-eye-open"></span>
+                                    </a>
+                                @endif
                             </td>
+                            {{-- ============================================================ --}}
+
                             <td style="text-align:right;">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">-{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">{{ number_format($driver->balance ?? 0, 2) }} <small>€</small></td>
@@ -241,4 +286,3 @@
     @endif
 </div>
 @endsection
-<script>console.log({!! $drivers !!})</script>
