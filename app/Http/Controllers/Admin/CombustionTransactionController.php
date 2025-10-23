@@ -55,7 +55,8 @@ class CombustionTransactionController extends Controller
                 return $row->card ? $row->card : '';
             });
 
-            $table->editColumn('exist', function ($row) {
+            // 👉 AQUI: usar addColumn porque "exist" não vem do select
+            $table->addColumn('exist', function ($row) {
                 if (!$row->card) {
                     return '<span class="badge badge-secondary">Sem cartão</span>';
                 }
@@ -73,7 +74,9 @@ class CombustionTransactionController extends Controller
                     ->first();
 
                 if ($driver) {
-                    return '';
+                    // Podes mostrar explicitamente que existe, se quiseres um badge verde:
+                    return '<span class="badge badge-success">Existe</span>';
+                    // ou então apenas '' se preferires vazio.
                 }
 
                 return '<span class="badge badge-danger">Não existe</span>';

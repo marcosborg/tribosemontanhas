@@ -26,10 +26,13 @@ class VehicleUsageController extends Controller
         abort_if(Gate::denies('vehicle_usage_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
+
             $query = VehicleUsage::with(['driver', 'vehicle_item'])->select(sprintf('%s.*', (new VehicleUsage)->table));
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
+
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
@@ -190,7 +193,16 @@ class VehicleUsageController extends Controller
             }
         }
 
-        // 3) Mapa de rendas por matrícula (rentByPlate), resolvendo driver via VehicleUsage na semana
+        // 3) Mapa de rendas por matrícula (rentByPlate) via CurrentAccount.data.car_hire
+        //    Pré-carrega todos os CurrentAccount da última semana e indexa por driver_id
+        $currentAccountsByDriver = collect();
+        if ($lastWeekId) {
+            $currentAccountsByDriver = \App\Models\CurrentAccount::query()
+                ->where('tvde_week_id', $lastWeekId)
+                ->get(['driver_id', 'data'])
+                ->keyBy('driver_id');
+        }
+
         $rentByPlate = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
@@ -198,7 +210,7 @@ class VehicleUsageController extends Controller
             $vehicleItem = optional($usagesForVehicle->first())->vehicle_item;
 
             if (!$vehicleItem) {
-                $rentByPlate[$plate] = 300;
+                $rentByPlate[$plate] = 300; // fallback visual
                 continue;
             }
 
@@ -222,21 +234,29 @@ class VehicleUsageController extends Controller
                 $driverId = optional($lastWithDriver)->driver_id;
             }
 
-            // CarHire (amount) do driver durante a semana (sobreposição)
-            $amount = null;
-            if ($driverId) {
-                $amount = CarHire::query()
-                    ->where('driver_id', $driverId)
-                    ->where(function ($q) use ($weekStart) {
-                        $q->whereNull('end_date')
-                            ->orWhereDate('end_date', '>=', $weekStart->toDateString());
-                    })
-                    ->whereDate('start_date', '<=', $weekEnd->toDateString())
-                    ->orderByDesc('start_date')
-                    ->value('amount');
+            // Tentar obter do CurrentAccount dessa semana: data->car_hire
+            $rent = null;
+            if ($driverId && isset($currentAccountsByDriver[$driverId])) {
+                $payload = $currentAccountsByDriver[$driverId]->data;
+
+                // Caso o campo não esteja com cast para array, decodifica
+                if (is_string($payload)) {
+                    $decoded = json_decode($payload, true);
+                    $payload = is_array($decoded) ? $decoded : [];
+                } elseif (!is_array($payload)) {
+                    $payload = [];
+                }
+
+                // caminho principal: car_hire na raiz do JSON (segundo o teu exemplo)
+                // (mantém fallback para earnings.car_hire se algum mais antigo tiver assim)
+                $rent = data_get($payload, 'car_hire');
+                if ($rent === null) {
+                    $rent = data_get($payload, 'earnings.car_hire');
+                }
             }
 
-            $rentByPlate[$plate] = $amount ?: 300; // fallback visual
+            // fallback final (visual) caso não haja CurrentAccount ou não tenha car_hire
+            $rentByPlate[$plate] = is_numeric($rent) ? (float) $rent : 300;
         }
 
         // 4) Estatísticas (igual ao teu original), acrescentando 'rent' a cada monthKey
@@ -291,7 +311,7 @@ class VehicleUsageController extends Controller
                             'accident'    => 0,
                             'unassigned'  => 0,
                             'personal'    => 0,
-                            'rent'        => $rentByPlate[$plate] ?? null, // << aqui
+                            'rent'        => $rentByPlate[$plate] ?? null, // valor do CurrentAccount
                         ];
                     }
                     if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {

@@ -227,6 +227,8 @@ trait Reports
                 })
                 ->first();
 
+            $sum_car_hire = $car_hire->amount ?? 0;
+
             //ADJUSTMENTS
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
                 $query->where('id', $driver->id);
@@ -269,7 +271,7 @@ trait Reports
                     }
                 }
                 if ($adjustment->car_hire_deduct) {
-                    $car_hire = $car_hire - $adjustment->amount;
+                    $sum_car_hire = $car_hire->amount - $adjustment->amount;
                 }
             }
 
@@ -328,7 +330,6 @@ trait Reports
                     ->sum('ct.value');
             }
 
-
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
@@ -339,7 +340,7 @@ trait Reports
                 'total_after_vat' => $total_after_vat,
                 'adjustments' => $adjustments,
                 'fuel_transactions' => $driver->fuel,
-                'car_hire' => $car_hire ? $car_hire->amount : 0,
+                'car_hire' => $sum_car_hire ? $sum_car_hire : 0,
                 'company_expense' => $total_company_adjustments,
                 'adjustments_array' => $adjustments_array
             ]);
@@ -373,7 +374,7 @@ trait Reports
             $total_vat_value[] = $vat_value;
             $total_earnings_after_vat[] = $total_after_vat;
             $total_car_track[] = $driver->earnings['car_track'];
-            $total_car_hire[] = $car_hire ? $car_hire->amount : 0;
+            $total_car_hire[] = $sum_car_hire ? $sum_car_hire : 0;
 
             $current_account = CurrentAccount::where([
                 'tvde_week_id' => $tvde_week_id,
