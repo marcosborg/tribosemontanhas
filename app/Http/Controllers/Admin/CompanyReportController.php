@@ -97,7 +97,6 @@ class CompanyReportController extends Controller
         }
     }
 
-
     public function revalidateData(Request $request)
     {
         $driver_id = $request->driver_id;
