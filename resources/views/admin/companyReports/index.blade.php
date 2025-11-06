@@ -164,7 +164,8 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">Ajustes</th>
                         <th style="text-align:right;">Via verde</th>
                         <th style="text-align:right;">Aluguer</th>
-                        <th style="text-align:right;">Saldo</th>
+                        <th style="text-align:right;">Último saldo</th>
+                        <th style="text-align:right;">Saldo atual</th>
                         <th style="text-align:right;">Valor da semana</th>
                         <th style="text-align:right;">A pagar</th>
                         <th style="text-align:right;">Validar</th>
@@ -239,6 +240,7 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             <td style="text-align:right;">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">-{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small></td>
+                            <td style="text-align:right;">{{ number_format($driver->drivers_balance ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">{{ number_format($driver->balance ?? 0, 2) }} <small>€</small></td>
 
                             {{-- Valor da semana + red flag (clicável) --}}
@@ -368,6 +370,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">{{ number_format($totals['total_adjustments'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">{{ number_format($totals['total_car_track'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">-{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></th>
+                        <th></th>
                         <th></th>
                         <th style="text-align:right;">{{ number_format($totals['total_drivers'] ?? 0, 2) }} <small>€</small></th>
                         <th></th>

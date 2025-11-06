@@ -76,7 +76,7 @@ class CompanyReportController extends Controller
                 ->orderBy('tvde_week_id', 'desc')
                 ->first();
 
-            $last = $last_balance ? (float) $last_balance->balance : 0.0;
+            $last = $last_balance ? (float) $last_balance->drivers_balance : 0.0;
             $balance = $last + $total;
 
             // 🔹 Novo saldo
@@ -84,7 +84,7 @@ class CompanyReportController extends Controller
             $driver_balance->driver_id       = $data['driver']['id'];
             $driver_balance->tvde_week_id    = $data['tvde_week_id'];
             $driver_balance->value           = $total;
-            $driver_balance->balance         = $balance;
+            $driver_balance->balance         = $last;
             $driver_balance->drivers_balance = $balance;
             $driver_balance->save();
 
