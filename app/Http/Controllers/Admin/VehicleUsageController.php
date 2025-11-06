@@ -27,18 +27,18 @@ class VehicleUsageController extends Controller
 
         if ($request->ajax()) {
 
-            $query = VehicleUsage::with(['driver', 'vehicle_item'])->select(sprintf('%s.*', (new VehicleUsage)->table));
+            $query = VehicleUsage::with(['driver', 'vehicle_item'])
+                ->select(sprintf('%s.*', (new VehicleUsage)->table));
 
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
-
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'vehicle_usage_show';
-                $editGate      = 'vehicle_usage_edit';
-                $deleteGate    = 'vehicle_usage_delete';
+                $viewGate = 'vehicle_usage_show';
+                $editGate = 'vehicle_usage_edit';
+                $deleteGate = 'vehicle_usage_delete';
                 $crudRoutePart = 'vehicle-usages';
 
                 return view('partials.datatablesActions', compact(
@@ -50,22 +50,104 @@ class VehicleUsageController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->addColumn('driver_name', function ($row) {
-                return $row->driver ? $row->driver->name : '';
+            $table->editColumn('id', fn($row) => $row->id ?: '');
+
+            // Relacionais (alias)
+            $table->addColumn('driver_name', fn($row) => $row->driver?->name ?: '');
+            $table->addColumn('vehicle_item_license_plate', fn($row) => $row->vehicle_item?->license_plate ?: '');
+
+            // Mostrar usage_exceptions: aceita string (key) ou JSON com várias keys
+            $map = VehicleUsage::USAGE_EXCEPTIONS_RADIO ?? [];
+            $table->editColumn('usage_exceptions', function ($row) use ($map) {
+                $val = $row->usage_exceptions;
+
+                if ($val === null || $val === '') {
+                    return '';
+                }
+
+                // Se for JSON válido, mapeia cada item
+                try {
+                    $decoded = is_string($val) ? json_decode($val, true) : null;
+                    if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                        $labels = [];
+                        foreach ($decoded as $k) {
+                            $labels[] = $map[$k] ?? (is_string($k) ? $k : json_encode($k));
+                        }
+                        return implode(', ', array_filter($labels));
+                    }
+                } catch (\Throwable $e) {
+                    // segue para fallback textual
+                }
+
+                // Se for string simples (key)
+                return $map[$val] ?? $val;
             });
 
-            $table->addColumn('vehicle_item_license_plate', function ($row) {
-                return $row->vehicle_item ? $row->vehicle_item->license_plate : '';
+            // ===== Filtros server-side por coluna =====
+
+            // Driver (nome)
+            $table->filterColumn('driver_name', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('driver', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
 
-            $table->editColumn('usage_exceptions', function ($row) {
-                return $row->usage_exceptions ? VehicleUsage::USAGE_EXCEPTIONS_RADIO[$row->usage_exceptions] : '';
+            // Matrícula
+            $table->filterColumn('vehicle_item_license_plate', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('vehicle_item', fn($qq) => $qq->where('license_plate', 'like', "%{$k}%"));
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'driver', 'vehicle_item']);
+            // Datas (LIKE simples; muda para BETWEEN se precisares)
+            $table->filterColumn('start_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('start_date', 'like', "%{$k}%");
+            });
+            $table->filterColumn('end_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('end_date', 'like', "%{$k}%");
+            });
+
+            // usage_exceptions: pesquisa por chave, rótulo ou conteúdo JSON
+            $table->filterColumn('usage_exceptions', function ($q, $k) use ($map) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+
+                // encontra keys cujos labels OU keys combinem com o termo
+                $keys = [];
+                foreach ($map as $key => $label) {
+                    if (stripos($label, $k) !== false || stripos($key, $k) !== false) {
+                        $keys[] = $key;
+                    }
+                }
+
+                $q->where(function ($qq) use ($k, $keys) {
+                    // match direto por string
+                    $qq->orWhere('usage_exceptions', 'like', "%{$k}%");
+
+                    // match por keys conhecidas
+                    if (count($keys)) {
+                        $qq->orWhereIn('usage_exceptions', $keys);
+                        // match dentro de JSON
+                        foreach ($keys as $key) {
+                            $qq->orWhereRaw('JSON_VALID(usage_exceptions) AND JSON_CONTAINS(COALESCE(usage_exceptions, "[]"), ?)', ['"' . $key . '"']);
+                        }
+                    } else {
+                        // fallback para JSON textual (quando user escreve o label mas não há no map)
+                        $qq->orWhereRaw('JSON_VALID(usage_exceptions) AND JSON_SEARCH(usage_exceptions, "one", ?)', [$k]);
+                    }
+                });
+            });
+
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
@@ -87,7 +169,7 @@ class VehicleUsageController extends Controller
     {
         // As datas estão validadas no formato Y-m-d H:i:s, podemos usá-las diretamente
         $startDate = $request->start_date;
-        $endDate   = $request->end_date;
+        $endDate = $request->end_date;
 
         // Criar SEMPRE o novo registo
         $newUsage = VehicleUsage::create($request->all());
@@ -180,14 +262,14 @@ class VehicleUsageController extends Controller
 
         // 2) Intervalo da semana (fallback = semana corrente)
         $weekStart = now()->startOfWeek();
-        $weekEnd   = now()->endOfWeek();
+        $weekEnd = now()->endOfWeek();
 
         if ($lastWeekId) {
             $tw = TvdeWeek::query()->find($lastWeekId);
             if ($tw && !empty($tw->start_date) && !empty($tw->end_date)) {
                 try {
                     $weekStart = Carbon::parse($tw->start_date)->startOfDay();
-                    $weekEnd   = Carbon::parse($tw->end_date)->endOfDay();
+                    $weekEnd = Carbon::parse($tw->end_date)->endOfDay();
                 } catch (\Throwable $e) { /* mantém fallback */
                 }
             }
@@ -265,7 +347,7 @@ class VehicleUsageController extends Controller
 
             foreach ($usagesForVehicle as $usage) {
                 $startRaw = $usage->getRawOriginal('start_date');
-                $endRaw   = $usage->getRawOriginal('end_date');
+                $endRaw = $usage->getRawOriginal('end_date');
 
                 try {
                     $start = Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
@@ -293,25 +375,25 @@ class VehicleUsageController extends Controller
                         $monthlyStats[$monthKey] = [
                             'label' => $monthKey,
                             'plate' => $plate,
-                            'year'  => (string) $year,
+                            'year' => (string) $year,
                             'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'days'  => 0,
+                            'days' => 0,
                         ];
                     }
                     $monthlyStats[$monthKey]['days']++;
 
                     if (!isset($monthlyStackedStats[$monthKey])) {
                         $monthlyStackedStats[$monthKey] = [
-                            'label'       => $monthKey,
-                            'plate'       => $plate,
-                            'year'        => (string) $year,
-                            'month'       => str_pad($month, 2, '0', STR_PAD_LEFT),
-                            'usage'       => 0,
+                            'label' => $monthKey,
+                            'plate' => $plate,
+                            'year' => (string) $year,
+                            'month' => str_pad($month, 2, '0', STR_PAD_LEFT),
+                            'usage' => 0,
                             'maintenance' => 0,
-                            'accident'    => 0,
-                            'unassigned'  => 0,
-                            'personal'    => 0,
-                            'rent'        => $rentByPlate[$plate] ?? null, // valor do CurrentAccount
+                            'accident' => 0,
+                            'unassigned' => 0,
+                            'personal' => 0,
+                            'rent' => $rentByPlate[$plate] ?? null, // valor do CurrentAccount
                         ];
                     }
                     if (array_key_exists($exception, $monthlyStackedStats[$monthKey])) {
@@ -329,18 +411,18 @@ class VehicleUsageController extends Controller
                 $totalDays = Carbon::create($year, 1, 1)->daysInYear;
                 $usedCount = count($usedDays);
                 $occupancyStats[$plate][$year] = [
-                    'used'    => $usedCount,
-                    'total'   => $totalDays,
+                    'used' => $usedCount,
+                    'total' => $totalDays,
                     'percent' => round(($usedCount / $totalDays) * 100, 2),
                 ];
 
                 $yearKey = "$plate ($year)";
                 if (!isset($yearlyMap[$yearKey])) {
                     $yearlyMap[$yearKey] = [
-                        'label'        => $yearKey,
-                        'year'         => (string) $year,
+                        'label' => $yearKey,
+                        'year' => (string) $year,
                         'totalPercent' => 0,
-                        'months'       => 0,
+                        'months' => 0,
                     ];
                 }
             }
@@ -361,8 +443,8 @@ class VehicleUsageController extends Controller
         $yearlyStats = [];
         foreach ($yearlyMap as $entry) {
             $yearlyStats[] = [
-                'label'   => $entry['label'],
-                'year'    => $entry['year'],
+                'label' => $entry['label'],
+                'year' => $entry['year'],
                 'percent' => $entry['months'] > 0 ? round($entry['totalPercent'] / $entry['months'], 2) : 0,
             ];
         }

@@ -13,6 +13,7 @@
             </div>
         </div>
     @endcan
+
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
@@ -20,64 +21,57 @@
                     {{ trans('cruds.vehicleUsage.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleUsage">
+                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleUsage" style="width:100%">
                         <thead>
                             <tr>
-                                <th width="10">
-
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.id') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.driver') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.vehicle_item') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.start_date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.end_date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}
-                                </th>
-                                <th>
-                                    &nbsp;
-                                </th>
+                                <th width="10"></th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.id') }}</th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.driver') }}</th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.vehicle_item') }}</th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.start_date') }}</th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.end_date') }}</th>
+                                <th>{{ trans('cruds.vehicleUsage.fields.usage_exceptions') }}</th>
+                                <th>&nbsp;</th>
+                            </tr>
+                            {{-- Filtros por coluna --}}
+                            <tr>
+                                <th></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th></th>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
 @endsection
+
 @section('scripts')
 @parent
 <script>
-    $(function () {
+$(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
-@can('vehicle_usage_delete')
+
+  @can('vehicle_usage_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
   let deleteButton = {
     text: deleteButtonTrans,
     url: "{{ route('admin.vehicle-usages.massDestroy') }}",
     className: 'btn-danger',
     action: function (e, dt, node, config) {
-      var ids = $.map(dt.rows({ selected: true }).data(), function (entry) {
+      const ids = $.map(dt.rows({ selected: true }).data(), function (entry) {
           return entry.id
       });
 
       if (ids.length === 0) {
         alert('{{ trans('global.datatables.zero_selected') }}')
-
         return
       }
 
@@ -86,13 +80,13 @@
           headers: {'x-csrf-token': _token},
           method: 'POST',
           url: config.url,
-          data: { ids: ids, _method: 'DELETE' }})
-          .done(function () { location.reload() })
+          data: { ids: ids, _method: 'DELETE' }
+        }).done(function () { location.reload() })
       }
     }
   }
   dtButtons.push(deleteButton)
-@endcan
+  @endcan
 
   let dtOverrideGlobals = {
     buttons: dtButtons,
@@ -102,26 +96,46 @@
     aaSorting: [],
     ajax: "{{ route('admin.vehicle-usages.index') }}",
     columns: [
-      { data: 'placeholder', name: 'placeholder' },
-{ data: 'id', name: 'id' },
-{ data: 'driver_name', name: 'driver.name' },
-{ data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
-{ data: 'start_date', name: 'start_date' },
-{ data: 'end_date', name: 'end_date' },
-{ data: 'usage_exceptions', name: 'usage_exceptions' },
-{ data: 'actions', name: '{{ trans('global.actions') }}' }
+      { data: 'placeholder',                  name: 'placeholder', orderable:false, searchable:false },
+      { data: 'id',                           name: 'vehicle_usages.id' },
+      { data: 'driver_name',                  name: 'driver_name' },                 // filterColumn whereHas(driver)
+      { data: 'vehicle_item_license_plate',   name: 'vehicle_item_license_plate' }, // filterColumn whereHas(vehicle_item)
+      { data: 'start_date',                   name: 'vehicle_usages.start_date' },
+      { data: 'end_date',                     name: 'vehicle_usages.end_date' },
+      { data: 'usage_exceptions',             name: 'usage_exceptions' },           // filterColumn (labels/keys/JSON)
+      { data: 'actions',                      name: 'actions', orderable:false, searchable:false }
     ],
     orderCellsTop: true,
-    order: [[ 1, 'desc' ]],
+    order: [[1, 'desc']],
     pageLength: 100,
   };
-  let table = $('.datatable-VehicleUsage').DataTable(dtOverrideGlobals);
-  $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
-      $($.fn.dataTable.tables(true)).DataTable()
-          .columns.adjust();
-  });
-  
-});
 
+  const table = $('.datatable-VehicleUsage').DataTable(dtOverrideGlobals);
+
+  $('a[data-toggle="tab"]').on('shown.bs.tab click', function () {
+      $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
+  });
+
+  // Pesquisa por coluna (inputs na 2ª linha do thead)
+  let visibleColumnsIndexes = null;
+  $(document).on('input change', '.datatable-VehicleUsage thead .search', function () {
+      const $el   = $(this);
+      const strict = $el.attr('strict') || false;
+      const raw   = $el.val();
+      const value = strict && raw !== '' ? '^' + raw + '$' : raw;
+
+      let index = $el.closest('th').index();
+      if (visibleColumnsIndexes !== null) index = visibleColumnsIndexes[index];
+
+      table.column(index).search(value, !!strict).draw();
+  });
+
+  table.on('column-visibility.dt', function () {
+      visibleColumnsIndexes = [];
+      table.columns(':visible').every(function (colIdx) {
+          visibleColumnsIndexes.push(colIdx);
+      });
+  });
+});
 </script>
 @endsection
