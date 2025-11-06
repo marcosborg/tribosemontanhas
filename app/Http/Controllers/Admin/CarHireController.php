@@ -23,16 +23,18 @@ class CarHireController extends Controller
         abort_if(Gate::denies('car_hire_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = CarHire::with(['driver'])->select(sprintf('%s.*', (new CarHire)->table));
+            $query = CarHire::with(['driver'])
+                ->select(sprintf('%s.*', (new CarHire)->table));
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'car_hire_show';
-                $editGate      = 'car_hire_edit';
-                $deleteGate    = 'car_hire_delete';
+                $viewGate = 'car_hire_show';
+                $editGate = 'car_hire_edit';
+                $deleteGate = 'car_hire_delete';
                 $crudRoutePart = 'car-hires';
 
                 return view('partials.datatablesActions', compact(
@@ -44,21 +46,52 @@ class CarHireController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->editColumn('name', function ($row) {
-                return $row->name ? $row->name : '';
-            });
-            $table->editColumn('amount', function ($row) {
-                return $row->amount ? $row->amount : '';
+            $table->editColumn('id', fn($row) => $row->id ?? '');
+            $table->editColumn('name', fn($row) => $row->name ?? '');
+            $table->editColumn('amount', fn($row) => $row->amount ?? '');
+            $table->editColumn('start_date', fn($row) => $row->start_date ?? '');
+            $table->editColumn('end_date', fn($row) => $row->end_date ?? '');
+
+            // Relacional
+            $table->addColumn('driver_name', fn($row) => $row->driver?->name ?: '');
+
+            // ======= Filtros server-side por coluna =======
+            $table->filterColumn('name', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('name', 'like', "%{$k}%");
             });
 
-            $table->addColumn('driver_name', function ($row) {
-                return $row->driver ? $row->driver->name : '';
+            $table->filterColumn('amount', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('amount', 'like', "%{$k}%");
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'driver']);
+            $table->filterColumn('start_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('start_date', 'like', "%{$k}%");
+            });
+
+            $table->filterColumn('end_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('end_date', 'like', "%{$k}%");
+            });
+
+            $table->filterColumn('driver_name', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('driver', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
+            });
+
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }
