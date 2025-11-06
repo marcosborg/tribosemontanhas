@@ -26,21 +26,23 @@ class AdjustmentController extends Controller
         if ($request->ajax()) {
             $query = Adjustment::with(['drivers', 'company']);
 
+            // Filtro por empresa (session)
             if (session()->has('company_id') && session()->get('company_id') !== '0') {
                 $query->where('company_id', session()->get('company_id'));
             }
 
-            // 👇 Aplica o filtro do driver_id antes do select()
+            // Filtro por driver_id (dropdown no topo)
             if ($request->filled('driver_id')) {
                 $query->whereHas('drivers', function ($q) use ($request) {
                     $q->where('drivers.id', $request->driver_id);
                 });
             }
 
-            // 👇 Só agora adiciona o select, depois de todos os filtros
+            // Select depois dos filtros
             $query->select(sprintf('%s.*', (new Adjustment)->table));
 
             $table = Datatables::of($query);
+
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
@@ -61,29 +63,123 @@ class AdjustmentController extends Controller
 
             $table->editColumn('id', fn($row) => $row->id ?? '');
             $table->editColumn('name', fn($row) => $row->name ?? '');
-            $table->editColumn('type', fn($row) => $row->type ? Adjustment::TYPE_RADIO[$row->type] : '');
+
+            // Mostra o rótulo legível do TYPE
+            $table->editColumn('type', function ($row) {
+                return $row->type ? (Adjustment::TYPE_RADIO[$row->type] ?? $row->type) : '';
+            });
+
             $table->editColumn('amount', fn($row) => $row->amount ?? '');
             $table->editColumn('percent', fn($row) => $row->percent ?? '');
+            $table->editColumn('start_date', fn($row) => $row->start_date ?? '');
+            $table->editColumn('end_date', fn($row) => $row->end_date ?? '');
 
+            // Badges com nomes dos drivers
             $table->editColumn('drivers', function ($row) {
+                if (!$row->relationLoaded('drivers'))
+                    $row->load('drivers');
                 $labels = [];
                 foreach ($row->drivers as $driver) {
-                    $labels[] = sprintf('<span class="label label-info label-many">%s</span>', $driver->name);
+                    $labels[] = sprintf('<span class="label label-info label-many">%s</span>', e($driver->name));
                 }
                 return implode(' ', $labels);
             });
 
+            // Alias para a empresa
             $table->addColumn('company_name', fn($row) => $row->company->name ?? '');
+
+            // Checkboxes (HTML)
             $table->editColumn('company_expense', fn($row) => '<input type="checkbox" disabled ' . ($row->company_expense ? 'checked' : null) . '>');
             $table->editColumn('car_hire_deduct', fn($row) => '<input type="checkbox" disabled ' . ($row->car_hire_deduct ? 'checked' : null) . '>');
 
-            $table->rawColumns(['actions', 'placeholder', 'drivers', 'company', 'company_expense', 'car_hire_deduct']);
+            // ========= Filtros server-side por coluna =========
+
+            // name
+            $table->filterColumn('name', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('name', 'like', "%{$k}%");
+            });
+
+            // type: aceita procurar por rótulo OU pela chave
+            $table->filterColumn('type', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $map = Adjustment::TYPE_RADIO ?? [];
+                // tenta converter label -> chave(s) compatíveis
+                $keys = [];
+                foreach ($map as $key => $label) {
+                    if (stripos($label, $k) !== false || stripos($key, $k) !== false) {
+                        $keys[] = $key;
+                    }
+                }
+                if (count($keys)) {
+                    $q->whereIn('type', $keys);
+                } else {
+                    // fallback textual
+                    $q->where('type', 'like', "%{$k}%");
+                }
+            });
+
+            // amount
+            $table->filterColumn('amount', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('amount', 'like', "%{$k}%");
+            });
+
+            // percent
+            $table->filterColumn('percent', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('percent', 'like', "%{$k}%");
+            });
+
+            // start_date / end_date (LIKE simples; podes trocar para BETWEEN se precisares)
+            $table->filterColumn('start_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('start_date', 'like', "%{$k}%");
+            });
+            $table->filterColumn('end_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('end_date', 'like', "%{$k}%");
+            });
+
+            // drivers (pesquisa por nome)
+            $table->filterColumn('drivers', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('drivers', function ($qq) use ($k) {
+                    $qq->where('name', 'like', "%{$k}%");
+                });
+            });
+
+            // company_name
+            $table->filterColumn('company_name', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('company', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'drivers', 'company_expense', 'car_hire_deduct']);
+
             return $table->make(true);
         }
 
         $drivers = Driver::get();
         return view('admin.adjustments.index', compact('drivers'));
     }
+
     public function create()
     {
         abort_if(Gate::denies('adjustment_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
