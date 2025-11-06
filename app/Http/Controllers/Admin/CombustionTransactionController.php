@@ -23,16 +23,18 @@ class CombustionTransactionController extends Controller
         abort_if(Gate::denies('combustion_transaction_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = CombustionTransaction::with(['tvde_week'])->select(sprintf('%s.*', (new CombustionTransaction)->table));
+            $query = CombustionTransaction::with(['tvde_week'])
+                ->select(sprintf('%s.*', (new CombustionTransaction)->table));
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'combustion_transaction_show';
-                $editGate      = 'combustion_transaction_edit';
-                $deleteGate    = 'combustion_transaction_delete';
+                $viewGate = 'combustion_transaction_show';
+                $editGate = 'combustion_transaction_edit';
+                $deleteGate = 'combustion_transaction_delete';
                 $crudRoutePart = 'combustion-transactions';
 
                 return view('partials.datatablesActions', compact(
@@ -44,53 +46,63 @@ class CombustionTransactionController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->addColumn('tvde_week_start_date', function ($row) {
-                return $row->tvde_week ? $row->tvde_week->start_date : '';
-            });
+            $table->editColumn('id', fn($row) => $row->id ?: '');
 
-            $table->editColumn('card', function ($row) {
-                return $row->card ? $row->card : '';
-            });
+            // Relacional (sem alterar o select)
+            $table->addColumn('tvde_week_start_date', fn($row) => $row->tvde_week?->start_date ?: '');
 
-            // 👉 AQUI: usar addColumn porque "exist" não vem do select
+            $table->editColumn('card', fn($row) => $row->card ?: '');
+
+            // Badge "exist"
             $table->addColumn('exist', function ($row) {
                 if (!$row->card) {
                     return '<span class="badge badge-secondary">Sem cartão</span>';
                 }
 
-                // Procurar driver com este cartão
-                $driver = \App\Models\Driver::where('card_id', function ($query) use ($row) {
-                    $query->select('id')
-                        ->from('cards')
-                        ->where('code', $row->card)
-                        ->limit(1);
-                })
-                    ->orWhereHas('cards', function ($query) use ($row) {
-                        $query->where('code', $row->card);
-                    })
-                    ->first();
+                $driver = \App\Models\Driver::where('card_id', function ($q) use ($row) {
+                    $q->select('id')->from('cards')->where('code', $row->card)->limit(1);
+                })->orWhereHas('cards', function ($q) use ($row) {
+                    $q->where('code', $row->card);
+                })->first();
 
-                if ($driver) {
-                    // Podes mostrar explicitamente que existe, se quiseres um badge verde:
-                    return '<span class="badge badge-success">Existe</span>';
-                    // ou então apenas '' se preferires vazio.
-                }
-
-                return '<span class="badge badge-danger">Não existe</span>';
+                return $driver
+                    ? '<span class="badge badge-success">Existe</span>'
+                    : '<span class="badge badge-danger">Não existe</span>';
             });
 
+            $table->editColumn('amount', fn($row) => $row->amount ?: '');
+            $table->editColumn('total', fn($row) => $row->total ?: '');
 
-            $table->editColumn('amount', function ($row) {
-                return $row->amount ? $row->amount : '';
-            });
-            $table->editColumn('total', function ($row) {
-                return $row->total ? $row->total : '';
+            // ---- Filtros server-side por coluna ----
+            $table->filterColumn('tvde_week_start_date', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->whereHas('tvde_week', fn($qq) => $qq->where('start_date', 'like', "%{$k}%"));
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'tvde_week', 'exist']);
+            $table->filterColumn('card', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('card', 'like', "%{$k}%");
+            });
+
+            $table->filterColumn('amount', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('amount', 'like', "%{$k}%");
+            });
+
+            $table->filterColumn('total', function ($q, $k) {
+                $k = trim($k);
+                if ($k === '')
+                    return;
+                $q->where('total', 'like', "%{$k}%");
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'exist']);
 
             return $table->make(true);
         }
