@@ -32,9 +32,9 @@ class VehicleExpensesController extends Controller
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'vehicle_expense_show';
-                $editGate      = 'vehicle_expense_edit';
-                $deleteGate    = 'vehicle_expense_delete';
+                $viewGate = 'vehicle_expense_show';
+                $editGate = 'vehicle_expense_edit';
+                $deleteGate = 'vehicle_expense_delete';
                 $crudRoutePart = 'vehicle-expenses';
 
                 return view('partials.datatablesActions', compact(
@@ -54,11 +54,13 @@ class VehicleExpensesController extends Controller
             });
 
             $table->editColumn('expense_type', function ($row) {
-                return $row->expense_type ? VehicleExpense::EXPENSE_TYPE_RADIO[$row->expense_type] : '';
+                $map = VehicleExpense::EXPENSE_TYPE_RADIO ?? [];
+                $val = $row->expense_type;
+                return $val !== null ? ($map[$val] ?? $val) : '';
             });
 
             $table->editColumn('files', function ($row) {
-                if (! $row->files) {
+                if (!$row->files) {
                     return '';
                 }
                 $links = [];
@@ -126,14 +128,14 @@ class VehicleExpensesController extends Controller
 
         if (count($vehicleExpense->files) > 0) {
             foreach ($vehicleExpense->files as $media) {
-                if (! in_array($media->file_name, $request->input('files', []))) {
+                if (!in_array($media->file_name, $request->input('files', []))) {
                     $media->delete();
                 }
             }
         }
         $media = $vehicleExpense->files->pluck('file_name')->toArray();
         foreach ($request->input('files', []) as $file) {
-            if (count($media) === 0 || ! in_array($file, $media)) {
+            if (count($media) === 0 || !in_array($file, $media)) {
                 $vehicleExpense->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('files');
             }
         }
@@ -174,10 +176,10 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_create') && Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $model         = new VehicleExpense();
-        $model->id     = $request->input('crud_id', 0);
+        $model = new VehicleExpense();
+        $model->id = $request->input('crud_id', 0);
         $model->exists = true;
-        $media         = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
+        $media = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
 
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
     }
