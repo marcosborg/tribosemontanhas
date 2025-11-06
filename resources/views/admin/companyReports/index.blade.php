@@ -6,11 +6,63 @@
     tr { line-height: 25px; }
     tr:nth-child(even) { background-color: #eeeeee; }
     tr:nth-child(odd)  { background-color: #ffffff; }
-    .btn-sm { padding: 0px 5px; font-size: 12px; line-height: 1.5; border-radius: 3px; margin-left: 10px; }
+    .btn-sm { padding: 0px 10px; font-size: 12px; line-height: 1.6; border-radius: 4px; }
     .unverified { color: #cccccc; }
     .verified   { color: #00a65a; }
     .flag-red   { color: #dc3545; margin-left: 6px; cursor: help; }
     .table-sticky-container { width: 100%; overflow-x: auto; }
+
+    /* --- Toolbar bonita na panel-heading --- */
+    .report-toolbar{
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:10px;
+        flex-wrap:wrap;
+    }
+    .report-toolbar .left-actions{
+        display:flex;
+        gap:8px;
+        align-items:center;
+        flex-wrap:wrap;
+    }
+    .report-toolbar .search-wrap{
+        margin-left:auto;
+        min-width: 240px;
+        max-width: 340px;
+        width: 100%;
+    }
+    .report-search.input-group{
+        width:100%;
+        border:1px solid #d9e2ec;
+        border-radius:6px;
+        overflow:hidden;
+        background:#fff;
+        box-shadow:0 1px 2px rgba(16,24,40,.04), 0 1px 1px rgba(16,24,40,.02) inset;
+        transition: box-shadow .15s ease, border-color .15s ease;
+    }
+    .report-search .form-control{
+        border:0;
+        height:32px;
+        padding:6px 10px;
+        box-shadow:none;
+        font-size:13px;
+    }
+    .report-search .input-group-addon{
+        background:#fff;
+        border:0;
+        font-size:13px;
+        color:#6b7280;
+    }
+    .report-search:focus-within{
+        border-color:#3b82f6;
+        box-shadow:0 0 0 3px rgba(59,130,246,.15);
+    }
+
+    /* Botões compactos e com pequenas sombras */
+    .btn-primary.btn-sm, .btn-success.btn-sm{
+        box-shadow: 0 1px 0 rgba(0,0,0,.04);
+    }
 </style>
 @endsection
 
@@ -43,14 +95,14 @@
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(:checked):not(:disabled)');
         checkboxes.forEach((c) => c.checked = true);
         document.getElementById('selectAll').style.display   = 'none';
-        document.getElementById('unselectAll').style.display = 'block';
+        document.getElementById('unselectAll').style.display = 'inline-block';
         checkCheckedCheckboxes();
     }
 
     function unselectAll() {
         const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked:not(:disabled)');
         checkboxes.forEach((c) => c.checked = false);
-        document.getElementById('selectAll').style.display   = 'block';
+        document.getElementById('selectAll').style.display   = 'inline-block';
         document.getElementById('unselectAll').style.display = 'none';
         checkCheckedCheckboxes();
     }
@@ -90,6 +142,7 @@
         });
     }
 </script>
+
 <script>
 $(document).on('click', '.flag-toggle', function(e){
     e.preventDefault();
@@ -101,6 +154,40 @@ $(document).on('click', '.flag-toggle', function(e){
 });
 </script>
 
+{{-- ====== PESQUISA GLOBAL CLIENT-SIDE ====== --}}
+<script>
+(function () {
+  function debounce(fn, ms){ let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a), ms); }; }
+  function normalizeText(s){
+    if (s == null) return '';
+    return (''+s).replace(/\s+/g,' ').trim()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .replace(/[€]/g,'').toLowerCase();
+  }
+
+  function applyFilter(){
+    const q = normalizeText($('#globalFilter').val() || '');
+    const $table = $('.panel table.table').first();
+    const $rows  = $table.find('tbody > tr').not('.diff-row');
+
+    if (!q) { $rows.show(); return; }
+
+    $rows.each(function(){
+      const $tr = $(this);
+      const rowText = normalizeText($tr.text());
+      const show = rowText.includes(q);
+      $tr.toggle(show);
+
+      if (!show) {
+        const $next = $tr.next('.diff-row');
+        if ($next.length) $next.hide();
+      }
+    });
+  }
+
+  $(document).on('input', '#globalFilter', debounce(applyFilter, 120));
+})();
+</script>
 @endsection
 
 @section('content')
@@ -143,10 +230,23 @@ $(document).on('click', '.flag-toggle', function(e){
     {{-- Tabela --}}
     <div class="panel panel-default" style="margin-top: 20px;">
         <div class="panel-heading">
-            Faturação
-            <button class="btn btn-success btn-sm pull-right" onclick="validateData()" id="validateData" disabled>Validar selecionados</button>
-            <button class="btn btn-primary btn-sm pull-right" onclick="selectAll()" id="selectAll">Selecionar todos</button>
-            <button class="btn btn-primary btn-sm pull-right" onclick="unselectAll()" id="unselectAll" style="display: none;">Remover seleção</button>
+            <div class="report-toolbar">
+                <div class="left-actions">
+                    <strong>Faturação</strong>
+                    <button class="btn btn-primary btn-sm" onclick="selectAll()" id="selectAll">Selecionar todos</button>
+                    <button class="btn btn-primary btn-sm" onclick="unselectAll()" id="unselectAll" style="display:none;">Remover seleção</button>
+                    <button class="btn btn-success btn-sm" onclick="validateData()" id="validateData" disabled>Validar selecionados</button>
+                </div>
+
+                <div class="search-wrap">
+                    <div class="input-group report-search">
+                        <span class="input-group-addon">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                        </span>
+                        <input id="globalFilter" type="text" class="form-control" placeholder="Pesquisar...">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="table-sticky-container">
@@ -183,10 +283,8 @@ $(document).on('click', '.flag-toggle', function(e){
                             $diff   = round($valorSemanaAtual - $valorSemanaValidado, 2);
                             $temDif = $temCCA && abs($diff) >= 0.01;
 
-                            // Array/collection de ajustes (pode vir como array associativo/objetos)
                             $ajustes = $driver->earnings['adjustments_array'] ?? [];
                             $ajustesList = collect($ajustes)->map(function($a){
-                                // $a pode ser array ou objeto
                                 $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
                                 $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
                                 $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
@@ -195,7 +293,6 @@ $(document).on('click', '.flag-toggle', function(e){
                                 $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
                                 $sign  = $type === 'deduct' ? '-' : '+';
 
-                                // Escapes
                                 $nameEsc  = e($name);
                                 $notesEsc = e($notes);
                                 $sdEsc    = e($sd);
@@ -231,9 +328,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                        data-trigger="focus"
                                        data-html="true"
                                        title="Ajustes"
-                                       data-content="{!! $ajustesList !!}">
-                                        <span class="glyphicon glyphicon-eye-open"></span>
-                                    </a>
+                                       data-content="{!! $ajustesList !!}"><span class="glyphicon glyphicon-eye-open"></span></a>
                                 @endif
                             </td>
                             {{-- ============================================================ --}}
@@ -300,7 +395,6 @@ $(document).on('click', '.flag-toggle', function(e){
                             $val_carhire   = (float) data_get($cca, 'car_hire', 0);
                             $val_total     = (float) data_get($cca, 'total', 0);
 
-                            // helper inline
                             $fmt = fn($n) => number_format((float)$n, 2) . ' €';
                         @endphp
 
@@ -337,7 +431,6 @@ $(document).on('click', '.flag-toggle', function(e){
                                     </div>
                                 </div>
 
-                                {{-- Resumo das diferenças --}}
                                 <hr style="margin:8px 0;">
                                 <div class="row">
                                     <div class="col-sm-12" style="font-size:13px;">
