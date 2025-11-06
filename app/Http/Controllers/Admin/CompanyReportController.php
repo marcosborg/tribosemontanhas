@@ -84,8 +84,8 @@ class CompanyReportController extends Controller
             $driver_balance->driver_id       = $data['driver']['id'];
             $driver_balance->tvde_week_id    = $data['tvde_week_id'];
             $driver_balance->value           = $total;
-            $driver_balance->balance         = $last;
-            $driver_balance->drivers_balance = $balance;
+            $driver_balance->balance         = $balance;
+            $driver_balance->drivers_balance = $last;
             $driver_balance->save();
 
             /*

@@ -248,7 +248,7 @@
                         </tbody>
                     </table>
 
-                    @if ($driver_balance && $driver_balance->drivers_balance > 0)
+                    @if ($driver_balance && $driver_balance->balance > 0)
                     <form method="POST" action="{{ route('admin.receipts.store') }}" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="driver_id" value="{{ $driver_id }}">
@@ -257,7 +257,7 @@
                             <div class="col-md-6">
                                 <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                                     <label class="required" for="value">Valor do recibo</label>
-                                    <input class="form-control" type="hidden" name="value" id="value" value="{{ number_format((float)$driver_balance->final, 2, '.', '') }}">
+                                    <input class="form-control" type="hidden" name="value" id="value" value="{{ str_replace(',', '', (string) $driver_balance->final) }}">
                                     <input class="form-control" type="text" disabled value="{{ $driver_balance->final }}" placeholder="Verifique o seu recibo para confirmar o valor." required>
                                     @if($errors->has('value'))
                                     <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
