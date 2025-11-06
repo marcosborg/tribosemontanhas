@@ -37,6 +37,7 @@ trait Reports
 
         $drivers = Driver::where('company_id', $company_id)
             ->where('state_id', 1)
+            ->where('id', 566)
             ->orderBy('name')
             ->get()
             ->load([
@@ -156,7 +157,7 @@ trait Reports
 
             // limites reais (datetime) inclusivos
             $weekStart = \Carbon\Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
-            $weekEnd   = \Carbon\Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
+            $weekEnd = \Carbon\Carbon::parse($tvde_week->getRawOriginal('end_date'))->endOfDay();
 
             // todos os carregamentos no intervalo (inclusivo)
             $tesla_chargings = \App\Models\TeslaCharging::query()
@@ -204,7 +205,7 @@ trait Reports
                     ->select('vehicle_usages.*') // para obter o modelo correto
                     ->first();
 
-                if ($usage && (int)$usage->driver_id === (int)$driver->id) {
+                if ($usage && (int) $usage->driver_id === (int) $driver->id) {
                     $tesla_total += (float) $charging->value;
                 }
             }
@@ -293,33 +294,39 @@ trait Reports
             if ($tvde_week->id) {
                 $car_track = \DB::table('car_tracks as ct')
                     ->where('ct.tvde_week_id', $tvde_week->id)
-                    ->whereNull('ct.deleted_at') // não somar itens apagados
+                    ->whereNull('ct.deleted_at')
                     ->whereExists(function ($q) use ($driver) {
                         $q->select(\DB::raw(1))
                             ->from('vehicle_items as vi')
                             ->join('vehicle_usages as vu', 'vu.vehicle_item_id', '=', 'vi.id')
-                            // normalizar matrícula para casar
-                            ->whereRaw('REPLACE(UPPER(vi.license_plate), " ", "") = REPLACE(UPPER(ct.license_plate), " ", "")')
-                            // soft deletes
+                            // normalizar matrícula (sem espaços nem hífen) em ambos os lados
+                            ->whereRaw("
+                  REPLACE(REPLACE(UPPER(vi.license_plate), ' ', ''), '-', '') =
+                  REPLACE(REPLACE(UPPER(ct.license_plate),  ' ', ''), '-', '')
+              ")
                             ->whereNull('vi.deleted_at')
                             ->whereNull('vu.deleted_at')
-                            // condutor
+
+                            // motorista certo
                             ->where('vu.driver_id', $driver->id)
-                            // ativo na DATA (ignorar horas)
+
+                            // ativo na DATA (ignora horas)
                             ->whereRaw('DATE(vu.start_date) <= DATE(ct.date)')
                             ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(ct.date))')
-                            // só “utilização real” (se queres mesmo manter esta regra)
+
+                            // regra de exceções (compatível com texto ou JSON)
                             ->where(function ($s) {
                                 $s->whereNull('vu.usage_exceptions')
-                                    ->orWhere('vu.usage_exceptions', 'usage');
+                                    ->orWhere('vu.usage_exceptions', 'usage')
+                                    ->orWhereRaw("JSON_VALID(vu.usage_exceptions) AND JSON_CONTAINS(COALESCE(vu.usage_exceptions,'[]'), '\"usage\"')");
                             })
 
-                            // ---- TIE-BREAK opcional (evita overlaps entre usos) ----
-                            // escolhe o USO mais recente que cobre a data
+                            // TIE-BREAK **dentro do MESMO motorista** (impede 'unassigned' roubar)
                             ->whereRaw('vu.id = (
                     SELECT vu2.id
                     FROM vehicle_usages vu2
                     WHERE vu2.vehicle_item_id = vu.vehicle_item_id
+                      AND vu2.driver_id = vu.driver_id
                       AND vu2.deleted_at IS NULL
                       AND DATE(vu2.start_date) <= DATE(ct.date)
                       AND (vu2.end_date IS NULL OR DATE(vu2.end_date) >= DATE(ct.date))
