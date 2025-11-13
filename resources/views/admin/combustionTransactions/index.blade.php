@@ -40,7 +40,14 @@
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th></th>
+                                {{-- Filtro Sim/Não para "Existe" --}}
+                                <th>
+                                    <select class="search form-control input-sm">
+                                        <option value="">{{ __('Todos') }}</option>
+                                        <option value="Sim">Sim</option>
+                                        <option value="Não">Não</option>
+                                    </select>
+                                </th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th></th>
@@ -98,7 +105,7 @@ $(function () {
       { data: 'id',                     name: 'combustion_transactions.id' },
       { data: 'tvde_week_start_date',   name: 'tvde_week_start_date' },        // filtrado via filterColumn
       { data: 'card',                   name: 'combustion_transactions.card' },
-      { data: 'exist',                  name: 'exist', orderable: false, searchable: false },
+      { data: 'exist',                  name: 'exist', orderable: false, searchable: true },
       { data: 'amount',                 name: 'combustion_transactions.amount' },
       { data: 'total',                  name: 'combustion_transactions.total' },
       { data: 'actions',                name: 'actions', orderable: false, searchable: false },

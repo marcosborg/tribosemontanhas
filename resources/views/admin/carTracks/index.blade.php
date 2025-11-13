@@ -43,7 +43,13 @@
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.date"></th>
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.license_plate"></th>
                                 <th><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista" data-col-name="driver_name"></th>
-                                <th></th> {{-- Existe (badge) - não pesquisável --}}
+                                <th>
+                                    <select class="form-control input-sm" data-col-name="exist">
+                                        <option value="">Todos</option>
+                                        <option value="Sim">Sim</option>
+                                        <option value="Não">Não</option>
+                                    </select>
+                                </th>
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.value"></th>
                                 <th></th>
                             </tr>
@@ -106,7 +112,7 @@ $(function () {
       { data: 'date',                   name: 'car_tracks.date' },
       { data: 'license_plate',          name: 'car_tracks.license_plate' },
       { data: 'driver_name',            name: 'driver_name', orderable:false },
-      { data: 'exist',                  name: 'exist', searchable:false, orderable:false }, // NOVA COLUNA
+      { data: 'exist',                  name: 'exist', searchable:true, orderable:true }, // NOVA COLUNA
       { data: 'value',                  name: 'car_tracks.value' },
       { data: 'actions',                name: 'actions', searchable:false, orderable:false }
     ],

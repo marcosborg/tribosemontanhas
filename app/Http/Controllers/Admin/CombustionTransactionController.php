@@ -13,6 +13,7 @@ use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
+use Illuminate\Support\Facades\DB;
 
 class CombustionTransactionController extends Controller
 {
@@ -53,21 +54,23 @@ class CombustionTransactionController extends Controller
 
             $table->editColumn('card', fn($row) => $row->card ?: '');
 
-            // Badge "exist"
             $table->addColumn('exist', function ($row) {
                 if (!$row->card) {
-                    return '<span class="badge badge-secondary">Sem cartão</span>';
+                    return 'Sem cartão';
                 }
 
-                $driver = \App\Models\Driver::where('card_id', function ($q) use ($row) {
-                    $q->select('id')->from('cards')->where('code', $row->card)->limit(1);
-                })->orWhereHas('cards', function ($q) use ($row) {
-                    $q->where('code', $row->card);
-                })->first();
+                $exists = \App\Models\Driver::where('card_id', function ($q) use ($row) {
+                    $q->select('id')
+                        ->from('cards')
+                        ->where('code', $row->card)
+                        ->limit(1);
+                })
+                    ->orWhereHas('cards', function ($q) use ($row) {
+                        $q->where('code', $row->card);
+                    })
+                    ->exists();
 
-                return $driver
-                    ? '<span class="badge badge-success">Existe</span>'
-                    : '<span class="badge badge-danger">Não existe</span>';
+                return $exists ? 'Sim' : 'Não';
             });
 
             $table->editColumn('amount', fn($row) => $row->amount ?: '');
@@ -102,7 +105,39 @@ class CombustionTransactionController extends Controller
                 $q->where('total', 'like', "%{$k}%");
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'exist']);
+            $table->filterColumn('exist', function ($query, $keyword) {
+                $kw = mb_strtolower(trim(str_replace(['^', '$'], '', $keyword)));
+
+                if ($kw === '') {
+                    return;
+                }
+
+                // Subquery que verifica se há algum driver com este cartão
+                $subquery = function ($q) {
+                    $q->select(DB::raw(1))
+                        ->from('drivers as d')
+                        ->leftJoin('cards as c_main', 'c_main.id', '=', 'd.card_id')
+                        ->leftJoin('card_driver as cd', 'cd.driver_id', '=', 'd.id')
+                        ->leftJoin('cards as c_pivot', 'c_pivot.id', '=', 'cd.card_id')
+                        ->whereNull('d.deleted_at')
+                        ->where(function ($qq) {
+                            $qq->whereRaw('c_main.code = combustion_transactions.card')
+                                ->orWhereRaw('c_pivot.code = combustion_transactions.card');
+                        });
+                };
+
+                // "Sim" → existem drivers com esse cartão
+                if (in_array($kw, ['sim', 's', '1', 'yes'])) {
+                    $query->whereExists($subquery);
+                }
+
+                // "Não" → não existe nenhum driver com esse cartão
+                if (in_array($kw, ['nao', 'não', 'n', '0', 'no'])) {
+                    $query->whereNotExists($subquery);
+                }
+            });
+
+            $table->rawColumns(['actions', 'placeholder']);
 
             return $table->make(true);
         }

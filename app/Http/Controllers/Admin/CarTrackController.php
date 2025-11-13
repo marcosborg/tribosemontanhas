@@ -75,9 +75,9 @@ class CarTrackController extends Controller
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'car_track_show';
-                $editGate      = 'car_track_edit';
-                $deleteGate    = 'car_track_delete';
+                $viewGate = 'car_track_show';
+                $editGate = 'car_track_edit';
+                $deleteGate = 'car_track_delete';
                 $crudRoutePart = 'car-tracks';
 
                 return view('partials.datatablesActions', compact(
@@ -101,7 +101,8 @@ class CarTrackController extends Controller
             // Filtros server-side (mantidos)
             $table->filterColumn('driver_name', function ($query, $keyword) {
                 $keyword = trim($keyword);
-                if ($keyword === '') return;
+                if ($keyword === '')
+                    return;
 
                 $query->whereExists(function ($q) use ($keyword) {
                     $q->select(DB::raw(1))
@@ -120,25 +121,69 @@ class CarTrackController extends Controller
 
             $table->filterColumn('car_tracks.date', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '') return;
+                if ($kw === '')
+                    return;
                 $query->whereRaw('DATE(car_tracks.date) LIKE ?', ["%{$kw}%"]);
             });
 
             $table->filterColumn('tvde_weeks.start_date', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '') return;
+                if ($kw === '')
+                    return;
                 $query->where('tvde_weeks.start_date', 'like', "%{$kw}%");
             });
 
             $table->filterColumn('car_tracks.license_plate', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '') return;
+                if ($kw === '')
+                    return;
                 $kw = strtoupper(str_replace([' ', '-'], '', $kw));
                 $query->whereRaw(
                     "REPLACE(REPLACE(UPPER(car_tracks.license_plate), ' ', ''), '-', '') LIKE ?",
                     ["%{$kw}%"]
                 );
             });
+
+            $table->filterColumn('exist', function ($query, $keyword) {
+                $kw = mb_strtolower(trim(str_replace(['^', '$'], '', $keyword)));
+
+                if ($kw === '') {
+                    return;
+                }
+
+                // Se o utilizador escolher "Sim" queremos linhas onde o EXISTS seja verdadeiro
+                if (in_array($kw, ['sim', 's', '1', 'yes'])) {
+                    $query->whereExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('vehicle_usages as vu')
+                            ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
+                            ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                            ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
+                            ->whereNull('vu.deleted_at')
+                            ->whereNull('vi.deleted_at')
+                            ->whereNull('d.deleted_at')
+                            ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
+                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))');
+                    });
+                }
+
+                // Se o utilizador escolher "Não" queremos linhas onde NÃO existe nenhum registo compatível
+                if (in_array($kw, ['nao', 'não', 'n', '0', 'no'])) {
+                    $query->whereNotExists(function ($q) {
+                        $q->select(DB::raw(1))
+                            ->from('vehicle_usages as vu')
+                            ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
+                            ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                            ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
+                            ->whereNull('vu.deleted_at')
+                            ->whereNull('vi.deleted_at')
+                            ->whereNull('d.deleted_at')
+                            ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
+                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))');
+                    });
+                }
+            });
+
 
             $table->rawColumns(['actions', 'placeholder']);
 
