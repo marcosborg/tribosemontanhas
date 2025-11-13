@@ -110,10 +110,34 @@ class CarHireController extends Controller
 
     public function store(StoreCarHireRequest $request)
     {
+        // 1) Criar SEMPRE o novo registo
         $carHire = CarHire::create($request->all());
 
-        return redirect()->route('admin.car-hires.index');
+        // 2) Ler as datas exactamente como foram gravadas na BD
+        $startDate = $carHire->getRawOriginal('start_date');
+        $endDate = $carHire->getRawOriginal('end_date');
+
+        // 3) Verificar sobreposição com outros registos do MESMO driver
+        $hasOverlap = CarHire::where('driver_id', $carHire->driver_id)
+            ->where('id', '!=', $carHire->id) // ignora o próprio
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->where('start_date', '<=', $endDate)
+                    ->where('end_date', '>=', $startDate);
+            })
+            ->first();
+
+        if ($hasOverlap) {
+            return redirect()->route('admin.car-hires.index')
+                ->with(
+                    'error_message',
+                    "Aluguer criado com sucesso (ID {$carHire->id}), mas sobrepõe o aluguer existente com ID {$hasOverlap->id}."
+                );
+        }
+
+        return redirect()->route('admin.car-hires.index')
+            ->with('success', "Aluguer criado com sucesso (ID {$carHire->id}).");
     }
+
 
     public function edit(CarHire $carHire)
     {
