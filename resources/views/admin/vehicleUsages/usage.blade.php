@@ -34,11 +34,42 @@
                         <div class="tab-content">
                             <!-- Linha do Tempo -->
                             <div role="tabpanel" class="tab-pane active" id="home">
-                                <h3>Linha do Tempo das Viaturas</h3>
-                                <div id="timelineContainer" style="margin-bottom: 40px;">
-                                    <div id="timeline" style="height: auto;"></div>
+                            <h3>Linha do Tempo das Viaturas</h3>
+
+                            {{-- Filtros para focar a timeline num mês específico --}}
+                            <div class="form-inline" style="margin-bottom: 15px;">
+                                <div class="form-group" style="margin-right: 10px;">
+                                    <label for="timelineYearFilter" style="margin-right: 6px;">Ano:</label>
+                                    <select id="timelineYearFilter" class="form-control" style="max-width: 200px;">
+                                        <option value="all">Todos</option>
+                                        @foreach(array_keys($availableYears) as $year)
+                                            <option value="{{ $year }}">{{ $year }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
+
+                                <div class="form-group" style="margin-right: 10px;">
+                                    <label for="timelineMonthFilter" style="margin-right: 6px;">Mês:</label>
+                                    <select id="timelineMonthFilter" class="form-control" style="max-width: 200px;">
+                                        <option value="all">Todos</option>
+                                        @for ($m = 1; $m <= 12; $m++)
+                                            <option value="{{ str_pad($m, 2, '0', STR_PAD_LEFT) }}">
+                                                {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                                            </option>
+                                        @endfor
+                                    </select>
+                                </div>
+
+                                <button id="timelineResetBtn" class="btn btn-default btn-sm">
+                                    Ver tudo
+                                </button>
                             </div>
+
+                            <div id="timelineContainer" style="margin-bottom: 40px;">
+                                <div id="timeline" style="height: auto;"></div>
+                            </div>
+                        </div>
+
 
                             <!-- Gráfico -->
                             <div role="tabpanel" class="tab-pane" id="profile">
@@ -150,7 +181,7 @@ document.addEventListener('DOMContentLoaded', function () {
         @endforeach
     ]);
 
-    new vis.Timeline(
+    const timeline = new vis.Timeline(
         document.getElementById('timeline'),
         timelineItems,
         timelineGroups,
@@ -162,6 +193,51 @@ document.addEventListener('DOMContentLoaded', function () {
             orientation: 'top'
         }
     );
+
+    // === Filtro de Ano/Mês para a TIMELINE ===
+    const tYearSel  = document.getElementById('timelineYearFilter');
+    const tMonthSel = document.getElementById('timelineMonthFilter');
+    const tResetBtn = document.getElementById('timelineResetBtn');
+
+    function focusTimelineMonth() {
+        if (!timeline || !tYearSel || !tMonthSel) return;
+
+        const year  = tYearSel.value;
+        const month = tMonthSel.value;
+
+        // Se algum estiver em "Todos", mostra o período completo
+        if (year === 'all' || month === 'all') {
+            timeline.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+            return;
+        }
+
+        const y = parseInt(year, 10);
+        const m = parseInt(month, 10) - 1; // JS: 0 = Jan
+
+        // 1º dia do mês
+        const start = new Date(y, m, 1);
+        // último dia do mês às 23:59:59
+        const end   = new Date(y, m + 1, 0, 23, 59, 59, 999);
+
+        timeline.setWindow(start, end, {
+            animation: { duration: 400, easingFunction: 'easeInOutQuad' }
+        });
+    }
+
+    if (tYearSel && tMonthSel) {
+        tYearSel.addEventListener('change', focusTimelineMonth);
+        tMonthSel.addEventListener('change', focusTimelineMonth);
+    }
+
+    if (tResetBtn) {
+        tResetBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (tYearSel)  tYearSel.value  = 'all';
+            if (tMonthSel) tMonthSel.value = 'all';
+            timeline.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+        });
+    }
+
 
     // === CHART.JS (STACKED HORIZONTAL) ===
     const ctx        = document.getElementById('occupancyChart').getContext('2d');
