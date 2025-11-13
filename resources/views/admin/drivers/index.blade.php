@@ -26,32 +26,36 @@
                     <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-Driver" style="width:100%">
                         <thead>
                             <tr>
-                                <th width="10"></th>
-                                <th>{{ trans('cruds.driver.fields.id') }}</th>
-                                <th>{{ trans('cruds.driver.fields.user') }}</th>
-                                <th>{{ trans('cruds.user.fields.email') }}</th>
-                                <th>{{ trans('cruds.driver.fields.code') }}</th>
-                                <th>{{ trans('cruds.driver.fields.contract_vat') }}</th>
-                                <th>{{ trans('cruds.driver.fields.state') }}</th>
-                                <th>{{ trans('cruds.driver.fields.uber_uuid') }}</th>
-                                <th>{{ trans('cruds.driver.fields.bolt_name') }}</th>
-                                <th>{{ trans('cruds.driver.fields.company') }}</th>
-                                <th>&nbsp;</th>
-                            </tr>
+                              <th width="10"></th>
+                              <th>{{ trans('cruds.driver.fields.id') }}</th>
+                              <th>{{ trans('cruds.driver.fields.user') }}</th>
+                              <th>{{ trans('cruds.user.fields.email') }}</th>
+                              <th>{{ trans('cruds.driver.fields.code') }}</th>
+                              <th>{{ trans('cruds.driver.fields.contract_vat') }}</th>
+                              <th>{{ trans('cruds.driver.fields.state') }}</th>
+                              <th>{{ trans('cruds.driver.fields.payment_vat') }}</th>
+                              <th>{{ trans('cruds.driver.fields.driver_vat') }}</th>
+                              <th>{{ trans('cruds.driver.fields.uber_uuid') }}</th>
+                              <th>{{ trans('cruds.driver.fields.bolt_name') }}</th>
+                              <th>{{ trans('cruds.driver.fields.company') }}</th>
+                              <th>&nbsp;</th>
+                          </tr>
                             {{-- Filtros por coluna --}}
                             <tr>
-                                <th></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th></th>
-                            </tr>
+                              <th></th>
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- id --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- user --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- email --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- code --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- contract_vat --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- state --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- payment_vat --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- driver_vat --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- uber_uuid --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- bolt_name --}}
+                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- company --}}
+                              <th></th>
+                          </tr>
                         </thead>
                     </table>
                 </div>
@@ -107,13 +111,16 @@ $(function () {
       { data: 'placeholder',   name: 'placeholder', orderable: false, searchable: false },
       { data: 'id',            name: 'drivers.id' },
 
-      // Relacionais — usamos os aliases que configurámos no controller e filterColumn
       { data: 'user_name',     name: 'user_name' },
       { data: 'user.email',    name: 'user.email' },
 
       { data: 'code',               name: 'drivers.code' },
       { data: 'contract_vat_name',  name: 'contract_vat_name' },
       { data: 'state_name',         name: 'state_name' },
+
+      { data: 'payment_vat',        name: 'drivers.payment_vat' },
+      { data: 'driver_vat',         name: 'drivers.driver_vat' },
+
       { data: 'uber_uuid',          name: 'drivers.uber_uuid' },
       { data: 'bolt_name',          name: 'drivers.bolt_name' },
       { data: 'company_name',       name: 'company_name' },

@@ -40,9 +40,9 @@ class DriverController extends Controller
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'driver_show';
-                $editGate      = 'driver_edit';
-                $deleteGate    = 'driver_delete';
+                $viewGate = 'driver_show';
+                $editGate = 'driver_edit';
+                $deleteGate = 'driver_delete';
                 $crudRoutePart = 'drivers';
 
                 return view('partials.datatablesActions', compact(
@@ -62,11 +62,14 @@ class DriverController extends Controller
             $table->editColumn('code', fn($row) => $row->code ?: '');
 
             $table->addColumn('contract_vat_name', fn($row) => $row->contract_vat?->name ?: '');
-            $table->addColumn('state_name',        fn($row) => $row->state?->name ?: '');
-            $table->addColumn('company_name',      fn($row) => $row->company?->name ?: '');
+            $table->addColumn('state_name', fn($row) => $row->state?->name ?: '');
 
-            $table->editColumn('uber_uuid',  fn($row) => $row->uber_uuid ?: '');
-            $table->editColumn('bolt_name',  fn($row) => $row->bolt_name ?: '');
+            $table->editColumn('payment_vat', fn($row) => $row->payment_vat ?: '');
+            $table->editColumn('driver_vat', fn($row) => $row->driver_vat ?: '');
+
+            $table->editColumn('uber_uuid', fn($row) => $row->uber_uuid ?: '');
+            $table->editColumn('bolt_name', fn($row) => $row->bolt_name ?: '');
+            $table->addColumn('company_name', fn($row) => $row->company?->name ?: '');
 
             // === Filtros por coluna (relações) ===
             $table->filterColumn('user_name', function ($q, $k) {
