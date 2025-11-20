@@ -32,10 +32,10 @@
                             <th width="10"></th>
                             <th>{{ trans('cruds.receipt.fields.id') }}</th>
                             <th>{{ trans('cruds.receipt.fields.driver') }}</th>
-                            <th>{{ trans('cruds.receipt.fields.value') }}</th>
+                            <th>Valor bruto</th>
                             <th>IVA</th>
                             <th>RF</th>
-                            <th>Valor do recibo</th>
+                            <th>Valor líquido</th>
                             <th>{{ trans('cruds.receipt.fields.file') }}</th>
                             <th>Saldo atual</th>
                             <th>{{ trans('cruds.receipt.fields.verified') }}</th>
