@@ -247,7 +247,9 @@ class VehicleUsageController extends Controller
             ->orderBy('start_date')
             ->get();
 
-        $grouped = $usages->groupBy('vehicle_item.license_plate');
+        $grouped = $usages
+            ->groupBy('vehicle_item.license_plate')
+            ->sortKeysUsing(static fn($a, $b) => strcasecmp((string) $a, (string) $b)); // matrículas em ordem alfabética
 
         $occupancyStats = [];
         $monthlyStats = [];
