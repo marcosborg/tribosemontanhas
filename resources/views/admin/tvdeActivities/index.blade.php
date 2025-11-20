@@ -24,7 +24,7 @@
                 </div>
 
                 <div class="panel-body">
-                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-TvdeActivity" style="width:100%">
+                    <table id="tvdeActivitiesTable" class="table table-bordered table-striped table-hover ajaxTable datatable datatable-TvdeActivity" style="width:100%">
                         <thead>
                             <tr>
                                 <th width="10"></th>
@@ -39,16 +39,22 @@
                                 <th>&nbsp;</th>
                             </tr>
                             {{-- Linha de filtros por coluna (igual aos Drivers) --}}
-                            <tr>
+                            <tr class="filters">
                                 <th></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="Existe / Não existe / 1 / 0"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
-                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_activities.id"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_weeks.start_date"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_operators.name"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="companies.name"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_activities.driver_code"></th>
+                                <th>
+                                    <select class="form-control input-sm" data-col-name="exists_text">
+                                        <option value="">Todos</option>
+                                        <option value="Existe">Existe</option>
+                                        <option value="Nao existe">Nao existe</option>
+                                    </select>
+                                </th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_activities.gross"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_activities.net"></th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -64,7 +70,7 @@
 @section('scripts')
 @parent
 <script>
-$.fn.dataTable.ext.errMode = 'throw'; // mostra erros do DataTables na consola
+$.fn.dataTable.ext.errMode = 'throw';
 
 $(function () {
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
@@ -91,13 +97,16 @@ $(function () {
   dtButtons.push(deleteButton)
   @endcan
 
-  const table = $('.datatable-TvdeActivity').DataTable({
+  const $table = $('#tvdeActivitiesTable');
+
+  let table = $table.DataTable({
     buttons: dtButtons,
     processing: true,
     serverSide: true,
     retrieve: true,
     aaSorting: [],
     orderCellsTop: true,
+    searchDelay: 250,
     ajax: "{{ route('admin.tvde-activities.index') }}",
     columns: [
       { data: 'placeholder',           name: 'placeholder', orderable:false, searchable:false },
@@ -106,45 +115,45 @@ $(function () {
       { data: 'tvde_operator_name',     name: 'tvde_operators.name' },
       { data: 'company_name',           name: 'companies.name' },
       { data: 'driver_code',            name: 'tvde_activities.driver_code' },
-
-      // Coluna de texto "Existe" calculada no servidor (exists_text) — pesquisável e ordenável
       { data: 'exists_text',            name: 'exists_text' },
-
       { data: 'gross',                  name: 'tvde_activities.gross' },
       { data: 'net',                    name: 'tvde_activities.net' },
       { data: 'actions',                name: 'actions', orderable:false, searchable:false }
     ],
     order: [[ 1, 'desc' ]],
     pageLength: 100,
+
+    initComplete: function () {
+      const api        = this.api();
+      const $theadLive = $(api.table().header());
+      const $filters   = $('#tvdeActivitiesTable thead tr.filters');
+
+      if ($filters.length) $filters.appendTo($theadLive);
+      $theadLive.find('tr.filters th').off('click.DT');
+
+      $theadLive.off('input.colFilter change.colFilter')
+        .on('input.colFilter change.colFilter', 'tr.filters input, tr.filters select', function (e) {
+          const colName = $(this).data('col-name');
+          const strict  = $(this).attr('strict') || false;
+          const rawVal  = this.value;
+          const value   = (strict && rawVal) ? '^' + rawVal + '$' : rawVal;
+
+          let colIdx = null;
+          if (colName) {
+            const colRef = api.column(colName + ':name');
+            colIdx = colRef ? colRef.index() : null;
+          }
+
+          if (colIdx !== null && colIdx !== undefined) {
+            const col = api.column(colIdx);
+            if (col.search() !== value) col.search(value, !!strict, false).draw();
+          }
+
+          e.stopPropagation();
+        });
+    }
   });
 
-  // Pesquisa por coluna (delegado ao THEAD — igual aos Drivers)
-  let visibleColumnsIndexes = null;
-  $(document).on('input change', '.datatable-TvdeActivity thead .search', function () {
-      const $el = $(this);
-      const strict = $el.attr('strict') || false;
-      const rawVal = $el.val();
-      const value  = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
-
-      let index = $el.closest('th').index();
-      if (visibleColumnsIndexes !== null) {
-        index = visibleColumnsIndexes[index];
-      }
-
-      table
-        .column(index)
-        .search(value, !!strict)
-        .draw();
-  });
-
-  table.on('column-visibility.dt', function(){
-      visibleColumnsIndexes = [];
-      table.columns(':visible').every(function(colIdx) {
-          visibleColumnsIndexes.push(colIdx);
-      });
-  });
-
-  // Ajuste quando usas tabs (se existirem)
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
     $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
   });
