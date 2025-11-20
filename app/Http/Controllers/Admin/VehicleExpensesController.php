@@ -12,13 +12,17 @@ use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class VehicleExpensesController extends Controller
 {
-    use MediaUploadingTrait, CsvImportTrait;
+    use MediaUploadingTrait, CsvImportTrait {
+        processCsvImport as baseProcessCsvImport;
+    }
 
     public function index(Request $request)
     {
@@ -182,5 +186,81 @@ class VehicleExpensesController extends Controller
         $media = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
 
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
+    }
+
+    public function processCsvImport(Request $request)
+    {
+        // Apenas alteramos o CSV import para VehicleExpense; os restantes modelos usam o comportamento base
+        if ($request->input('modelName') !== 'VehicleExpense') {
+            return $this->baseProcessCsvImport($request);
+        }
+
+        try {
+            $filename = $request->input('filename');
+            $path     = storage_path('app/csv_import/' . $filename);
+
+            $hasHeader = $request->boolean('hasHeader');
+
+            $fields = array_flip(array_filter($request->input('fields', [])));
+
+            $reader = new \SpreadsheetReader($path);
+            $insert = [];
+
+            foreach ($reader as $key => $row) {
+                if ($hasHeader && $key === 0) {
+                    continue;
+                }
+
+                $tmp = [];
+                foreach ($fields as $header => $k) {
+                    if (isset($row[$k])) {
+                        $tmp[$header] = $row[$k];
+                    }
+                }
+
+                if (array_key_exists('vehicle_item_id', $tmp)) {
+                    $tmp['vehicle_item_id'] = $this->resolveVehicleItemId($tmp['vehicle_item_id']);
+                }
+
+                if (count($tmp) > 0) {
+                    $insert[] = $tmp;
+                }
+            }
+
+            foreach (array_chunk($insert, 100) as $insert_item) {
+                VehicleExpense::insert($insert_item);
+            }
+
+            $rows  = count($insert);
+            $table = Str::plural('VehicleExpense');
+
+            File::delete($path);
+
+            session()->flash('message', trans('global.app_imported_rows_to_table', ['rows' => $rows, 'table' => $table]));
+
+            return redirect($request->input('redirect'));
+        } catch (\Exception $ex) {
+            throw $ex;
+        }
+    }
+
+    protected function resolveVehicleItemId($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // Se já for um ID numérico, devolvemos tal como vem
+        if (is_numeric($value)) {
+            return $value;
+        }
+
+        $normalized = preg_replace('/[^A-Za-z0-9]/', '', strtoupper($value));
+        if ($normalized === '') {
+            return null;
+        }
+
+        return VehicleItem::whereRaw("REPLACE(REPLACE(UPPER(license_plate), ' ', ''), '-', '') = ?", [$normalized])
+            ->value('id');
     }
 }
