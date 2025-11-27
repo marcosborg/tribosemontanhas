@@ -283,28 +283,61 @@ $(document).on('click', '.flag-toggle', function(e){
                             $temDif = $temCCA && abs($diff) >= 0.01;
 
                             $ajustes = $driver->earnings['adjustments_array'] ?? [];
-                            $ajustesList = collect($ajustes)->map(function($a){
-                                $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
-                                $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
-                                $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
-                                $notes = is_array($a) ? ($a['notes'] ?? '') : ($a->notes ?? '');
-                                $sd    = is_array($a) ? ($a['start_date'] ?? '') : ($a->start_date ?? '');
-                                $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
-                                $sign  = $type === 'deduct' ? '-' : '+';
 
-                                $nameEsc  = e($name);
-                                $notesEsc = e($notes);
-                                $sdEsc    = e($sd);
-                                $edEsc    = e($ed);
+                            $ajustesList = collect($ajustes)
+                                ->filter(function($a){
+                                    $carHire = is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
+                                    return !$carHire;
+                                })
+                                ->map(function($a){
+                                    $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
+                                    $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
+                                    $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
+                                    $notes = is_array($a) ? ($a['notes'] ?? '') : ($a->notes ?? '');
+                                    $sd    = is_array($a) ? ($a['start_date'] ?? '') : ($a->start_date ?? '');
+                                    $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
+                                    $sign  = $type === 'deduct' ? '-' : '+';
 
-                                $dates = trim(($sdEsc || $edEsc) ? "{$sdEsc} a {$edEsc}" : '');
+                                    $nameEsc  = e($name);
+                                    $notesEsc = e($notes);
+                                    $sdEsc    = e($sd);
+                                    $edEsc    = e($ed);
 
-                                return "<div style='margin-bottom:6px;'>
-                                            <strong>{$nameEsc}</strong>" . ($dates ? " <small>({$dates})</small>" : "") . "<br>
-                                            {$sign}" . number_format($amount, 2) . "€
-                                            " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
-                                        </div>";
-                            })->implode('');
+                                    $dates = trim(($sdEsc || $edEsc) ? "{$sdEsc} a {$edEsc}" : '');
+
+                                    return "<div style='margin-bottom:6px;'>
+                                                <strong>{$nameEsc}</strong>" . ($dates ? " <small>({$dates})</small>" : "") . "<br>
+                                                {$sign}" . number_format($amount, 2) . "€ 
+                                                " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
+                                            </div>";
+                                })->implode('');
+
+                            $ajustesAluguerList = collect($ajustes)
+                                ->filter(function($a){
+                                    return is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
+                                })
+                                ->map(function($a){
+                                    $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
+                                    $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
+                                    $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
+                                    $notes = is_array($a) ? ($a['notes'] ?? '') : ($a->notes ?? '');
+                                    $sd    = is_array($a) ? ($a['start_date'] ?? '') : ($a->start_date ?? '');
+                                    $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
+                                    $sign  = $type === 'deduct' ? '-' : '+';
+
+                                    $nameEsc  = e($name);
+                                    $notesEsc = e($notes);
+                                    $sdEsc    = e($sd);
+                                    $edEsc    = e($ed);
+
+                                    $dates = trim(($sdEsc || $edEsc) ? "{$sdEsc} a {$edEsc}" : '');
+
+                                    return "<div style='margin-bottom:6px;'>
+                                                <strong>{$nameEsc}</strong>" . ($dates ? " <small>({$dates})</small>" : "") . "<br>
+                                                {$sign}" . number_format($amount, 2) . "€ 
+                                                " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
+                                            </div>";
+                                })->implode('');
                         @endphp
 
                         <tr>
@@ -333,7 +366,19 @@ $(document).on('click', '.flag-toggle', function(e){
                             {{-- ============================================================ --}}
 
                             <td style="text-align:right;">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
-                            <td style="text-align:right;">-{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small></td>
+                            <td style="text-align:right;">
+                                -{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small>
+                                @if(!empty($ajustesAluguerList))
+                                    <a tabindex="0"
+                                       class="flag-red"
+                                       role="button"
+                                       data-toggle="popover"
+                                       data-trigger="focus"
+                                       data-html="true"
+                                       title="Ajustes no aluguer"
+                                       data-content="{!! $ajustesAluguerList !!}"><span class="glyphicon glyphicon-eye-open"></span></a>
+                                @endif
+                            </td>
                             <td style="text-align:right;">{{ number_format($driver->drivers_balance ?? 0, 2) }} <small>€</small></td>
 
                             {{-- Valor da semana + red flag (clicável) --}}
