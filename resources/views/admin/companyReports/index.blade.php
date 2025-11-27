@@ -264,7 +264,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">Ajustes</th>
                         <th style="text-align:right;">Via verde</th>
                         <th style="text-align:right;">Aluguer</th>
-                        <th style="text-align:right;">Último saldo</th>
+                        <th style="text-align:right;">Valor transitado</th>
                         <th style="text-align:right;">Valor da semana</th>
                         <th style="text-align:right;">Saldo atual</th>
                         <th style="text-align:right;">Validar</th>
@@ -273,6 +273,7 @@ $(document).on('click', '.flag-toggle', function(e){
                 </thead>
 
                 <tbody>
+                @php $ajustesTotalSemAluguer = 0; @endphp
                 @foreach ($drivers as $driver)
                     @if ($driver->earnings)
                         @php
@@ -284,7 +285,9 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             $ajustes = $driver->earnings['adjustments_array'] ?? [];
 
-                            $ajustesList = collect($ajustes)
+                            $ajustesCollection = collect($ajustes);
+
+                            $ajustesList = $ajustesCollection
                                 ->filter(function($a){
                                     $carHire = is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
                                     return !$carHire;
@@ -312,7 +315,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                             </div>";
                                 })->implode('');
 
-                            $ajustesAluguerList = collect($ajustes)
+                            $ajustesAluguerList = $ajustesCollection
                                 ->filter(function($a){
                                     return is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
                                 })
@@ -338,6 +341,20 @@ $(document).on('click', '.flag-toggle', function(e){
                                                 " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
                                             </div>";
                                 })->implode('');
+
+                            // valores numéricos para exibir nos totais
+                            $ajustesCarHireValor = $ajustesCollection
+                                ->filter(function($a){
+                                    return is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
+                                })
+                                ->sum(function($a){
+                                    $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
+                                    $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
+                                    return $type === 'deduct' ? -$amount : $amount;
+                                });
+
+                            $ajustesValor = (float) ($driver->adjustments ?? 0) - (float) $ajustesCarHireValor;
+                            $ajustesTotalSemAluguer += $ajustesValor;
                         @endphp
 
                         <tr>
@@ -351,7 +368,7 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             {{-- ================= AJUSTES com ícone/Popover ================= --}}
                             <td style="text-align:right;">
-                                {{ number_format($driver->adjustments ?? 0, 2) }} <small>€</small>
+                                {{ number_format($ajustesValor, 2) }} <small>€</small>
                                 @if(!empty($ajustes) && count($ajustes))
                                     <a tabindex="0"
                                        class="flag-red"
@@ -365,7 +382,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             </td>
                             {{-- ============================================================ --}}
 
-                            <td style="text-align:right;">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
+                            <td style="text-align:right;">-{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">
                                 -{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small>
                                 @if(!empty($ajustesAluguerList))
@@ -503,7 +520,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">{{ number_format($totals['net_bolt'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right; color:red;">- {{ number_format($totals['total_vat_value'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">-{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} <small>€</small></th>
-                        <th style="text-align:right;">{{ number_format($totals['total_adjustments'] ?? 0, 2) }} <small>€</small></th>
+                        <th style="text-align:right;">{{ number_format($ajustesTotalSemAluguer ?? ($totals['total_adjustments'] ?? 0), 2) }} <small>€</small></th>
                         <th style="text-align:right;">{{ number_format($totals['total_car_track'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">-{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></th>
                         <th></th>
