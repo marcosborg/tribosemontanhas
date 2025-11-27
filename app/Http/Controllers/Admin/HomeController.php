@@ -57,18 +57,20 @@ class HomeController
             'tvde_week_id' => $tvde_week_id
         ])->first();
 
+        $expenseReceipt = null;
+
         if ($driver_balance) {
 
+            $base = (float) $driver_balance->balance;
+            $base = $base > 0 ? $base : 0;
+
             $factor = $driver->contract_vat->iva / 100;
-            $iva = number_format($driver_balance->value * $factor, 2);
-            $driver_balance->iva = $iva;
+            $iva = round($base * $factor, 2);
 
             $factor = $driver->contract_vat->rf / 100;
-            $rf = number_format(- ($driver_balance->value * $factor), 2);
-            $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
+            $rf = round(-($base * $factor), 2);
 
-            $final = number_format($driver_balance->balance + $iva + $rf, 2);
-            $driver_balance->final = $final;
+            $final = $base + $iva + $rf;
 
             //VERIFICAR RECIBOS DE DESPESAS
 
@@ -78,8 +80,12 @@ class HomeController
             ])->first();
 
             if ($expenseReceipt && $expenseReceipt->verified) {
-                $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
+                $final = $final - $expenseReceipt->approved_value;
             }
+
+            $driver_balance->iva = number_format($iva, 2, '.', '');
+            $driver_balance->rf = number_format($rf, 2, '.', '');
+            $driver_balance->final = number_format($final, 2, '.', '');
         }
 
         //BALANCE LAST WEEK

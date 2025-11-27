@@ -61,6 +61,12 @@ class ReceiptController extends Controller
             $table->editColumn('value', fn($row) => $row->value ?? '');
             $table->editColumn('balance', fn($row) => $row->balance ?? '');
 
+            // Valor l�quido (sem editar) = valor enviado pelo motorista j� com saldo transitado/ajustes
+            $table->addColumn('net_value', function ($row) {
+                $raw = (float) ($row->value ?? 0);
+                return '<span id="net_value-' . $row->id . '" data-net="' . $raw . '">' . number_format($raw, 2, '.', '') . '</span>';
+            });
+
             // IVA (seguro: usa balance -> value como fallback)
             $table->editColumn('iva', function ($row) {
                 $contract = optional(optional($row->driver)->contract_vat);
@@ -86,12 +92,6 @@ class ReceiptController extends Controller
                     : '';
             });
 
-            // Inputs inline
-            $table->editColumn(
-                'receipt_value',
-                fn($row) =>
-                '<input id="receipt_value-' . $row->id . '" type="number" value="' . $row->verified_value . '" ' . ($row->verified ? 'disabled' : '') . '>'
-            );
             $table->editColumn(
                 'verified',
                 fn($row) =>
@@ -151,7 +151,7 @@ class ReceiptController extends Controller
                 }
             });
 
-            $table->rawColumns(['actions', 'placeholder', 'file', 'receipt_value', 'amount_transferred', 'paid', 'verified']);
+            $table->rawColumns(['actions', 'placeholder', 'file', 'net_value', 'amount_transferred', 'paid', 'verified']);
 
             return $table->make(true);
         }
@@ -177,9 +177,14 @@ class ReceiptController extends Controller
     public function store(StoreReceiptRequest $request)
     {
 
-        $tvde_week_id = session()->get('tvde_week_id');
+        $tvde_week_id = $request->tvde_week_id ?? session()->get('tvde_week_id');
+        if (!$tvde_week_id) {
+            $tvde_week_id = DriversBalance::where('driver_id', $request->driver_id)->max('tvde_week_id');
+        }
+        $payload = $request->all();
+        $payload['tvde_week_id'] = $tvde_week_id;
 
-        $receipt = Receipt::create($request->all());
+        $receipt = Receipt::create($payload);
 
         if ($request->input('file', false)) {
             $receipt->addMedia(storage_path('tmp/uploads/' . basename($request->input('file'))))->toMediaCollection('file');
@@ -189,15 +194,13 @@ class ReceiptController extends Controller
             Media::whereIn('id', $media)->update(['model_id' => $receipt->id]);
         }
 
-        //AtualDriversBalance
+        // Atualiza o saldo do motorista abatendo o valor enviado
         $driver_id = $request->driver_id;
-        $value = $request->value;
-        $drivers_balance = DriversBalance::where([
-            'driver_id' => $driver_id,
-            'tvde_week_id' => $tvde_week_id
-        ])->first();
-        $drivers_balance->drivers_balance = $value;
-        $drivers_balance->save();
+        $value = (float) $request->value;
+
+        if ($tvde_week_id) {
+            DriversBalance::applyAdjustmentFromWeek($driver_id, (int) $tvde_week_id, -$value);
+        }
 
         return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
     }
@@ -288,14 +291,17 @@ class ReceiptController extends Controller
         $receipt->amount_transferred = $amount_transferred;
         $receipt->save();
 
-        //AtualDriversBalance
-        $driver_id = $receipt->driver_id;
-        $drivers_balance = DriversBalance::where([
-            'driver_id' => $driver_id
-        ])->orderBy('id', 'desc')->first();
-        $balance = $drivers_balance->balance - $receipt_value;
-        $drivers_balance->balance = $balance;
-        $drivers_balance->drivers_balance = $balance;
-        $drivers_balance->save();
+        // Ajusta saldo apenas pela diferenca entre o valor inicial e o valor verificado
+        $verified = (float) $receipt_value;
+        $original = (float) $receipt->value;
+        $diff = $verified - $original;
+        $tvdeWeekId = $receipt->tvde_week_id ?? session()->get('tvde_week_id');
+        if (!$tvdeWeekId) {
+            $tvdeWeekId = DriversBalance::where('driver_id', $receipt->driver_id)->max('tvde_week_id');
+        }
+
+        if ($diff !== 0.0 && $tvdeWeekId) {
+            DriversBalance::applyAdjustmentFromWeek($receipt->driver_id, (int) $tvdeWeekId, -$diff);
+        }
     }
 }

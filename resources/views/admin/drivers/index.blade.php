@@ -65,6 +65,12 @@
 </div>
 @endsection
 
+@section('styles')
+<style>
+    .datatable-Driver tbody tr { cursor: pointer; }
+</style>
+@endsection
+
 @section('scripts')
 @parent
 <script>
@@ -162,6 +168,17 @@ $(function () {
       table.columns(':visible').every(function(colIdx) {
           visibleColumnsIndexes.push(colIdx);
       });
+  });
+
+  // Linhas clicáveis (leva para edit), mas ignorando cliques em botões/links/inputs
+  $('.datatable-Driver tbody').on('click', 'tr', function (e) {
+      const isInteractive = $(e.target).closest('a, button, input, label, .dropdown, .btn').length > 0;
+      if (isInteractive) return;
+
+      const rowData = table.row(this).data();
+      if (rowData && rowData.id) {
+          window.location = '/admin/drivers/' + rowData.id + '/edit';
+      }
   });
 });
 </script>

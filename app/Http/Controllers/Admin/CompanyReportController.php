@@ -64,29 +64,41 @@ class CompanyReportController extends Controller
             // 🔹 Normaliza o total do motorista
             $total = $normalize($data['driver']['total']);
 
-            // 🔹 Registo da conta corrente
-            $current_account = new CurrentAccount;
-            $current_account->tvde_week_id = $data['tvde_week_id'];
-            $current_account->driver_id    = $data['driver']['id'];
-            $current_account->data         = json_encode($data['driver']['earnings']);
-            $current_account->save();
+            // Registo/atualizacao da conta corrente
+            CurrentAccount::updateOrCreate(
+                [
+                    'tvde_week_id' => $data['tvde_week_id'],
+                    'driver_id'    => $data['driver']['id'],
+                ],
+                [
+                    'data' => json_encode($data['driver']['earnings']),
+                ]
+            );
 
-            // 🔹 Último saldo
-            $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
+            // Ultimo saldo ja com recibos abatidos
+            $last = DriversBalance::where('driver_id', $data['driver']['id'])
+                ->where('tvde_week_id', '<', $data['tvde_week_id'])
                 ->orderBy('tvde_week_id', 'desc')
-                ->first();
+                ->value('balance');
 
-            $last = $last_balance ? (float) $last_balance->drivers_balance : 0.0;
+            $last = (float) ($last ?? 0.0);
             $balance = $last + $total;
 
-            // 🔹 Novo saldo
-            $driver_balance = new DriversBalance;
-            $driver_balance->driver_id       = $data['driver']['id'];
-            $driver_balance->tvde_week_id    = $data['tvde_week_id'];
-            $driver_balance->value           = $total;
-            $driver_balance->balance         = $balance;
-            $driver_balance->drivers_balance = $last;
-            $driver_balance->save();
+            // Novo saldo
+            DriversBalance::updateOrCreate(
+                [
+                    'driver_id'    => $data['driver']['id'],
+                    'tvde_week_id' => $data['tvde_week_id'],
+                ],
+                [
+                    'value'           => $total,
+                    'balance'         => $balance,
+                    'drivers_balance' => $last,
+                ]
+            );
+
+            // recalcula semanas futuras (se existirem) com o novo carry
+            DriversBalance::applyAdjustmentFromWeek($data['driver']['id'], $data['tvde_week_id'], 0);
 
             /*
         $email = $data['driver']['email'];
@@ -111,23 +123,26 @@ class CompanyReportController extends Controller
         $current_account->data = json_encode($data);
         $current_account->save();
 
-        DriversBalance::where([
-            'tvde_week_id' => $tvde_week_id,
-            'driver_id' => $driver_id
-        ])->delete();
+        $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
+            ->where('tvde_week_id', '<', $tvde_week_id)
+            ->orderBy('tvde_week_id', 'desc')
+            ->value('balance');
 
-        $last_balance = DriversBalance::where([
-            'driver_id' => $data['driver']['id'],
-        ])
-            ->orderBy('tvde_week_id', 'desc')->first();
+        $last_balance = (float) ($last_balance ?? 0);
 
-        $driver_balance = new DriversBalance;
-        $driver_balance->driver_id = $data['driver']['id'];
-        $driver_balance->tvde_week_id = $data['tvde_week_id'];
-        $driver_balance->value = $data['driver']['total'];
-        $driver_balance->balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
-        $driver_balance->drivers_balance = $last_balance ? $last_balance->balance + $data['driver']['total'] : $data['driver']['total'];
-        $driver_balance->save();
+        DriversBalance::updateOrCreate(
+            [
+                'driver_id'    => $data['driver']['id'],
+                'tvde_week_id' => $data['tvde_week_id'],
+            ],
+            [
+                'value'           => $data['driver']['total'],
+                'drivers_balance' => $last_balance,
+                'balance'         => $last_balance + $data['driver']['total'],
+            ]
+        );
+
+        DriversBalance::applyAdjustmentFromWeek($data['driver']['id'], $data['tvde_week_id'], 0);
     }
 
     public function deleteData($tvde_week_id, $driver_id)
@@ -146,6 +161,14 @@ class CompanyReportController extends Controller
             'tvde_week_id' => $tvde_week_id,
             'driver_id' => $driver_id
         ])->delete();
+        $nextWeek = DriversBalance::where('driver_id', $driver_id)
+            ->where('tvde_week_id', '>', $tvde_week_id)
+            ->orderBy('tvde_week_id')
+            ->value('tvde_week_id');
+
+        if ($nextWeek) {
+            DriversBalance::applyAdjustmentFromWeek($driver_id, $nextWeek, 0);
+        }
 
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
     }
@@ -214,3 +237,4 @@ class CompanyReportController extends Controller
         ]);
     }
 }
+

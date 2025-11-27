@@ -135,10 +135,15 @@ class MyReceiptsController extends Controller
         ]);
 
         $driver = Driver::where('user_id', auth()->user()->id)->first();
+        $tvde_week_id = $request->tvde_week_id ?? session()->get('tvde_week_id');
+        if (!$tvde_week_id) {
+            $tvde_week_id = DriversBalance::where('driver_id', $driver->id)->max('tvde_week_id');
+        }
 
         $receipt = new Receipt;
         $receipt->driver_id = $driver->id;
         $receipt->value = $request->value;
+        $receipt->tvde_week_id = $tvde_week_id;
         $receipt->save();
 
         if ($request->input('file', false)) {
@@ -147,6 +152,10 @@ class MyReceiptsController extends Controller
 
         if ($media = $request->input('ck-media', false)) {
             Media::whereIn('id', $media)->update(['model_id' => $receipt->id]);
+        }
+
+        if ($tvde_week_id) {
+            DriversBalance::applyAdjustmentFromWeek($driver->id, (int) $tvde_week_id, -(float) $request->value);
         }
 
         //SEND EMAIL TO ADMIN
@@ -177,14 +186,16 @@ class MyReceiptsController extends Controller
         $receipt->amount_transferred = $amount_transferred;
         $receipt->save();
 
-        //AtualDriversBalance
-        $driver_id = $receipt->driver_id;
-        $drivers_balance = DriversBalance::where([
-            'driver_id' => $driver_id
-        ])->orderBy('id', 'desc')->first();
-        $balance = $drivers_balance->balance - $receipt_value;
-        $drivers_balance->balance = $balance;
-        $drivers_balance->drivers_balance = $balance;
-        $drivers_balance->save();
+        $verified = (float) $receipt_value;
+        $original = (float) $receipt->value;
+        $diff = $verified - $original;
+        $tvdeWeekId = $receipt->tvde_week_id ?? session()->get('tvde_week_id');
+        if (!$tvdeWeekId) {
+            $tvdeWeekId = DriversBalance::where('driver_id', $receipt->driver_id)->max('tvde_week_id');
+        }
+
+        if ($diff !== 0.0 && $tvdeWeekId) {
+            DriversBalance::applyAdjustmentFromWeek($receipt->driver_id, (int) $tvdeWeekId, -$diff);
+        }
     }
 }

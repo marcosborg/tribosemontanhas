@@ -211,7 +211,7 @@
                         <div class="form-inline">
                             <div class="input-group">
                                 <div class="input-group-addon">Saldo (€)</div>
-                                <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
+                                <input type="text" class="form-control" value="{{ $driver_balance->balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
                         </div>

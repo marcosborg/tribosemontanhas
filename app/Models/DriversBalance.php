@@ -49,4 +49,35 @@ class DriversBalance extends Model
     {
         return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
     }
+
+    /**
+     * Recalcula o saldo a partir de uma semana, aplicando um delta (positivo ou negativo)
+     * apenas na primeira semana e propagando o carry para as seguintes.
+     *
+     * @param int $driverId
+     * @param int $tvdeWeekId
+     * @param float $delta       Valor a somar ao saldo da semana alvo (use negativo para abater).
+     */
+    public static function applyAdjustmentFromWeek(int $driverId, int $tvdeWeekId, float $delta = 0): void
+    {
+        $previousBalance = self::where('driver_id', $driverId)
+            ->where('tvde_week_id', '<', $tvdeWeekId)
+            ->orderBy('tvde_week_id', 'desc')
+            ->value('balance');
+
+        $running = (float) ($previousBalance ?? 0);
+
+        $records = self::where('driver_id', $driverId)
+            ->where('tvde_week_id', '>=', $tvdeWeekId)
+            ->orderBy('tvde_week_id')
+            ->get()
+            ->values();
+
+        foreach ($records as $index => $record) {
+            $record->drivers_balance = $running;
+            $record->balance = $running + (float) $record->value + ($index === 0 ? $delta : 0);
+            $running = (float) $record->balance;
+            $record->save();
+        }
+    }
 }

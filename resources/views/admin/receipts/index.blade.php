@@ -39,7 +39,7 @@
                             <th>{{ trans('cruds.receipt.fields.file') }}</th>
                             <th>Saldo atual</th>
                             <th>{{ trans('cruds.receipt.fields.verified') }}</th>
-                            <th>{{ trans('cruds.receipt.fields.amount_transferred') }}</th>
+                            <th>Valor líquido verificado</th>
                             <th>{{ trans('cruds.receipt.fields.paid') }}</th>
                             <th>{{ trans('cruds.receipt.fields.tvde_week') }}</th>
                             <th>{{ trans('cruds.receipt.fields.created_at') }}</th>
@@ -79,7 +79,7 @@
                                 </select>
                             </th>
 
-                            {{-- Amount transferred --}}
+                            {{-- Valor líquido verificado --}}
                             <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
 
                             {{-- Paid --}}
@@ -166,7 +166,7 @@ $(function () {
       // calculadas / HTML -> não pesquisar/ordenar (igual ao que tens)
       { data: 'iva',                   name: 'iva',                        orderable:false, searchable:false },
       { data: 'rf',                    name: 'rf',                         orderable:false, searchable:false },
-      { data: 'receipt_value',         name: 'receipt_value',              orderable:false, searchable:false },
+      { data: 'net_value',             name: 'net_value',                  orderable:false, searchable:false },
       { data: 'file',                  name: 'file',                       orderable:false, searchable:false },
       { data: 'balance',               name: 'receipts.balance',           orderable:false, searchable:false },
 
@@ -234,13 +234,12 @@ function checkPay (receipt_id) {
 }
 
 function checkVerified (receipt_id) {
-  var receipt_value = $('#receipt_value-' + receipt_id).val();
+  var receipt_value = $('#net_value-' + receipt_id).data('net');
   var amount_transferred = $('#amount_transferred-' + receipt_id).val();
-  if(receipt_value.length > 0 && amount_transferred.length > 0){
+  if(amount_transferred.length > 0){
       $('#verified-' + receipt_id).attr('disabled', 'true');
       $.get('/admin/receipts/checkVerified/' + receipt_id + '/' + receipt_value + '/' + amount_transferred)
         .then(() => {
-          $('#receipt_value-' + receipt_id).attr('disabled', 'true');
           $('#amount_transferred-' + receipt_id).attr('disabled', 'true');
         });
   } else {

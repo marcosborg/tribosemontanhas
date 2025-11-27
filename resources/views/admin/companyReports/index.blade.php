@@ -265,9 +265,8 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">Via verde</th>
                         <th style="text-align:right;">Aluguer</th>
                         <th style="text-align:right;">Último saldo</th>
-                        <th style="text-align:right;">Saldo atual</th>
                         <th style="text-align:right;">Valor da semana</th>
-                        <th style="text-align:right;">A pagar</th>
+                        <th style="text-align:right;">Saldo atual</th>
                         <th style="text-align:right;">Validar</th>
                         <th></th>
                     </tr>
@@ -336,7 +335,6 @@ $(document).on('click', '.flag-toggle', function(e){
                             <td style="text-align:right;">{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">-{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">{{ number_format($driver->drivers_balance ?? 0, 2) }} <small>€</small></td>
-                            <td style="text-align:right;">{{ number_format($driver->balance ?? 0, 2) }} <small>€</small></td>
 
                             {{-- Valor da semana + red flag (clicável) --}}
                             <td style="text-align:right;">
@@ -352,7 +350,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                 @endif
                             </td>
 
-                            {{-- A pagar --}}
+                            {{-- Saldo atual (equivalente ao "a pagar") --}}
                             <td style="text-align:right;">
                                 {{ number_format($driver->final_total_balance ?? 0, 2) }} <small>€</small>
                             </td>

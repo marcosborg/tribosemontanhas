@@ -454,8 +454,19 @@ class FinancialStatementController extends Controller
         ]);
 
         $drivers_balance = DriversBalance::find($request->driver_balance_id);
-        $drivers_balance->balance = $request->balance;
-        $drivers_balance->drivers_balance = $request->balance;
-        $drivers_balance->save();
+        if (!$drivers_balance) {
+            return;
+        }
+
+        $previous_balance = DriversBalance::where('driver_id', $drivers_balance->driver_id)
+            ->where('tvde_week_id', '<', $drivers_balance->tvde_week_id)
+            ->orderBy('tvde_week_id', 'desc')
+            ->value('balance');
+
+        $previous_balance = (float) ($previous_balance ?? 0);
+        $target = (float) $request->balance;
+        $delta = $target - ($previous_balance + (float) $drivers_balance->value);
+
+        DriversBalance::applyAdjustmentFromWeek($drivers_balance->driver_id, $drivers_balance->tvde_week_id, $delta);
     }
 }
