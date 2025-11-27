@@ -59,16 +59,18 @@ class HomeController
 
         if ($driver_balance) {
 
-            $factor = $driver->contract_vat->iva / 100;
-            $iva = number_format($driver_balance->value * $factor, 2);
-            $driver_balance->iva = $iva;
+            $valor_transitado = (float) ($driver_balance->drivers_balance ?? 0);
+            $valor_semana = (float) ($driver_balance->value ?? 0);
+            $base_total = $valor_transitado + $valor_semana;
+            $base = $base_total > 0 ? $base_total : 0;
 
-            $factor = $driver->contract_vat->rf / 100;
-            $rf = number_format(- ($driver_balance->value * $factor), 2);
-            $driver_balance ? $driver_balance->rf = $rf ?? 0 : 0;
+            $iva_factor = optional($driver->contract_vat)->iva ? $driver->contract_vat->iva / 100 : 0;
+            $rf_factor = optional($driver->contract_vat)->rf ? $driver->contract_vat->rf / 100 : 0;
 
-            $final = number_format($driver_balance->balance + $iva + $rf, 2);
-            $driver_balance->final = $final;
+            $iva = round($base * $iva_factor, 2);
+            $rf = round(-($base * $rf_factor), 2);
+
+            $final = $base + $iva + $rf;
 
             //VERIFICAR RECIBOS DE DESPESAS
 
@@ -78,8 +80,15 @@ class HomeController
             ])->first();
 
             if ($expenseReceipt && $expenseReceipt->verified) {
-                $driver_balance->final = $driver_balance->final - $expenseReceipt->approved_value;
+                $final = $final - $expenseReceipt->approved_value;
             }
+
+            $driver_balance->iva = number_format($iva, 2, '.', '');
+            $driver_balance->rf = number_format($rf, 2, '.', '');
+            $driver_balance->final = number_format($final, 2, '.', '');
+            $driver_balance->valor_transitado = number_format($valor_transitado, 2, '.', '');
+            $driver_balance->valor_semana = number_format($valor_semana, 2, '.', '');
+            $driver_balance->valor_total = number_format($base_total, 2, '.', '');
         }
 
         //BALANCE LAST WEEK

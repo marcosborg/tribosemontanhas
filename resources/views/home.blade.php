@@ -194,10 +194,7 @@
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <div class="pull-left">
-                        <h4>Valor da semana: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h4>
-                        <h3>Saldo atual: <span style="font-weight: 800;">{{ $driver_balance->balance ?? 0 }}</span>€</h3>
-                    </div>
+                    <h3 class="pull-left">Saldo atual: <span style="font-weight: 800;">{{ number_format($driver_balance->balance ?? 0, 2) }}</span>€</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
@@ -227,23 +224,29 @@
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tbody>
-                            @if ($driver_balance)
                             <tr>
-                                <th>Saldo transitado</th>
-                                <td>{{ number_format($driver_balance_last_week->balance ?? 0, 2) }}€</td>
+                                <th>Valor transitado</th>
+                                <td>{{ number_format($driver_balance->valor_transitado ?? ($driver_balance_last_week->balance ?? 0), 2) }}€</td>
                             </tr>
-                            @endif
                             <tr>
-                                <th>Saldo atual</th>
-                                <td>{{ $driver_balance->balance ?? 0 }}€</td>
+                                <th>Valor da semana</th>
+                                <td>{{ number_format($driver_balance->valor_semana ?? $total ?? 0, 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Valor total</th>
+                                <td>{{ number_format(($driver_balance->drivers_balance ?? 0) + ($driver_balance->value ?? 0), 2) }}€</td>
+                            </tr>
+                            <tr>
+                                <th>Valor do recibo</th>
+                                <td>{{ number_format($driver_balance->final ?? 0, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>IVA a devolver:</th>
-                                <td>{{ $driver_balance->iva ?? 0 }}€</td>
+                                <td>{{ number_format($driver_balance->iva ?? 0, 2) }}€</td>
                             </tr>
                             <tr>
                                 <th>Retenção na fonte</th>
-                                <td>{{ $driver_balance->rf ?? 0 }}€</td>
+                                <td>{{ number_format($driver_balance->rf ?? 0, 2) }}€</td>
                             </tr>
                         </tbody>
                     </table>
