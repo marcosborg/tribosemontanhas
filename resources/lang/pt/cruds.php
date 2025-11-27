@@ -2295,7 +2295,7 @@ return [
     ],
     'carTrack' => [
         'title'          => 'Via Verde',
-        'title_singular' => 'Vaia Verde',
+        'title_singular' => 'Via Verde',
         'fields'         => [
             'id'                   => 'ID',
             'id_helper'            => ' ',

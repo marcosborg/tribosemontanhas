@@ -266,7 +266,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">Aluguer</th>
                         <th style="text-align:right;">Valor transitado</th>
                         <th style="text-align:right;">Valor da semana</th>
-                        <th style="text-align:right;">Saldo atual</th>
+                        <th style="text-align:right;">Valor total</th>
                         <th style="text-align:right;">Validar</th>
                         <th></th>
                     </tr>
@@ -412,7 +412,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                 @endif
                             </td>
 
-                            {{-- Saldo atual (equivalente ao "a pagar") --}}
+                            {{-- Valor total (equivalente ao "a pagar") --}}
                             <td style="text-align:right;">
                                 {{ number_format($driver->final_total_balance ?? 0, 2) }} <small>€</small>
                             </td>

@@ -37,7 +37,6 @@
                             <th>RF</th>
                             <th>Valor líquido</th>
                             <th>{{ trans('cruds.receipt.fields.file') }}</th>
-                            <th>Saldo atual</th>
                             <th>{{ trans('cruds.receipt.fields.verified') }}</th>
                             <th>Valor líquido verificado</th>
                             <th>{{ trans('cruds.receipt.fields.paid') }}</th>
@@ -64,7 +63,6 @@
                             <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
 
                             {{-- NÃO pesquisáveis --}}
-                            <th class="text-muted">&mdash;</th>
                             <th class="text-muted">&mdash;</th>
                             <th class="text-muted">&mdash;</th>
                             <th class="text-muted">&mdash;</th>
@@ -168,7 +166,6 @@ $(function () {
       { data: 'rf',                    name: 'rf',                         orderable:false, searchable:false },
       { data: 'net_value',             name: 'net_value',                  orderable:false, searchable:false },
       { data: 'file',                  name: 'file',                       orderable:false, searchable:false },
-      { data: 'balance',               name: 'receipts.balance',           orderable:false, searchable:false },
 
       // booleanos (controller já trata filterColumn)
       { data: 'verified',              name: 'verified' },

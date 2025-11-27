@@ -36,6 +36,7 @@ class FinancialStatementController extends Controller
         $filter = $this->filter();
         $company_id = $filter['company_id'];
         $tvde_week_id = $filter['tvde_week_id'];
+        $tvde_week = $filter['tvde_week'];
         $tvde_years = $filter['tvde_years'];
         $tvde_year_id = $filter['tvde_year_id'];
         $tvde_months = $filter['tvde_months'];
@@ -103,7 +104,19 @@ class FinancialStatementController extends Controller
             'car_hire' => isset($results) ? $results->car_hire : 0,
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
-            'adjustments_array' => data_get($results, 'adjustments_array', []),
+            'adjustments_array' => Adjustment::whereHas('drivers', function ($query) use ($driver_id) {
+                $query->where('id', $driver_id);
+            })
+                ->where('company_id', $company_id)
+                ->where(function ($query) use ($tvde_week) {
+                    $query->where('start_date', '<=', $tvde_week->start_date)
+                        ->orWhereNull('start_date');
+                })
+                ->where(function ($query) use ($tvde_week) {
+                    $query->where('end_date', '>=', $tvde_week->end_date)
+                        ->orWhereNull('end_date');
+                })
+                ->get(),
             'actual_balance' => $actual_balance ?? null,
         ]);
     }

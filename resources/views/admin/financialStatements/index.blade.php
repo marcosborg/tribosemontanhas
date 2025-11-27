@@ -96,7 +96,20 @@
                             <tr>
                                 <th>Aluguer</th>
                                 <td></td>
-                                <td>- {{ number_format($car_hire, 2) }}€</td>
+                                <td>
+                                    - {{ number_format($car_hire, 2) }}€
+                                    @if (!empty($ajustesAluguerList))
+                                        <button type="button"
+                                                class="btn btn-xs btn-default"
+                                                data-toggle="popover"
+                                                data-placement="left"
+                                                data-html="true"
+                                                title="Ajustes no aluguer"
+                                                data-content="{!! $ajustesAluguerList !!}">
+                                            <i class="fa fa-eye"></i>
+                                        </button>
+                                    @endif
+                                </td>
                                 <td>- {{ number_format($car_hire, 2) }}€</td>
                             </tr>
                             <tr>
@@ -135,24 +148,77 @@
                                     }
                                 }
                             @endphp
+                            @php
+                                $ajustes = $adjustments_array ?? [];
+
+                                $ajustesList = collect($ajustes)
+                                    ->filter(fn($a) => is_array($a) ? empty($a['car_hire_deduct']) : empty($a->car_hire_deduct))
+                                    ->map(function ($adj) {
+                                        $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
+                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
+                                        $sign  = ($type === 'deduct') ? '-' : '';
+                                        $amtFmt = number_format($amt, 2);
+
+                                        $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
+                                        if ($start || $end) {
+                                            $html .= "<br><small>".e($start)." a ".e($end)."</small>";
+                                        }
+                                        $html .= "</div>";
+                                        return $html;
+                                    })
+                                    ->implode('');
+
+                                $ajustesAluguerList = collect($ajustes)
+                                    ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false))
+                                    ->map(function ($adj) {
+                                        $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
+                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
+                                        $sign  = ($type === 'deduct') ? '-' : '';
+                                        $amtFmt = number_format($amt, 2);
+
+                                        $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
+                                        if ($start || $end) {
+                                            $html .= "<br><small>".e($start)." a ".e($end)."</small>";
+                                        }
+                                        $html .= "</div>";
+                                        return $html;
+                                    })
+                                    ->implode('');
+
+                                $ajustesCarHireValor = collect($ajustes)
+                                    ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false))
+                                    ->sum(function ($adj) {
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        return $type === 'deduct' ? -$amt : $amt;
+                                    });
+
+                                $ajustesValor = (float) ($adjustments ?? 0) - (float) $ajustesCarHireValor;
+                            @endphp
                             <tr>
                                 <th>
                                     Acertos
-                                    @if (!empty($adjustments_array))
+                                    @if (!empty($ajustesList))
                                         <button type="button"
                                                 class="btn btn-xs btn-default"
                                                 data-toggle="popover"
                                                 data-placement="left"
                                                 data-html="true"
                                                 title="Detalhe dos acertos"
-                                                data-content="{!! $popoverHtml !!}">
+                                                data-content="{!! $ajustesList !!}">
                                             <i class="fa fa-eye"></i>
                                         </button>
                                     @endif
                                 </th>
-                                <td>{{ $adjustments > 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ $adjustments < 0 ? number_format($adjustments, 2) . '€' : '' }}</td>
-                                <td>{{ number_format($adjustments, 2) }}€</td>
+                                <td>{{ $ajustesValor > 0 ? number_format($ajustesValor, 2) . '€' : '' }}</td>
+                                <td>{{ $ajustesValor < 0 ? number_format($ajustesValor, 2) . '€' : '' }}</td>
+                                <td>{{ number_format($ajustesValor, 2) }}€</td>
                             </tr>
                             {{-- =============================================================== --}}
 
@@ -176,13 +242,21 @@
                             </tr>
                         </tbody>
                     </table>
-                    <p><small>Saldo transitado: {{ number_format($driver_balance->drivers_balance ?? 0, 2) }}€</small></p>
                 </div>
             </div>
 
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Valor semanal sem impostos: <span style="font-weight: 800;">{{ number_format($total, 2) }}</span>€</h3>
+                    @php
+                        $valorTransit = $driver_balance->drivers_balance ?? 0;
+                        $valorSemana  = $total ?? 0;
+                        $valorTotal   = $valorTransit + $valorSemana;
+                    @endphp
+                    <div class="pull-left">
+                        <div><strong>Valor transitado:</strong> {{ number_format($valorTransit, 2) }}€</div>
+                        <div><strong>Valor da semana:</strong> {{ number_format($valorSemana, 2) }}€</div>
+                        <div><strong>Valor total:</strong> {{ number_format($valorTotal, 2) }}€</div>
+                    </div>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
@@ -256,3 +330,4 @@
     });
 </script>
 @endsection
+

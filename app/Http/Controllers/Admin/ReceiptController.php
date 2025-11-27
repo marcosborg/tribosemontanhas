@@ -58,7 +58,8 @@ class ReceiptController extends Controller
 
             $table->editColumn('id', fn($row) => $row->id ?: '');
             $table->addColumn('driver_name', fn($row) => optional($row->driver)->name ?: '');
-            $table->editColumn('value', fn($row) => $row->value ?? '');
+            // Valor bruto: usa o saldo registado no momento do recibo (balance) e faz fallback para value
+            $table->editColumn('value', fn($row) => $row->balance ?? $row->value ?? '');
             $table->editColumn('balance', fn($row) => $row->balance ?? '');
 
             // Valor l�quido (sem editar) = valor enviado pelo motorista j� com saldo transitado/ajustes
@@ -184,6 +185,15 @@ class ReceiptController extends Controller
         $payload = $request->all();
         $payload['tvde_week_id'] = $tvde_week_id;
 
+        $drivers_balance = DriversBalance::where([
+            'driver_id' => $request->driver_id,
+            'tvde_week_id' => $tvde_week_id,
+        ])->first();
+
+        if ($drivers_balance) {
+            $payload['balance'] = $drivers_balance->balance;
+        }
+
         $receipt = Receipt::create($payload);
 
         if ($request->input('file', false)) {
@@ -196,10 +206,10 @@ class ReceiptController extends Controller
 
         // Atualiza o saldo do motorista abatendo o valor enviado
         $driver_id = $request->driver_id;
-        $value = (float) $request->value;
+        $baseValue = $drivers_balance->balance ?? (float) $request->value;
 
         if ($tvde_week_id) {
-            DriversBalance::applyAdjustmentFromWeek($driver_id, (int) $tvde_week_id, -$value);
+            DriversBalance::applyAdjustmentFromWeek($driver_id, (int) $tvde_week_id, -$baseValue);
         }
 
         return redirect()->back()->with('message', 'Recibo enviado com sucesso. Obrigado.');
@@ -292,16 +302,15 @@ class ReceiptController extends Controller
         $receipt->save();
 
         // Ajusta saldo apenas pela diferenca entre o valor inicial e o valor verificado
-        $verified = (float) $receipt_value;
-        $original = (float) $receipt->value;
-        $diff = $verified - $original;
+        // abate sempre o valor base do saldo registado para este recibo
+        $base = (float) ($receipt->balance ?? $receipt->value);
         $tvdeWeekId = $receipt->tvde_week_id ?? session()->get('tvde_week_id');
         if (!$tvdeWeekId) {
             $tvdeWeekId = DriversBalance::where('driver_id', $receipt->driver_id)->max('tvde_week_id');
         }
 
-        if ($diff !== 0.0 && $tvdeWeekId) {
-            DriversBalance::applyAdjustmentFromWeek($receipt->driver_id, (int) $tvdeWeekId, -$diff);
+        if ($tvdeWeekId) {
+            DriversBalance::applyAdjustmentFromWeek($receipt->driver_id, (int) $tvdeWeekId, -$base);
         }
     }
 }

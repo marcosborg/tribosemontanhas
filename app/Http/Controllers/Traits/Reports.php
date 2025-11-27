@@ -357,12 +357,15 @@ trait Reports
             $driver->fleet_management = $fleet_management;
 
             //BALANCE
-            $driver_balance = DriversBalance::where('driver_id', $driver->id)->orderBy('tvde_week_id', 'desc')->first();
+            $last_balance = DriversBalance::where('driver_id', $driver->id)
+                ->where('tvde_week_id', '<', $tvde_week_id)
+                ->orderBy('tvde_week_id', 'desc')
+                ->value('balance');
 
-            // saldo transitado (jǭ com recibos abatidos) e saldo apurado para a semana atual
-            $last_balance = $driver_balance ? (float) $driver_balance->balance : 0;
+            // saldo transitado (ja com recibos abatidos) e saldo apurado para a semana atual
+            $last_balance = (float) ($last_balance ?? 0);
 
-            $driver->drivers_balance = $last_balance; // usado na tabela como "�sltimo saldo"
+            $driver->drivers_balance = $last_balance; // usado na tabela como "Ultimo saldo"
 
             $driver->total = $total_after_vat - $driver->fuel + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
 
