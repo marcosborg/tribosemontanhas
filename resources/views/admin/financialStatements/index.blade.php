@@ -87,6 +87,31 @@
                                 <th style="text-align: right;">Débitos</th>
                                 <th style="text-align: right;">Totais</th>
                             </tr>
+                            @php
+                                // Preparar listas de ajustes (gerais e de aluguer) antes de usar nos ícones
+                                $ajustes = $adjustments_array ?? [];
+                                $ajustesCollection = collect($ajustes);
+                                $ajustesAluguerCollection = $ajustesCollection
+                                    ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false));
+                                $ajustesAluguerList = $ajustesAluguerCollection
+                                    ->map(function ($adj) {
+                                        $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
+                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
+                                        $sign  = ($type === 'deduct') ? '-' : '';
+                                        $amtFmt = number_format($amt, 2);
+
+                                        $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
+                                        if ($start || $end) {
+                                            $html .= "<br><small>".e($start)." a ".e($end)."</small>";
+                                        }
+                                        $html .= "</div>";
+                                        return $html;
+                                    })
+                                    ->implode('');
+                            @endphp
                             <tr>
                                 <th>Ganhos</th>
                                 <td>{{ number_format($total_net, 2) }}€</td>
@@ -97,8 +122,7 @@
                                 <th>Aluguer</th>
                                 <td></td>
                                 <td>
-                                    - {{ number_format($car_hire, 2) }}€
-                                    @if (!empty($ajustesAluguerList))
+                                    @if ($ajustesAluguerCollection->count() > 0)
                                         <button type="button"
                                                 class="btn btn-xs btn-default"
                                                 data-toggle="popover"
@@ -109,6 +133,7 @@
                                             <i class="fa fa-eye"></i>
                                         </button>
                                     @endif
+                                    - {{ number_format($car_hire, 2) }}€ 
                                 </td>
                                 <td>- {{ number_format($car_hire, 2) }}€</td>
                             </tr>
@@ -149,10 +174,15 @@
                                 }
                             @endphp
                             @php
-                                $ajustes = $adjustments_array ?? [];
+                                if (!isset($ajustesCollection)) {
+                                    $ajustes = $adjustments_array ?? [];
+                                    $ajustesCollection = collect($ajustes);
+                                }
 
-                                $ajustesList = collect($ajustes)
-                                    ->filter(fn($a) => is_array($a) ? empty($a['car_hire_deduct']) : empty($a->car_hire_deduct))
+                                $ajustesSemAluguer = $ajustesCollection
+                                    ->filter(fn($a) => is_array($a) ? empty($a['car_hire_deduct']) : empty($a->car_hire_deduct));
+
+                                $ajustesList = $ajustesSemAluguer
                                     ->map(function ($adj) {
                                         $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
                                         $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
@@ -171,28 +201,31 @@
                                     })
                                     ->implode('');
 
-                                $ajustesAluguerList = collect($ajustes)
-                                    ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false))
-                                    ->map(function ($adj) {
-                                        $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
-                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
-                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
-                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
-                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
-                                        $sign  = ($type === 'deduct') ? '-' : '';
-                                        $amtFmt = number_format($amt, 2);
+                                if (!isset($ajustesAluguerCollection)) {
+                                    $ajustesAluguerCollection = $ajustesCollection
+                                        ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false));
 
-                                        $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
-                                        if ($start || $end) {
-                                            $html .= "<br><small>".e($start)." a ".e($end)."</small>";
-                                        }
-                                        $html .= "</div>";
-                                        return $html;
-                                    })
-                                    ->implode('');
+                                    $ajustesAluguerList = $ajustesAluguerCollection
+                                        ->map(function ($adj) {
+                                            $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
+                                            $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                            $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                            $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
+                                            $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
+                                            $sign  = ($type === 'deduct') ? '-' : '';
+                                            $amtFmt = number_format($amt, 2);
 
-                                $ajustesCarHireValor = collect($ajustes)
-                                    ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false))
+                                            $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
+                                            if ($start || $end) {
+                                                $html .= "<br><small>".e($start)." a ".e($end)."</small>";
+                                            }
+                                            $html .= "</div>";
+                                            return $html;
+                                        })
+                                        ->implode('');
+                                }
+
+                                $ajustesCarHireValor = $ajustesAluguerCollection
                                     ->sum(function ($adj) {
                                         $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
                                         $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
@@ -330,4 +363,3 @@
     });
 </script>
 @endsection
-
