@@ -57,7 +57,12 @@
                                             {{ $reimbursement->id ?? '' }}
                                         </td>
                                         <td>
-                                            {{ $reimbursement->value ?? '' }}
+                                            <input
+                                                type="number"
+                                                step="0.01"
+                                                class="form-control input-sm reimbursement-value-input"
+                                                data-id="{{ $reimbursement->id }}"
+                                                value="{{ $reimbursement->value ?? '' }}">
                                         </td>
                                         <td>
                                             @if($reimbursement->file)
@@ -67,8 +72,16 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <span style="display:none">{{ $reimbursement->verified ?? '' }}</span>
-                                            <input type="checkbox" disabled="disabled" {{ $reimbursement->verified ? 'checked' : '' }}>
+                                            <span class="verified-value" style="display:none">{{ $reimbursement->verified ? 1 : 0 }}</span>
+                                            @can('reimbursement_edit')
+                                                <input
+                                                    type="checkbox"
+                                                    class="reimbursement-verified-toggle"
+                                                    data-id="{{ $reimbursement->id }}"
+                                                    {{ $reimbursement->verified ? 'checked' : '' }}>
+                                            @else
+                                                <input type="checkbox" disabled="disabled" {{ $reimbursement->verified ? 'checked' : '' }}>
+                                            @endcan
                                         </td>
                                         <td>
                                             {{ $reimbursement->driver->name ?? '' }}
@@ -158,7 +171,42 @@
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
   });
-  
+
+  const baseReimbursementUrl = "{{ url('admin/reimbursements') }}";
+
+  $(document).on('change', '.reimbursement-verified-toggle', function () {
+      const $checkbox = $(this);
+      const reimbursementId = $checkbox.data('id');
+      const isChecked = $checkbox.is(':checked');
+      const $valueSpan = $checkbox.closest('td').find('.verified-value');
+      const $row = $checkbox.closest('tr');
+      const $valueInput = $row.find('.reimbursement-value-input');
+      const currentValue = $valueInput.val();
+
+      $checkbox.prop('disabled', true);
+      $valueInput.prop('disabled', true);
+
+      $.ajax({
+        headers: {'x-csrf-token': _token},
+        method: 'PATCH',
+        url: baseReimbursementUrl + '/' + reimbursementId + '/toggle-verified',
+        data: { verified: isChecked ? 1 : 0, value: currentValue }
+      }).done(function (response) {
+        if ($valueSpan.length) {
+          $valueSpan.text(response.verified ? 1 : 0);
+        }
+        if (response.value !== undefined) {
+          $valueInput.val(response.value);
+        }
+      }).fail(function () {
+        alert('Nao foi possivel atualizar o estado de verificacao.');
+        $checkbox.prop('checked', !isChecked);
+      }).always(function () {
+        $checkbox.prop('disabled', false);
+        $valueInput.prop('disabled', false);
+      });
+  });
+
 })
 
 </script>

@@ -287,11 +287,12 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             $ajustesCollection = collect($ajustes);
 
-                            $ajustesList = $ajustesCollection
-                                ->filter(function($a){
-                                    $carHire = is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
-                                    return !$carHire;
-                                })
+                            $ajustesSemAluguer = $ajustesCollection->filter(function($a){
+                                $carHire = is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
+                                return !$carHire;
+                            });
+
+                            $ajustesList = $ajustesSemAluguer
                                 ->map(function($a){
                                     $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
                                     $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
@@ -369,7 +370,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             {{-- ================= AJUSTES com ícone/Popover ================= --}}
                             <td style="text-align:right;">
                                 {{ number_format($ajustesValor, 2) }} <small>€</small>
-                                @if(!empty($ajustes) && count($ajustes))
+                                @if($ajustesSemAluguer->count() > 0)
                                     <a tabindex="0"
                                        class="flag-red"
                                        role="button"

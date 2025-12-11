@@ -8,6 +8,7 @@ use App\Http\Requests\MassDestroyReimbursementRequest;
 use App\Http\Requests\StoreReimbursementRequest;
 use App\Http\Requests\UpdateReimbursementRequest;
 use App\Models\Driver;
+use App\Models\DriversBalance;
 use App\Models\Reimbursement;
 use App\Models\TvdeWeek;
 use Gate;
@@ -41,7 +42,10 @@ class ReimbursementController extends Controller
 
     public function store(StoreReimbursementRequest $request)
     {
-        $reimbursement = Reimbursement::create($request->all());
+        $payload = $request->all();
+        $previousVerified = false;
+
+        $reimbursement = Reimbursement::create($payload);
 
         if ($request->input('file', false)) {
             $reimbursement->addMedia(storage_path('tmp/uploads/' . basename($request->input('file'))))->toMediaCollection('file');
@@ -50,6 +54,8 @@ class ReimbursementController extends Controller
         if ($media = $request->input('ck-media', false)) {
             Media::whereIn('id', $media)->update(['model_id' => $reimbursement->id]);
         }
+
+        $this->adjustDriverBalanceForVerification($reimbursement, (bool) $reimbursement->verified, $previousVerified);
 
         return redirect()->back()->with('message', 'Enviado com sucesso');
     }
@@ -69,6 +75,8 @@ class ReimbursementController extends Controller
 
     public function update(UpdateReimbursementRequest $request, Reimbursement $reimbursement)
     {
+        $previousVerified = (bool) $reimbursement->verified;
+
         $reimbursement->update($request->all());
 
         if ($request->input('file', false)) {
@@ -81,6 +89,8 @@ class ReimbursementController extends Controller
         } elseif ($reimbursement->file) {
             $reimbursement->file->delete();
         }
+
+        $this->adjustDriverBalanceForVerification($reimbursement, (bool) $reimbursement->verified, $previousVerified);
 
         return redirect()->route('admin.reimbursements.index');
     }
@@ -124,5 +134,58 @@ class ReimbursementController extends Controller
         $media         = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
 
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
+    }
+
+    public function toggleVerified(Request $request, Reimbursement $reimbursement)
+    {
+        abort_if(Gate::denies('reimbursement_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $previousVerified = (bool) $reimbursement->verified;
+
+        $request->validate([
+            'verified' => ['required', 'boolean'],
+            'value'    => ['nullable', 'numeric'],
+        ]);
+
+        $updateData = [
+            'verified' => $request->boolean('verified'),
+        ];
+
+        if ($request->filled('value')) {
+            $updateData['value'] = $request->input('value');
+        }
+
+        $reimbursement->update($updateData);
+        $reimbursement->refresh();
+
+        $this->adjustDriverBalanceForVerification($reimbursement, (bool) $reimbursement->verified, $previousVerified);
+
+        return response()->json([
+            'verified' => $reimbursement->verified,
+            'value'    => $reimbursement->value,
+        ]);
+    }
+
+    private function adjustDriverBalanceForVerification(Reimbursement $reimbursement, bool $newVerified, bool $previousVerified): void
+    {
+        if ($newVerified === $previousVerified) {
+            return;
+        }
+
+        $tvdeWeekId = $reimbursement->tvde_week_id ?? session()->get('tvde_week_id');
+        if (! $tvdeWeekId) {
+            $tvdeWeekId = DriversBalance::where('driver_id', $reimbursement->driver_id)->max('tvde_week_id');
+        }
+
+        if (! $tvdeWeekId) {
+            return;
+        }
+
+        $delta = (float) ($reimbursement->value ?? 0);
+        if (! $newVerified) {
+            $delta = -$delta;
+        }
+
+        DriversBalance::bumpBalanceFromWeek((int) $reimbursement->driver_id, (int) $tvdeWeekId, $delta);
     }
 }

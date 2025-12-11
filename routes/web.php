@@ -571,6 +571,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('reimbursements/destroy', 'ReimbursementController@massDestroy')->name('reimbursements.massDestroy');
     Route::post('reimbursements/media', 'ReimbursementController@storeMedia')->name('reimbursements.storeMedia');
     Route::post('reimbursements/ckmedia', 'ReimbursementController@storeCKEditorImages')->name('reimbursements.storeCKEditorImages');
+    Route::patch('reimbursements/{reimbursement}/toggle-verified', 'ReimbursementController@toggleVerified')->name('reimbursements.toggleVerified');
     Route::resource('reimbursements', 'ReimbursementController');
 
     // Vehicle Earnings

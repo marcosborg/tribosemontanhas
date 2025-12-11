@@ -80,4 +80,15 @@ class DriversBalance extends Model
             $record->save();
         }
     }
+
+    /**
+     * Acrescenta (ou subtrai) um delta ao campo balance de todas as semanas a partir da indicada,
+     * sem recalcular usando o valor da semana.
+     */
+    public static function bumpBalanceFromWeek(int $driverId, int $tvdeWeekId, float $delta): void
+    {
+        self::where('driver_id', $driverId)
+            ->where('tvde_week_id', '>=', $tvdeWeekId)
+            ->increment('balance', $delta);
+    }
 }
