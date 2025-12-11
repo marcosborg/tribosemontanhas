@@ -29,6 +29,10 @@ class StoreVehicleUsageRequest extends FormRequest
                 'date_format:Y-m-d H:i:s',
                 'nullable',
             ],
+            'notes' => [
+                'nullable',
+                'string',
+            ],
         ];
     }
 }

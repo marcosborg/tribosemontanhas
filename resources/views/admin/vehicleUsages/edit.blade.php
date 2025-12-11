@@ -65,6 +65,13 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleUsage.fields.usage_exceptions_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('notes') ? 'has-error' : '' }}">
+                            <label for="notes">Notas</label>
+                            <textarea class="form-control" name="notes" id="notes" rows="3">{{ old('notes', $vehicleUsage->notes) }}</textarea>
+                            @if($errors->has('notes'))
+                                <span class="help-block" role="alert">{{ $errors->first('notes') }}</span>
+                            @endif
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

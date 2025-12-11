@@ -28,6 +28,7 @@ class VehicleUsage extends Model
         'start_date',
         'end_date',
         'usage_exceptions',
+        'notes',
         'created_at',
         'updated_at',
         'deleted_at',
