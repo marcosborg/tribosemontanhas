@@ -227,7 +227,8 @@ trait Reports
                 })
                 ->first();
 
-            $sum_car_hire = $car_hire->amount ?? 0;
+            $car_hire_amount = (float) ($car_hire->amount ?? 0);
+            $sum_car_hire = $car_hire_amount;
 
             //ADJUSTMENTS
             $adjustments_array = Adjustment::whereHas('drivers', function ($query) use ($driver) {
@@ -248,38 +249,47 @@ trait Reports
             $deducts = [];
             $fleet_management = [];
             $company_expense = [];
+            $car_hire_delta = 0; // impact on car hire value itself
+            $car_hire_adjustments_in_adjustments = 0; // part that already sits inside $adjustments
 
             foreach ($adjustments_array as $adjustment) {
+                $amount = (float) ($adjustment->amount ?? 0);
+
                 if ($adjustment->type == 'deduct') {
                     if ($adjustment->fleet_management) {
-                        $fleet_management[] = $adjustment->amount;
+                        $fleet_management[] = $amount;
                     } else {
-                        $deducts[] = $adjustment->amount;
+                        $deducts[] = $amount;
                     }
                 } else {
                     if ($adjustment->fleet_management) {
-                        $fleet_management[] = (-$adjustment->amount);
+                        $fleet_management[] = (-$amount);
                     } else {
-                        $refunds[] = $adjustment->amount;
+                        $refunds[] = $amount;
                     }
                 }
                 if ($adjustment->company_expense) {
                     if ($adjustment->type == 'deduct') {
-                        $company_expense[] = -$adjustment->amount;
+                        $company_expense[] = -$amount;
                     } else {
-                        $company_expense[] = $adjustment->amount;
+                        $company_expense[] = $amount;
                     }
                 }
                 if ($adjustment->car_hire_deduct) {
-                    $sum_car_hire = $car_hire->amount - $adjustment->amount;
+                    // deduct = motorista paga mais aluguer; refund = devolve valor
+                    $car_hire_delta += $adjustment->type === 'deduct' ? $amount : -$amount;
+                    // remove o reflexo deste ajuste dos "adjustments" para nÇ¼o contar duas vezes
+                    $car_hire_adjustments_in_adjustments += $adjustment->type === 'deduct' ? -$amount : $amount;
                 }
             }
 
             $refunds = array_sum($refunds);
             $deducts = array_sum($deducts);
             $adjustments = $refunds - $deducts;
+            $sum_car_hire = $car_hire_amount + $car_hire_delta;
+            $adjustments_without_car_hire = $adjustments - $car_hire_adjustments_in_adjustments;
 
-            $total_adjustments[] = $adjustments;
+            $total_adjustments[] = $adjustments_without_car_hire;
 
             $fleet_management = array_sum($fleet_management);
 
@@ -367,7 +377,7 @@ trait Reports
 
             $driver->drivers_balance = $last_balance; // usado na tabela como "Ultimo saldo"
 
-            $driver->total = $total_after_vat - $driver->fuel + $adjustments - $fleet_management - $driver->earnings['car_track'] - ($car_hire ? $car_hire->amount : 0);
+            $driver->total = $total_after_vat - $driver->fuel + $adjustments_without_car_hire - $fleet_management - $driver->earnings['car_track'] - $sum_car_hire;
 
             $driver->final_total = $driver->total;
 
