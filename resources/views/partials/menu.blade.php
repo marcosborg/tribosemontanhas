@@ -510,7 +510,7 @@
                                     <i class="fa-fw fas fa-file-contract">
 
                                     </i>
-                                    <span>Driver all weeks</span>
+                                    <span>Condutor - todas as semanas</span>
 
                                 </a>
                             </li>
