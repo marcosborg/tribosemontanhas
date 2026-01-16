@@ -53,11 +53,7 @@ class VehicleEarningsController extends Controller
         $drivers_with_usage_no_account_or_zero = collect();
 
         $usages = VehicleUsage::with('driver')
-            ->where('start_date', '<=', $end_date)
-            ->where(function ($q) use ($start_date) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $start_date);
-            })
+            ->activeBetween($start_date, $end_date)
             ->get();
 
         foreach ($usages as $usage) {

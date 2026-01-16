@@ -390,11 +390,7 @@ trait Reports
             $driverUsages = \App\Models\VehicleUsage::query()
                 ->with('vehicle_item')
                 ->where('driver_id', $driver->id)
-                ->where('start_date', '<=', $weekEnd)
-                ->where(function ($q) use ($weekStart) {
-                    $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $weekStart);
-                })
+                ->activeBetween($weekStart, $weekEnd)
                 ->where(function ($q) {
                     $q->whereNull('usage_exceptions')
                         ->orWhere('usage_exceptions', 'usage')

@@ -373,11 +373,7 @@ class VehicleUsageController extends Controller
             // Driver = usage que INTERSECTA a semana
             $usageInWeek = VehicleUsage::query()
                 ->where('vehicle_item_id', $vehicleItem->id)
-                ->where('start_date', '<=', $weekEnd)     // comeÇõa antes de terminar a semana
-                ->where(function ($q) use ($weekStart) {
-                    $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $weekStart);
-                })                                       // termina depois de comeÇõar a semana (ou aberto)
+                ->activeBetween($weekStart, $weekEnd)
                 ->orderByRaw('CASE WHEN end_date IS NULL THEN 1 ELSE 0 END DESC')
                 ->orderByDesc('end_date')
                 ->first();

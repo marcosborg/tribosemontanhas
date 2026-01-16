@@ -76,4 +76,19 @@ class VehicleUsage extends Model
     {
         $this->attributes['end_date'] = $value ? Carbon::parse($value)->format('Y-m-d H:i:s') : null;
     }
+
+    public function scopeActiveBetween($query, $start, $end)
+    {
+        return $query->where('start_date', '<=', $end)
+            ->where(function ($q) use ($start) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $start);
+            });
+    }
+
+    public function getEffectiveEnd($fallback = null)
+    {
+        $fallback = $fallback ?: Carbon::now()->endOfDay();
+        return $this->end_date ? Carbon::parse($this->end_date) : $fallback;
+    }
 }
