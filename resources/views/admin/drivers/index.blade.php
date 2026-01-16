@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
 <div class="content">
@@ -23,7 +23,8 @@
                     {{ trans('cruds.driver.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
-                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-Driver" style="width:100%">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-Driver" style="width:100%">
                         <thead>
                             <tr>
                               <th width="10"></th>
@@ -57,7 +58,8 @@
                               <th></th>
                           </tr>
                         </thead>
-                    </table>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -67,7 +69,10 @@
 
 @section('styles')
 <style>
-    .datatable-Driver tbody tr { cursor: pointer; }
+    .datatable-Driver tbody tr { cursor: default; }
+    .table-responsive { overflow-x: auto; }
+    .datatable-scroll-top { overflow-x: scroll; overflow-y: hidden; height: 14px; }
+    .datatable-scroll-top-inner { height: 1px; }
 </style>
 @endsection
 
@@ -75,6 +80,21 @@
 @parent
 <script>
 $(function () {
+  const $tableEl = $('.datatable-Driver');
+  const $panelBody = $tableEl.closest('.panel-body');
+
+  function getScrollY() {
+    const top = $panelBody.offset() ? $panelBody.offset().top : 0;
+    const $wrapper = $panelBody.find('.dataTables_wrapper');
+    const $buttons = $wrapper.find('.dt-buttons:visible').first();
+    const $filter = $wrapper.find('.dataTables_filter:visible').first();
+    const headerExtra =
+      ($buttons.outerHeight(true) || 0) +
+      ($filter.outerHeight(true) || 0);
+    const available = $(window).height() - top - headerExtra - 240;
+    return Math.max(200, available) + 'px';
+  }
+
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 
   @can('driver_delete')
@@ -112,6 +132,9 @@ $(function () {
     serverSide: true,
     retrieve: true,
     aaSorting: [],
+    scrollX: true,
+    scrollY: getScrollY(),
+    scrollCollapse: true,
     ajax: "{{ route('admin.drivers.index') }}",
     columns: [
       { data: 'placeholder',   name: 'placeholder', orderable: false, searchable: false },
@@ -138,11 +161,48 @@ $(function () {
     pageLength: 100,
   };
 
-  let table = $('.datatable-Driver').DataTable(dtOverrideGlobals);
+  let table = $tableEl.DataTable(dtOverrideGlobals);
 
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
     $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
   });
+
+  const $scrollBody = $('.dataTables_scrollBody');
+  const $scrollHead = $('.dataTables_scrollHead');
+  const $scrollTop = $('<div class="datatable-scroll-top"><div class="datatable-scroll-top-inner"></div></div>');
+  const $scrollTopInner = $scrollTop.find('.datatable-scroll-top-inner');
+
+  if ($scrollHead.length) {
+      $scrollTop.insertBefore($scrollHead);
+  }
+
+  function syncScrollWidth() {
+      const tableWidth = $scrollBody.find('table').outerWidth() || 0;
+      $scrollTopInner.width(tableWidth);
+  }
+
+  $scrollTop.on('scroll', function () {
+      $scrollBody.scrollLeft($scrollTop.scrollLeft());
+  });
+
+  $scrollBody.on('scroll', function () {
+      $scrollTop.scrollLeft($scrollBody.scrollLeft());
+  });
+
+  syncScrollWidth();
+  table.on('draw', syncScrollWidth);
+
+  function resizeScrollBody() {
+      const newY = getScrollY();
+      const settings = table.settings()[0];
+      settings.oScroll.sY = newY;
+      $scrollBody.css('height', newY).css('max-height', newY);
+      table.columns.adjust();
+      syncScrollWidth();
+  }
+  $(window).on('resize', resizeScrollBody);
+  resizeScrollBody();
+  $(window).on('resize', syncScrollWidth);
 
   // Pesquisa por coluna (inputs no segundo thead)
   let visibleColumnsIndexes = null;
@@ -170,16 +230,7 @@ $(function () {
       });
   });
 
-  // Linhas clicáveis (leva para edit), mas ignorando cliques em botões/links/inputs
-  $('.datatable-Driver tbody').on('click', 'tr', function (e) {
-      const isInteractive = $(e.target).closest('a, button, input, label, .dropdown, .btn').length > 0;
-      if (isInteractive) return;
-
-      const rowData = table.row(this).data();
-      if (rowData && rowData.id) {
-          window.location = '/admin/drivers/' + rowData.id + '/edit';
-      }
-  });
+  // Linhas clicÃ¡veis (leva para edit), mas ignorando cliques em botÃµes/links/inputs
 });
 </script>
 @endsection
