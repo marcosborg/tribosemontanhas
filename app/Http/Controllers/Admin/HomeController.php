@@ -235,6 +235,36 @@ class HomeController
             ],
         ];
 
+        if ($results && isset($results->details)) {
+            $normalizeItems = function ($items) {
+                return collect($items)->map(function ($item) {
+                    if (is_array($item)) {
+                        return $item;
+                    }
+                    if (is_object($item)) {
+                        return [
+                            'date' => $item->date ?? null,
+                            'total' => $item->total ?? 0,
+                        ];
+                    }
+                    return null;
+                })->filter(function ($item) {
+                    return $item && !empty($item['date']);
+                })->values()->all();
+            };
+
+            $details = $results->details;
+            if (empty($expense_details['prio']['items']) && !empty($details->fuel)) {
+                $expense_details['prio']['items'] = $normalizeItems($details->fuel);
+            }
+            if (empty($expense_details['tesla']['items']) && !empty($details->tesla)) {
+                $expense_details['tesla']['items'] = $normalizeItems($details->tesla);
+            }
+            if (empty($expense_details['via_verde']['items']) && !empty($details->via_verde)) {
+                $expense_details['via_verde']['items'] = $normalizeItems($details->via_verde);
+            }
+        }
+
         return view('home')->with([
             'company_id' => $company_id,
             'tvde_year_id' => $tvde_year_id,

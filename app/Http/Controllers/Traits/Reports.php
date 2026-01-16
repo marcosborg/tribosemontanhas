@@ -152,8 +152,36 @@ trait Reports
 
             $driver->fuel = $fuel_transactions;
 
+            $cardCodes = collect();
+            if ($driver->cards) {
+                $cardCodes = collect($driver->cards)->pluck('code')->filter()->values();
+            } elseif ($driver->card) {
+                $cardCodes = collect([$driver->card->code])->filter()->values();
+            }
+
+            $fuel_detail_items = [];
+            if ($cardCodes->isNotEmpty()) {
+                $combustion_items = CombustionTransaction::where('tvde_week_id', $tvde_week_id)
+                    ->whereIn('card', $cardCodes->all())
+                    ->get();
+
+                $fuelByDate = [];
+                foreach ($combustion_items as $tx) {
+                    $dateKey = \Carbon\Carbon::parse($tx->transaction_date ?? $tx->date ?? $tx->created_at)->toDateString();
+                    $fuelByDate[$dateKey] = ($fuelByDate[$dateKey] ?? 0) + (float) ($tx->total ?? 0);
+                }
+                ksort($fuelByDate);
+                foreach ($fuelByDate as $date => $total) {
+                    $fuel_detail_items[] = [
+                        'date' => $date,
+                        'total' => round($total, 2),
+                    ];
+                }
+            }
+
             // --- TESLA ---
             $tesla_total = 0;
+            $teslaByDate = [];
 
             // limites reais (datetime) inclusivos
             $weekStart = \Carbon\Carbon::parse($tvde_week->getRawOriginal('start_date'))->startOfDay();
@@ -207,11 +235,22 @@ trait Reports
 
                 if ($usage && (int) $usage->driver_id === (int) $driver->id) {
                     $tesla_total += (float) $charging->value;
+                    $dateKey = $chargingDt->toDateString();
+                    $teslaByDate[$dateKey] = ($teslaByDate[$dateKey] ?? 0) + (float) $charging->value;
                 }
             }
 
             $driver->fuel += $tesla_total;
             $total_fuel_transactions[] = $driver->fuel;
+
+            ksort($teslaByDate);
+            $tesla_detail_items = [];
+            foreach ($teslaByDate as $date => $total) {
+                $tesla_detail_items[] = [
+                    'date' => $date,
+                    'total' => round($total, 2),
+                ];
+            }
 
             //CAR HIRE
 
@@ -347,6 +386,62 @@ trait Reports
                     ->sum('ct.value');
             }
 
+            $viaVerdeByDate = [];
+            $driverUsages = \App\Models\VehicleUsage::query()
+                ->with('vehicle_item')
+                ->where('driver_id', $driver->id)
+                ->where('start_date', '<=', $weekEnd)
+                ->where(function ($q) use ($weekStart) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $weekStart);
+                })
+                ->where(function ($q) {
+                    $q->whereNull('usage_exceptions')
+                        ->orWhere('usage_exceptions', 'usage')
+                        ->orWhereRaw("JSON_VALID(usage_exceptions) AND JSON_CONTAINS(COALESCE(usage_exceptions,'[]'), '\"usage\"')");
+                })
+                ->get();
+
+            $normalizePlate = function ($plate) {
+                return $plate ? strtoupper(str_replace(['-', ' '], '', $plate)) : '';
+            };
+
+            $carTracks = \App\Models\CarTrack::query()
+                ->where('tvde_week_id', $tvde_week_id)
+                ->get();
+
+            foreach ($carTracks as $track) {
+                $trackDate = \Carbon\Carbon::parse($track->date)->toDateString();
+                $trackPlate = $normalizePlate($track->license_plate);
+
+                $matched = false;
+                foreach ($driverUsages as $usage) {
+                    $usagePlate = $normalizePlate(optional($usage->vehicle_item)->license_plate);
+                    if ($usagePlate === '' || $usagePlate !== $trackPlate) {
+                        continue;
+                    }
+                    $start = \Carbon\Carbon::parse($usage->start_date)->toDateString();
+                    $end = $usage->end_date ? \Carbon\Carbon::parse($usage->end_date)->toDateString() : null;
+                    if ($start <= $trackDate && ($end === null || $end >= $trackDate)) {
+                        $matched = true;
+                        break;
+                    }
+                }
+
+                if ($matched) {
+                    $viaVerdeByDate[$trackDate] = ($viaVerdeByDate[$trackDate] ?? 0) + (float) ($track->value ?? 0);
+                }
+            }
+
+            ksort($viaVerdeByDate);
+            $via_verde_detail_items = [];
+            foreach ($viaVerdeByDate as $date => $total) {
+                $via_verde_detail_items[] = [
+                    'date' => $date,
+                    'total' => round($total, 2),
+                ];
+            }
+
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
@@ -361,7 +456,12 @@ trait Reports
                 'fuel_transactions' => $driver->fuel,
                 'car_hire' => $sum_car_hire ? $sum_car_hire : 0,
                 'company_expense' => $total_company_adjustments,
-                'adjustments_array' => $adjustments_array
+                'adjustments_array' => $adjustments_array,
+                'details' => [
+                    'fuel' => $fuel_detail_items,
+                    'tesla' => $tesla_detail_items,
+                    'via_verde' => $via_verde_detail_items,
+                ],
             ]);
 
             $driver->earnings = $earnings;
