@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -56,7 +56,7 @@ class VehicleUsageController extends Controller
             $table->addColumn('driver_name', fn($row) => $row->driver?->name ?: '');
             $table->addColumn('vehicle_item_license_plate', fn($row) => $row->vehicle_item?->license_plate ?: '');
 
-            // Mostrar usage_exceptions: aceita string (key) ou JSON com várias keys
+            // Mostrar usage_exceptions: aceita string (key) ou JSON com vÃ¡rias keys
             $map = VehicleUsage::USAGE_EXCEPTIONS_RADIO ?? [];
             $table->editColumn('usage_exceptions', function ($row) use ($map) {
                 $val = $row->usage_exceptions;
@@ -65,7 +65,7 @@ class VehicleUsageController extends Controller
                     return '';
                 }
 
-                // Se for JSON válido, mapeia cada item
+                // Se for JSON vÃ¡lido, mapeia cada item
                 try {
                     $decoded = is_string($val) ? json_decode($val, true) : null;
                     if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
@@ -93,7 +93,7 @@ class VehicleUsageController extends Controller
                 $q->whereHas('driver', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
 
-            // Matrícula
+            // MatrÃ­cula
             $table->filterColumn('vehicle_item_license_plate', function ($q, $k) {
                 $k = trim($k);
                 if ($k === '')
@@ -115,7 +115,7 @@ class VehicleUsageController extends Controller
                 $q->where('end_date', 'like', "%{$k}%");
             });
 
-            // usage_exceptions: pesquisa por chave, rótulo ou conteúdo JSON
+            // usage_exceptions: pesquisa por chave, rÃ³tulo ou conteÃºdo JSON
             $table->filterColumn('usage_exceptions', function ($q, $k) use ($map) {
                 $k = trim($k);
                 if ($k === '')
@@ -141,7 +141,7 @@ class VehicleUsageController extends Controller
                             $qq->orWhereRaw('JSON_VALID(usage_exceptions) AND JSON_CONTAINS(COALESCE(usage_exceptions, "[]"), ?)', ['"' . $key . '"']);
                         }
                     } else {
-                        // fallback para JSON textual (quando user escreve o label mas não há no map)
+                        // fallback para JSON textual (quando user escreve o label mas nÃ£o hÃ¡ no map)
                         $qq->orWhereRaw('JSON_VALID(usage_exceptions) AND JSON_SEARCH(usage_exceptions, "one", ?)', [$k]);
                     }
                 });
@@ -167,29 +167,33 @@ class VehicleUsageController extends Controller
 
     public function store(StoreVehicleUsageRequest $request)
     {
-        // As datas estão validadas no formato Y-m-d H:i:s, podemos usá-las diretamente
+        // As datas estÇœo validadas no formato Y-m-d H:i:s, podemos usÇ­-las diretamente
         $startDate = $request->start_date;
         $endDate = $request->end_date;
+        $endDateForOverlap = $endDate ?: '9999-12-31 23:59:59';
 
         // Criar SEMPRE o novo registo
         $newUsage = VehicleUsage::create($request->all());
 
-        // Verificar sobreposição com outros registos (excluindo o registo recém-criado)
+        // Verificar sobreposiÇõÇœo com outros registos (excluindo o registo recÇ¸m-criado)
         $hasOverlap = VehicleUsage::where('vehicle_item_id', $request->vehicle_item_id)
             ->where('id', '!=', $newUsage->id)
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->where('start_date', '<=', $endDate)
-                    ->where('end_date', '>=', $startDate);
+            ->where(function ($query) use ($startDate, $endDateForOverlap) {
+                $query->where('start_date', '<=', $endDateForOverlap)
+                    ->where(function ($q) use ($startDate) {
+                        $q->whereNull('end_date')
+                            ->orWhere('end_date', '>=', $startDate);
+                    });
             })
             ->first();
 
         if ($hasOverlap) {
             return redirect()->route('admin.vehicle-usages.index')
-                ->with('error_message', "Utilização criada com sucesso (ID {$newUsage->id}), mas sobrepõe a utilização existente com ID {$hasOverlap->id}.");
+                ->with('error_message', "UtilizaÇõÇœo criada com sucesso (ID {$newUsage->id}), mas sobrepÇæe a utilizaÇõÇœo existente com ID {$hasOverlap->id}.");
         }
 
         return redirect()->route('admin.vehicle-usages.index')
-            ->with('success', "Utilização criada com sucesso (ID {$newUsage->id}).");
+            ->with('success', "UtilizaÇõÇœo criada com sucesso (ID {$newUsage->id}).");
     }
 
     public function edit(VehicleUsage $vehicleUsage)
@@ -242,21 +246,21 @@ class VehicleUsageController extends Controller
 
     public function usage()
     {
-        // --- Carrega usos, agrupado por matrícula ---
+        // --- Carrega usos, agrupado por matrÃ­cula ---
         $usages = VehicleUsage::with(['vehicle_item', 'driver'])
             ->orderBy('start_date')
             ->get();
 
         $grouped = $usages
             ->groupBy('vehicle_item.license_plate')
-            ->sortKeysUsing(static fn($a, $b) => strcasecmp((string) $a, (string) $b)); // matrículas em ordem alfabética
+            ->sortKeysUsing(static fn($a, $b) => strcasecmp((string) $a, (string) $b)); // matrÃ­culas em ordem alfabÃ©tica
 
         $occupancyStats = [];
         $monthlyStats = [];
-        $monthlyStackedStats = []; // para o gráfico
+        $monthlyStackedStats = []; // para o grÃ¡fico
         $yearlyMap = [];
 
-        // 1) Última semana com dados em tvde_activity -> tvde_week_id
+        // 1) Ãšltima semana com dados em tvde_activity -> tvde_week_id
         $lastActivity = TvdeActivity::query()
             ->orderByDesc('id')
             ->first();
@@ -272,13 +276,13 @@ class VehicleUsageController extends Controller
                 try {
                     $weekStart = Carbon::parse($tw->start_date)->startOfDay();
                     $weekEnd = Carbon::parse($tw->end_date)->endOfDay();
-                } catch (\Throwable $e) { /* mantém fallback */
+                } catch (\Throwable $e) { /* mantÃ©m fallback */
                 }
             }
         }
 
-        // 3) Mapa de rendas por matrícula (rentByPlate) via CurrentAccount.data.car_hire
-        //    Pré-carrega todos os CurrentAccount da última semana e indexa por driver_id
+        // 3) Mapa de rendas por matrÃ­cula (rentByPlate) via CurrentAccount.data.car_hire
+        //    PrÃ©-carrega todos os CurrentAccount da Ãºltima semana e indexa por driver_id
         $currentAccountsByDriver = collect();
         if ($lastWeekId) {
             $currentAccountsByDriver = \App\Models\CurrentAccount::query()
@@ -301,18 +305,23 @@ class VehicleUsageController extends Controller
             // Driver = usage que INTERSECTA a semana
             $usageInWeek = VehicleUsage::query()
                 ->where('vehicle_item_id', $vehicleItem->id)
-                ->where('start_date', '<=', $weekEnd)     // começa antes de terminar a semana
-                ->where('end_date', '>=', $weekStart)     // termina depois de começar a semana
+                ->where('start_date', '<=', $weekEnd)     // comeÇõa antes de terminar a semana
+                ->where(function ($q) use ($weekStart) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', $weekStart);
+                })                                       // termina depois de comeÇõar a semana (ou aberto)
+                ->orderByRaw('CASE WHEN end_date IS NULL THEN 1 ELSE 0 END DESC')
                 ->orderByDesc('end_date')
                 ->first();
 
             $driverId = optional($usageInWeek)->driver_id;
 
-            // Fallback: último usage com driver (se a semana não tiver intersecção)
+            // Fallback: Ãºltimo usage com driver (se a semana nÃ£o tiver intersecÃ§Ã£o)
             if (!$driverId) {
                 $lastWithDriver = VehicleUsage::query()
                     ->where('vehicle_item_id', $vehicleItem->id)
                     ->whereNotNull('driver_id')
+                    ->orderByRaw('CASE WHEN end_date IS NULL THEN 1 ELSE 0 END DESC')
                     ->orderByDesc('end_date')
                     ->first();
                 $driverId = optional($lastWithDriver)->driver_id;
@@ -323,7 +332,7 @@ class VehicleUsageController extends Controller
             if ($driverId && isset($currentAccountsByDriver[$driverId])) {
                 $payload = $currentAccountsByDriver[$driverId]->data;
 
-                // Caso o campo não esteja com cast para array, decodifica
+                // Caso o campo nÃ£o esteja com cast para array, decodifica
                 if (is_string($payload)) {
                     $decoded = json_decode($payload, true);
                     $payload = is_array($decoded) ? $decoded : [];
@@ -332,18 +341,18 @@ class VehicleUsageController extends Controller
                 }
 
                 // caminho principal: car_hire na raiz do JSON (segundo o teu exemplo)
-                // (mantém fallback para earnings.car_hire se algum mais antigo tiver assim)
+                // (mantÃ©m fallback para earnings.car_hire se algum mais antigo tiver assim)
                 $rent = data_get($payload, 'car_hire');
                 if ($rent === null) {
                     $rent = data_get($payload, 'earnings.car_hire');
                 }
             }
 
-            // fallback final (visual) caso não haja CurrentAccount ou não tenha car_hire
+            // fallback final (visual) caso nÃ£o haja CurrentAccount ou nÃ£o tenha car_hire
             $rentByPlate[$plate] = is_numeric($rent) ? (float) $rent : 300;
         }
 
-        // 4) Estatísticas (igual ao teu original), acrescentando 'rent' a cada monthKey
+        // 4) EstatÃ­sticas (igual ao teu original), acrescentando 'rent' a cada monthKey
         foreach ($grouped as $plate => $usagesForVehicle) {
             $years = [];
 
@@ -354,15 +363,19 @@ class VehicleUsageController extends Controller
                 try {
                     $start = Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
                 } catch (\Exception $e) {
-                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
+                    \Log::error("Data invÃ¡lida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
                     continue;
                 }
 
-                try {
-                    $end = Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
-                } catch (\Exception $e) {
-                    \Log::error("Data inválida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
-                    continue;
+                if ($endRaw) {
+                    try {
+                        $end = Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
+                    } catch (\Exception $e) {
+                        \Log::error("Data invǭlida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
+                        continue;
+                    }
+                } else {
+                    $end = Carbon::now()->endOfDay();
                 }
 
                 $exception = $usage->usage_exceptions ?? 'usage';
@@ -460,7 +473,7 @@ class VehicleUsageController extends Controller
         }
         ksort($availableYears);
 
-        // Reindex para @json estável
+        // Reindex para @json estÃ¡vel
         $monthlyStackedStats = array_values($monthlyStackedStats);
 
         return view('admin.vehicleUsages.usage', compact(
@@ -473,3 +486,7 @@ class VehicleUsageController extends Controller
         ));
     }
 }
+
+
+
+

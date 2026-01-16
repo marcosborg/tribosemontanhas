@@ -23,11 +23,12 @@ class StoreVehicleUsageRequest extends FormRequest
             ],
             'start_date' => [
                 'required',
-                'date_format:Y-m-d H:i:s',
+                'date',
             ],
             'end_date' => [
-                'date_format:Y-m-d H:i:s',
                 'nullable',
+                'date',
+                'after_or_equal:start_date',
             ],
             'notes' => [
                 'nullable',

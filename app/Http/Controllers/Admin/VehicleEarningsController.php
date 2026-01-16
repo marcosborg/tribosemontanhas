@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -39,10 +39,13 @@ class VehicleEarningsController extends Controller
             ->where('suspended', false)
             ->get();
 
-        // 1. Viaturas sem motorista atribuído na semana
+        // 1. Viaturas sem motorista atribuÃ­do na semana
         $vehicles_without_driver = $vehicle_items->filter(function ($vehicle) use ($start_date, $end_date) {
             return $vehicle->vehicle_usage->filter(function ($usage) use ($start_date, $end_date) {
-                return $usage->start_date <= $end_date && $usage->end_date >= $start_date && $usage->driver_id;
+                $usageEnd = $usage->end_date;
+                return $usage->start_date <= $end_date
+                    && (empty($usageEnd) || $usageEnd >= $start_date)
+                    && $usage->driver_id;
             })->isEmpty();
         });
 
@@ -50,8 +53,11 @@ class VehicleEarningsController extends Controller
         $drivers_with_usage_no_account_or_zero = collect();
 
         $usages = VehicleUsage::with('driver')
-            ->whereBetween('start_date', [$start_date, $end_date])
-            ->orWhereBetween('end_date', [$start_date, $end_date])
+            ->where('start_date', '<=', $end_date)
+            ->where(function ($q) use ($start_date) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', $start_date);
+            })
             ->get();
 
         foreach ($usages as $usage) {
@@ -82,3 +88,4 @@ class VehicleEarningsController extends Controller
         ]);
     }
 }
+
