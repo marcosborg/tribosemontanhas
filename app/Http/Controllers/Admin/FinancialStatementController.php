@@ -194,6 +194,7 @@ class FinancialStatementController extends Controller
                     ->orWhereNull('end_date');
             })
             ->get();
+        $adjustments = $adjustments->filter(fn($adj) => empty($adj->car_hire_deduct));
 
         $refund = 0;
         $deduct = 0;

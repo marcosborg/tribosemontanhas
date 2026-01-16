@@ -209,6 +209,24 @@ class CompanyReportController extends Controller
             $data = $account ? json_decode($account->data) : null;
 
             $amount_transferred = ($receipt->amount_transferred ?? 0) - $reimbursed;
+            $adjustments_excluding_car_hire = 0;
+            if ($data) {
+                if (property_exists($data, 'adjustments_excluding_car_hire')) {
+                    $adjustments_excluding_car_hire = (float) $data->adjustments_excluding_car_hire;
+                } elseif (!empty($data->adjustments_array)) {
+                    foreach ($data->adjustments_array as $adj) {
+                        $is_car_hire = is_array($adj) ? ($adj['car_hire_deduct'] ?? false) : ($adj->car_hire_deduct ?? false);
+                        if ($is_car_hire) {
+                            continue;
+                        }
+                        $type = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                        $amount = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                        $adjustments_excluding_car_hire += ($type === 'deduct') ? -$amount : $amount;
+                    }
+                } else {
+                    $adjustments_excluding_car_hire = (float) ($data->adjustments ?? 0);
+                }
+            }
 
             $results[] = [
                 'week' => $week,
@@ -219,6 +237,7 @@ class CompanyReportController extends Controller
                 'total_gross' => $data->total_gross ?? 0,
                 'total_net' => $data->total_net ?? 0,
                 'adjustments' => $data->adjustments ?? 0,
+                'adjustments_excluding_car_hire' => $adjustments_excluding_car_hire,
                 'total' => $data->total ?? 0,
                 'vat_value' => $data->vat_value ?? 0,
                 'car_track' => $data->car_track ?? 0,

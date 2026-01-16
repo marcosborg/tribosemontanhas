@@ -356,6 +356,8 @@ trait Reports
                 'vat_value' => $vat_value,
                 'total_after_vat' => $total_after_vat,
                 'adjustments' => $adjustments,
+                'adjustments_excluding_car_hire' => $adjustments_without_car_hire,
+                'car_hire_adjustments' => $car_hire_delta,
                 'fuel_transactions' => $driver->fuel,
                 'car_hire' => $sum_car_hire ? $sum_car_hire : 0,
                 'company_expense' => $total_company_adjustments,
@@ -365,6 +367,7 @@ trait Reports
             $driver->earnings = $earnings;
             $driver->refunds = $refunds;
             $driver->adjustments = $adjustments;
+            $driver->adjustments_excluding_car_hire = $adjustments_without_car_hire;
             $driver->fleet_management = $fleet_management;
 
             //BALANCE

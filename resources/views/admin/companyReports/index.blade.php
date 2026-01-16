@@ -441,7 +441,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             $cur_bolt_net  = (float) ($driver->earnings['bolt']['bolt_net']  ?? 0);
                             $cur_vat       = (float) ($driver->earnings['vat_value']        ?? 0);
                             $cur_fuel      = (float) ($driver->fuel                         ?? 0);
-                            $cur_adj       = (float) ($driver->adjustments                  ?? 0);
+                            $cur_adj       = (float) ($ajustesValor ?? ($driver->adjustments ?? 0));
                             $cur_cartrack  = (float) ($driver->earnings['car_track']        ?? 0);
                             $cur_carhire   = (float) ($driver->earnings['car_hire']         ?? 0);
                             $cur_total     = (float) ($valorSemanaAtual);
@@ -451,7 +451,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             $val_bolt_net  = (float) data_get($cca, 'bolt.bolt_net', 0);
                             $val_vat       = (float) data_get($cca, 'vat_value', 0);
                             $val_fuel      = (float) data_get($cca, 'fuel_transactions', 0);
-                            $val_adj       = (float) data_get($cca, 'adjustments', 0);
+                            $val_adj       = (float) data_get($cca, 'adjustments_excluding_car_hire', data_get($cca, 'adjustments', 0));
                             $val_cartrack  = (float) data_get($cca, 'car_track', 0);
                             $val_carhire   = (float) data_get($cca, 'car_hire', 0);
                             $val_total     = (float) data_get($cca, 'total', 0);

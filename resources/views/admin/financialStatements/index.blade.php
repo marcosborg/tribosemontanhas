@@ -263,8 +263,9 @@
                             </tr>
 
                             @php
-                                if ($adjustments && $adjustments > 0) {
-                                    $total_net = $total_net + $adjustments;
+                                $ajustesTotal = $ajustesValor ?? ($adjustments ?? 0);
+                                if ($ajustesTotal > 0) {
+                                    $total_net = $total_net + $ajustesTotal;
                                 }
                             @endphp
                             <tr>

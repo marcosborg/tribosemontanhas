@@ -38,7 +38,7 @@
                             <td>{{ number_format($r['bolt_net'], 2, ',', '.') }} €</td>
                             <td><strong>{{ number_format($r['total_gross'], 2, ',', '.') }} €</strong></td>
                             <td>{{ number_format($r['total_net'], 2, ',', '.') }} €</td>
-                            <td>{{ number_format($r['adjustments'], 2, ',', '.') }} €</td>
+                            <td>{{ number_format($r['adjustments_excluding_car_hire'] ?? $r['adjustments'], 2, ',', '.') }} €</td>
                             <td><strong>{{ number_format($r['total'], 2, ',', '.') }} €</strong></td>
                             <td>{{ number_format($r['vat_value'], 2, ',', '.') }} €</td>
                             <td>{{ number_format($r['car_track'], 2, ',', '.') }} €</td>

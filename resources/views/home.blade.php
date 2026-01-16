@@ -155,18 +155,30 @@
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
                             </tr>
-                            @if ($adjustments_array)
-                            @foreach ($adjustments_array as $adjustment)
-                            <tr>
-                                <th>{{ $adjustment->name }}</th>
-                                <td>{{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}</td>
-                                <td>{{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}</td>
-                                <td>
-                                    {{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}
-                                    {{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}
-                                </td>
-                            </tr>
-                            @endforeach
+                            @php
+                                $ajustesCollection = collect($adjustments_array ?? []);
+                                $ajustesSemAluguer = $ajustesCollection
+                                    ->filter(fn($a) => empty($a->car_hire_deduct));
+                                $ajustesCarHireValor = $ajustesCollection
+                                    ->filter(fn($a) => !empty($a->car_hire_deduct))
+                                    ->sum(function ($a) {
+                                        $amt = (float) ($a->amount ?? 0);
+                                        return ($a->type ?? '') === 'deduct' ? -$amt : $amt;
+                                    });
+                                $ajustesValor = (float) ($adjustments ?? 0) - (float) $ajustesCarHireValor;
+                            @endphp
+                            @if ($ajustesSemAluguer->count() > 0)
+                                @foreach ($ajustesSemAluguer as $adjustment)
+                                <tr>
+                                    <th>{{ $adjustment->name }}</th>
+                                    <td>{{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}</td>
+                                    <td>{{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}</td>
+                                    <td>
+                                        {{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}
+                                        {{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}
+                                    </td>
+                                </tr>
+                                @endforeach
                             @endif
                             <tr>
                                 <th>IVA</th>
@@ -175,8 +187,9 @@
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                             </tr>
                             @php
-                                if ($adjustments && $adjustments > 0) {
-                                    $total_net = $total_net + $adjustments;
+                                $ajustesTotal = $ajustesValor ?? ($adjustments ?? 0);
+                                if ($ajustesTotal > 0) {
+                                    $total_net = $total_net + $ajustesTotal;
                                 }
                             @endphp
                             <tr>
