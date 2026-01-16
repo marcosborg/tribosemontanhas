@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\VehicleItem;
 use App\Models\TvdeWeek;
 use App\Services\VehicleProfitabilityCalculator;
+use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -16,21 +17,21 @@ class VehicleProfitabilityController extends Controller
     {
         abort_if(Gate::denies('vehicle_profitability_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        // ---- Filtros vindos da query ----
+        // Filters from query
         $period     = $request->input('period', 'week');     // week|month|year|custom
         $year       = $request->input('year');               // ex: 2025
         $month      = $request->input('month');              // 1..12
-        $weeksIds   = (array) $request->input('weeks', []);  // array de IDs de semanas
+        $weeksIds   = (array) $request->input('weeks', []);  // array of week IDs
         $startDate  = $request->input('start_date');         // YYYY-MM-DD
         $endDate    = $request->input('end_date');           // YYYY-MM-DD
         $groupBy    = $request->input('group_by', 'week');   // week|month|year
 
-        // ---- Viatura selecionada (mantÇ¸m sessÇœo como jÇ­ fazias) ----
+        // Selected vehicle (keep session behavior)
         $vehicle_items   = VehicleItem::with('driver')->get();
         $vehicle_item_id = session('vehicle_item_id', optional(VehicleItem::first())->id ?? 0);
         $vehicle_item    = VehicleItem::find($vehicle_item_id);
 
-        // ---- Determinar semanas alvo conforme o perÇðodo ----
+        // Resolve weeks for the period
         $weeksQuery = TvdeWeek::query();
 
         switch ($period) {
@@ -57,7 +58,7 @@ class VehicleProfitabilityController extends Controller
                 if (!empty($weeksIds)) {
                     $weeksQuery->whereIn('id', $weeksIds);
                 } else {
-                    // se nada vier selecionado, por defeito usa a semana mais recente
+                    // default to most recent week
                     $last = TvdeWeek::orderBy('start_date', 'desc')->first();
                     if ($last) {
                         $weeksQuery->where('id', $last->id);
@@ -68,9 +69,8 @@ class VehicleProfitabilityController extends Controller
 
         $weeks = $weeksQuery->orderBy('start_date')->get();
 
-        // Se nÇœo houver viatura ou semanas, devolve pÇ­gina ƒ?ovaziaƒ?? com filtros
+        // If no vehicle or weeks, return empty view with filters
         if (!$vehicle_item || $weeks->isEmpty()) {
-            // Listas auxiliares para o formulÇ­rio (a partir das datas)
             $tvde_years  = TvdeWeek::selectRaw('YEAR(start_date) as y')->distinct()->orderBy('y', 'desc')->pluck('y');
             $tvde_months = TvdeWeek::when($year, fn($q) => $q->whereYear('start_date', $year))
                                    ->selectRaw('MONTH(start_date) as m')->distinct()->orderBy('m')->pluck('m');
@@ -90,21 +90,22 @@ class VehicleProfitabilityController extends Controller
                 'rows' => [],
                 'groups' => [],
                 'totals' => ['treasury' => 0, 'taxes' => 0, 'final' => 0],
+                'chart' => ['labels' => [], 'treasury' => [], 'taxes' => [], 'final' => []],
             ]);
         }
 
-        // ---- CÇ­lculo por semana (reutilizÇ­vel) ----
+        // Compute metrics per week using live calculator
         $calculator = app(VehicleProfitabilityCalculator::class);
         $rows = [];
         foreach ($weeks as $week) {
             $rows[] = $calculator->computeWeekMetrics($vehicle_item, $week);
         }
 
-        // ---- Agrupar por week|month|year ----
+        // Group by week|month|year
         $groups = collect($rows)->groupBy(function ($row) use ($groupBy) {
-            if ($groupBy === 'year')  return $row['year']; // 2025
-            if ($groupBy === 'month') return sprintf('%04d-%02d', $row['year'], $row['month']); // 2025-06
-            return $row['week']->id; // week
+            if ($groupBy === 'year')  return $row['year'];
+            if ($groupBy === 'month') return sprintf('%04d-%02d', $row['year'], $row['month']);
+            return $row['week']->id;
         })->map(function ($items) {
             return [
                 'treasury' => collect($items)->sum('total_treasury'),
@@ -114,14 +115,16 @@ class VehicleProfitabilityController extends Controller
             ];
         });
 
-        // ---- Totais globais do perÇðodo ----
+        // Totals for the period
         $totals = [
             'treasury' => $groups->sum('treasury'),
             'taxes'    => $groups->sum('taxes'),
             'final'    => $groups->sum('final'),
         ];
 
-        // ---- Listas auxiliares para o formulÇ­rio (anos/meses/semanas) ----
+        $chart = $this->buildChartSeries($groups, $weeks, $groupBy);
+
+        // Aux lists for the filters
         $tvde_years  = TvdeWeek::selectRaw('YEAR(start_date) as y')->distinct()->orderBy('y', 'desc')->pluck('y');
         $tvde_months = TvdeWeek::when($year, fn($q) => $q->whereYear('start_date', $year))
                                ->selectRaw('MONTH(start_date) as m')->distinct()->orderBy('m')->pluck('m');
@@ -140,8 +143,55 @@ class VehicleProfitabilityController extends Controller
             'weeks',
             'rows',
             'groups',
-            'totals'
+            'totals',
+            'chart'
         ));
+    }
+
+    private function buildChartSeries($groups, $weeks, string $groupBy): array
+    {
+        $labels = [];
+
+        if ($weeks->isEmpty()) {
+            return ['labels' => [], 'treasury' => [], 'taxes' => [], 'final' => []];
+        }
+
+        if ($groupBy === 'month') {
+            $start = Carbon::parse($weeks->min('start_date'))->startOfMonth();
+            $end = Carbon::parse($weeks->max('end_date'))->startOfMonth();
+            $cursor = $start->copy();
+            while ($cursor <= $end) {
+                $labels[] = $cursor->format('Y-m');
+                $cursor->addMonth();
+            }
+        } elseif ($groupBy === 'year') {
+            $startYear = Carbon::parse($weeks->min('start_date'))->year;
+            $endYear = Carbon::parse($weeks->max('end_date'))->year;
+            for ($year = $startYear; $year <= $endYear; $year++) {
+                $labels[] = (string) $year;
+            }
+        } else {
+            $labels = $weeks->pluck('id')->map(fn($id) => (string) $id)->all();
+        }
+
+        $chart = [
+            'labels' => [],
+            'treasury' => [],
+            'taxes' => [],
+            'final' => [],
+        ];
+
+        $groupMap = $groups->toArray();
+
+        foreach ($labels as $label) {
+            $entry = $groupMap[$label] ?? null;
+            $chart['labels'][] = $label;
+            $chart['treasury'][] = $entry['treasury'] ?? 0;
+            $chart['taxes'][] = $entry['taxes'] ?? 0;
+            $chart['final'][] = $entry['final'] ?? 0;
+        }
+
+        return $chart;
     }
 
     public function setVehicleItemId($vehicle_item_id)
