@@ -88,18 +88,18 @@
                             </tr>
                             <tr>
                                 <th>UBER</th>
-                                <td>{{ number_format($uber_gross, 2) }}€</td>
-                                <td>{{ number_format($uber_net, 2) }}€</td>
+                                <td>{{ number_format($uber_gross, 2) }}&euro;</td>
+                                <td>{{ number_format($uber_net, 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>BOLT</th>
-                                <td>{{ number_format($bolt_gross, 2) }}€</td>
-                                <td>{{ number_format($bolt_net, 2) }}€</td>
+                                <td>{{ number_format($bolt_gross, 2) }}&euro;</td>
+                                <td>{{ number_format($bolt_net, 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>Totais</th>
-                                <td>{{ number_format($total_gross, 2) }}€</td>
-                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td>{{ number_format($total_gross, 2) }}&euro;</td>
+                                <td>{{ number_format($total_net, 2) }}&euro;</td>
                             </tr>
                         </tbody>
                     </table>
@@ -113,7 +113,7 @@
                     <table class="table table-striped">
                         <tr>
                             <th>IVA</th>
-                            <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
+                            <td style="color: red;">- {{ number_format($vat_value, 2) }}&euro;</td>
                         </tr>
                     </table>
                 </div>
@@ -140,21 +140,92 @@
                             </tr>
                             <tr>
                                 <th>Ganhos</th>
-                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td>{{ number_format($total_net, 2) }}&euro;</td>
                                 <td></td>
-                                <td>{{ number_format($total_net, 2) }}€</td>
+                                <td>{{ number_format($total_net, 2) }}&euro;</td>
+                            </tr>
+                            @php
+                                $ajustesCollection = collect($adjustments_array ?? []);
+                                $ajustesCarHire = $ajustesCollection
+                                    ->filter(fn($a) => !empty($a->car_hire_deduct));
+                                $ajustesCarHireValor = $ajustesCarHire
+                                    ->sum(function ($a) {
+                                        $amt = (float) ($a->amount ?? 0);
+                                        return (($a->type ?? '') === 'deduct') ? $amt : -$amt;
+                                    });
+                                $carHireBase = (float) ($car_hire ?? 0) - (float) $ajustesCarHireValor;
+                            @endphp
+                            <tr>
+                                <th>
+                                    Aluguer
+                                    <a class="btn btn-xs btn-link" data-toggle="collapse" href="#car-hire-details" aria-expanded="false" aria-controls="car-hire-details" title="Detalhe">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </th>
+                                <td></td>
+                                <td>- {{ number_format($car_hire, 2) }}&euro;</td>
+                                <td>- {{ number_format($car_hire, 2) }}&euro;</td>
+                            </tr>
+                            <tr class="car-hire-details-row">
+                                <td colspan="4" style="padding: 0;">
+                                    <div class="collapse" id="car-hire-details">
+                                        <div style="padding: 10px 12px; background: #f9f9f9;">
+                                            <div style="text-align:left; font-weight: 600;">Base</div>
+                                            <div style="text-align:right;">{{ number_format($carHireBase, 2) }}&euro;</div>
+                                            <div style="margin-top:8px; text-align:left; font-weight: 600;">Ajustes</div>
+                                            @if ($ajustesCarHire->count() > 0)
+                                                <table class="table table-condensed" style="margin: 6px 0 0;">
+                                                    @foreach ($ajustesCarHire as $adj)
+                                                        @php
+                                                            $amt = (float) ($adj->amount ?? 0);
+                                                            $sign = (($adj->type ?? '') === 'deduct') ? '+' : '-';
+                                                        @endphp
+                                                        <tr>
+                                                            <td style="text-align:left;">{{ $adj->name ?? 'Ajuste' }}</td>
+                                                            <td style="text-align:right;">{{ $sign }} {{ number_format($amt, 2) }}&euro;</td>
+                                                        </tr>
+                                                    @endforeach
+                                                </table>
+                                            @else
+                                                <div class="text-muted" style="text-align:left;">Sem ajustes</div>
+                                            @endif
+                                            <div style="margin-top:8px; text-align:left; font-weight: 600;">Final</div>
+                                            <div style="text-align:right;">{{ number_format($car_hire, 2) }}&euro;</div>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             <tr>
-                                <th>Aluguer</th>
+                                <th>
+                                    Via Verde
+                                    <a class="btn btn-xs btn-link" data-toggle="collapse" href="#via-verde-details" aria-expanded="false" aria-controls="via-verde-details" title="Detalhe">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </th>
                                 <td></td>
-                                <td>- {{ number_format($car_hire, 2) }}€</td>
-                                <td>- {{ number_format($car_hire, 2) }}€</td>
+                                <td>- {{ number_format($car_track, 2) }}&euro;</td>
+                                <td>- {{ number_format($car_track, 2) }}&euro;</td>
                             </tr>
-                            <tr>
-                                <th>Via Verde</th>
-                                <td></td>
-                                <td>- {{ number_format($car_track, 2) }}€</td>
-                                <td>- {{ number_format($car_track, 2) }}€</td>
+                            <tr class="via-verde-details-row">
+                                <td colspan="4" style="padding: 0;">
+                                    <div class="collapse" id="via-verde-details">
+                                        <div style="padding: 10px 12px; background: #f9f9f9;">
+                                            <div style="text-align:left; font-weight: 600;">Via Verde</div>
+                                            @if (count($expenseDetails["via_verde"]["items"]) > 0)
+                                                <table class="table table-condensed" style="margin: 6px 0 0;">
+                                                    @foreach ($expenseDetails["via_verde"]["items"] as $item)
+                                                    <tr>
+                                                        <td style="text-align:left;">{{ $item["date"] }}</td>
+                                                        <td style="text-align:right;">{{ number_format($item["total"], 2) }}&euro;</td>
+                                                    </tr>
+                                                    @endforeach
+                                                </table>
+                                            @else
+                                                <div class="text-muted" style="text-align:left;">Sem registos</div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             <tr>
                                 <th>
@@ -164,21 +235,21 @@
                                     </a>
                                 </th>
                                 <td></td>
-                                <td>- {{ number_format($fuel_transactions, 2) }}?</td>
-                                <td>- {{ number_format($fuel_transactions, 2) }}?</td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}&euro;</td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}&euro;</td>
                             </tr>
                             <tr class="fuel-details-row">
                                 <td colspan="4" style="padding: 0;">
                                     <div class="collapse" id="fuel-details">
                                         <div class="fuel-details">
                                             <div class="fuel-details-section">
-                                                <div class="fuel-details-title">PRIO</div>
+                                                <div class="fuel-details-title">Carregamento</div>
                                                 @if (count($expenseDetails["prio"]["items"]) > 0)
                                                     <table class="table table-condensed fuel-details-table">
                                                         @foreach ($expenseDetails["prio"]["items"] as $item)
                                                         <tr>
                                                             <td>{{ $item["date"] }}</td>
-                                                            <td>{{ number_format($item["total"], 2) }}?</td>
+                                                            <td>{{ number_format($item["total"], 2) }}&euro;</td>
                                                         </tr>
                                                         @endforeach
                                                     </table>
@@ -193,7 +264,7 @@
                                                         @foreach ($expenseDetails["tesla"]["items"] as $item)
                                                         <tr>
                                                             <td>{{ $item["date"] }}</td>
-                                                            <td>{{ number_format($item["total"], 2) }}?</td>
+                                                            <td>{{ number_format($item["total"], 2) }}&euro;</td>
                                                         </tr>
                                                         @endforeach
                                                     </table>
@@ -202,20 +273,6 @@
                                                 @endif
                                             </div>
                                             <div class="fuel-details-section">
-                                                <div class="fuel-details-title">Via Verde</div>
-                                                @if (count($expenseDetails["via_verde"]["items"]) > 0)
-                                                    <table class="table table-condensed fuel-details-table">
-                                                        @foreach ($expenseDetails["via_verde"]["items"] as $item)
-                                                        <tr>
-                                                            <td>{{ $item["date"] }}</td>
-                                                            <td>{{ number_format($item["total"], 2) }}?</td>
-                                                        </tr>
-                                                        @endforeach
-                                                    </table>
-                                                @else
-                                                    <div class="text-muted">Sem registos</div>
-                                                @endif
-                                            </div>
                                         </div>
                                     </div>
                                 </td>
@@ -228,7 +285,7 @@
                                     ->filter(fn($a) => !empty($a->car_hire_deduct))
                                     ->sum(function ($a) {
                                         $amt = (float) ($a->amount ?? 0);
-                                        return ($a->type ?? '') === 'deduct' ? -$amt : $amt;
+                                        return (($a->type ?? '') === 'deduct') ? $amt : -$amt;
                                     });
                                 $ajustesValor = (float) ($adjustments ?? 0) - (float) $ajustesCarHireValor;
                             @endphp
@@ -236,11 +293,11 @@
                                 @foreach ($ajustesSemAluguer as $adjustment)
                                 <tr>
                                     <th>{{ $adjustment->name }}</th>
-                                    <td>{{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}</td>
-                                    <td>{{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}</td>
+                                    <td>{{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '&euro;' : '' }}</td>
+                                    <td>{{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '&euro;' : '' }}</td>
                                     <td>
-                                        {{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '€' : '' }}
-                                        {{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '€' : '' }}
+                                        {{ $adjustment->type == 'refund' ? number_format($adjustment->amount, 2) . '&euro;' : '' }}
+                                        {{ $adjustment->type == 'deduct' ? '-' . number_format($adjustment->amount, 2) . '&euro;' : '' }}
                                     </td>
                                 </tr>
                                 @endforeach
@@ -248,8 +305,8 @@
                             <tr>
                                 <th>IVA</th>
                                 <td></td>
-                                <td>- {{ number_format($vat_value, 2) }}€</td>
-                                <td>- {{ number_format($vat_value, 2) }}€</td>
+                                <td>- {{ number_format($vat_value, 2) }}&euro;</td>
+                                <td>- {{ number_format($vat_value, 2) }}&euro;</td>
                             </tr>
                             @php
                                 $ajustesTotal = $ajustesValor ?? ($adjustments ?? 0);
@@ -259,9 +316,9 @@
                             @endphp
                             <tr>
                                 <th>Totais</th>
-                                <th style="text-align: right;">{{ number_format($total_net, 2) }}€</th>
-                                <th style="text-align: right;">{{ number_format(($total - $total_net), 2) }}€</th>
-                                <th style="text-align: right;">{{ number_format($total, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($total_net, 2) }}&euro;</th>
+                                <th style="text-align: right;">{{ number_format(($total - $total_net), 2) }}&euro;</th>
+                                <th style="text-align: right;">{{ number_format($total, 2) }}&euro;</th>
                             </tr>
                         </tbody>
                     </table>
@@ -272,7 +329,7 @@
         <div class="col-md-7">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h3 class="pull-left">Saldo atual: <span style="font-weight: 800;">{{ number_format($driver_balance->balance ?? 0, 2) }}</span>€</h3>
+                    <h3 class="pull-left">Saldo atual: <span style="font-weight: 800;">{{ number_format($driver_balance->balance ?? 0, 2) }}</span>&euro;</h3>
                     <div class="pull-right">
                         <a target="_new" href="/admin/financial-statements/pdf" class="btn btn-primary"><i class="fa fa-file-pdf-o"></i></a>
                         <a href="/admin/financial-statements/pdf/1" class="btn btn-primary"><i class="fa fa-cloud-download"></i></a>
@@ -285,7 +342,7 @@
                         <input type="hidden" name="driver_balance_id" value="{{ $driver_balance->id ?? 0 }}">
                         <div class="form-inline">
                             <div class="input-group">
-                                <div class="input-group-addon">Saldo (€)</div>
+                                <div class="input-group-addon">Saldo (&euro;)</div>
                                 <input type="text" class="form-control" value="{{ $driver_balance->drivers_balance ?? 0 }}" name="balance">
                             </div>
                             <button type="submit" class="btn btn-success">Atualizar saldo</button>
@@ -304,27 +361,27 @@
                         <tbody>
                             <tr>
                                 <th>Valor transitado</th>
-                                <td>{{ number_format($driver_balance->valor_transitado ?? ($driver_balance_last_week->balance ?? 0), 2) }}€</td>
+                                <td>{{ number_format($driver_balance->valor_transitado ?? ($driver_balance_last_week->balance ?? 0), 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>Valor da semana</th>
-                                <td>{{ number_format($driver_balance->valor_semana ?? $total ?? 0, 2) }}€</td>
+                                <td>{{ number_format($driver_balance->valor_semana ?? $total ?? 0, 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>Valor total</th>
-                                <td>{{ number_format(($driver_balance->drivers_balance ?? 0) + ($driver_balance->value ?? 0), 2) }}€</td>
+                                <td>{{ number_format(($driver_balance->drivers_balance ?? 0) + ($driver_balance->value ?? 0), 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>Valor do recibo</th>
-                                <td>{{ number_format($driver_balance->final ?? 0, 2) }}€</td>
+                                <td>{{ number_format($driver_balance->final ?? 0, 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>IVA a devolver:</th>
-                                <td>{{ number_format($driver_balance->iva ?? 0, 2) }}€</td>
+                                <td>{{ number_format($driver_balance->iva ?? 0, 2) }}&euro;</td>
                             </tr>
                             <tr>
                                 <th>Retenção na fonte</th>
-                                <td>{{ number_format($driver_balance->rf ?? 0, 2) }}€</td>
+                                <td>{{ number_format($driver_balance->rf ?? 0, 2) }}&euro;</td>
                             </tr>
                         </tbody>
                     </table>
@@ -789,3 +846,14 @@
 </script>
 
 @endsection
+
+
+
+
+
+
+
+
+
+
+

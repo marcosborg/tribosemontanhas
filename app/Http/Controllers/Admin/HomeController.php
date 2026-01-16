@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Admin;
 
@@ -156,7 +156,7 @@ class HomeController
 
         $prioItems = $prioTransactions
             ->groupBy(function ($tx) {
-                return Carbon::parse($tx->created_at)->toDateString();
+                return Carbon::parse($tx->transaction_date ?? $tx->date ?? $tx->created_at)->toDateString();
             })
             ->map(function ($items, $date) {
                 return [
@@ -342,7 +342,7 @@ class HomeController
 
         if ($company->suspended) {
             session()->flush();
-            return redirect('/login')->with('message', 'A sua conta está suspensa. Entre em contacto com a ' . env('APP_NAME'));
+            return redirect('/login')->with('message', 'A sua conta estÃ¡ suspensa. Entre em contacto com a ' . env('APP_NAME'));
         }
 
         return view('admin.companyInvoiceDashboard.index', compact('company'));
@@ -358,3 +358,4 @@ class HomeController
         return redirect()->back();
     }
 }
+
