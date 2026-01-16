@@ -254,6 +254,74 @@ class VehicleUsageController extends Controller
         $grouped = $usages
             ->groupBy('vehicle_item.license_plate')
             ->sortKeysUsing(static fn($a, $b) => strcasecmp((string) $a, (string) $b)); // matrÃ­culas em ordem alfabÃ©tica
+        $normalizedByPlate = [];
+        $timelineItems = [];
+
+        foreach ($grouped as $plate => $usagesForVehicle) {
+            $sorted = $usagesForVehicle->sortBy('start_date')->values();
+            $normalized = [];
+
+            for ($i = 0; $i < $sorted->count(); $i++) {
+                $current = $sorted[$i];
+                $startRaw = $current->getRawOriginal('start_date');
+                if (!$startRaw) {
+                    continue;
+                }
+
+                $start = Carbon::parse($startRaw);
+                $endRaw = $current->getRawOriginal('end_date');
+                $end = $endRaw ? Carbon::parse($endRaw) : null;
+
+                $next = $sorted[$i + 1] ?? null;
+                if ($next) {
+                    $nextStartRaw = $next->getRawOriginal('start_date');
+                    if ($nextStartRaw) {
+                        $nextStart = Carbon::parse($nextStartRaw);
+                        if ($end === null || $end->greaterThanOrEqualTo($nextStart)) {
+                            $end = $nextStart->copy()->subSecond();
+                        }
+                    }
+                }
+
+                if ($end && $end->lessThan($start)) {
+                    $end = $start->copy();
+                }
+
+                $normalized[] = (object) [
+                    'id' => $current->id,
+                    'driver' => $current->driver,
+                    'usage_exceptions' => $current->usage_exceptions,
+                    'start' => $start,
+                    'end' => $end,
+                ];
+            }
+
+            $normalizedByPlate[$plate] = $normalized;
+        }
+
+        foreach ($normalizedByPlate as $plate => $usagesForVehicle) {
+            foreach ($usagesForVehicle as $usage) {
+                $content = $usage->driver
+                    ? $usage->driver->name
+                    : ($usage->usage_exceptions ? ucfirst($usage->usage_exceptions) : 'Sem motorista');
+
+                $className = null;
+                if ($usage->usage_exceptions) {
+                    $className = $usage->usage_exceptions . '-item';
+                } elseif (!$usage->driver) {
+                    $className = 'exception-item';
+                }
+
+                $timelineItems[] = [
+                    'id' => $usage->id,
+                    'content' => $content,
+                    'start' => $usage->start->format('Y-m-d H:i:s'),
+                    'end' => $usage->end ? $usage->end->format('Y-m-d H:i:s') : null,
+                    'group' => $plate,
+                    'className' => $className,
+                ];
+            }
+        }
 
         $occupancyStats = [];
         $monthlyStats = [];
@@ -353,31 +421,12 @@ class VehicleUsageController extends Controller
         }
 
         // 4) EstatÃ­sticas (igual ao teu original), acrescentando 'rent' a cada monthKey
-        foreach ($grouped as $plate => $usagesForVehicle) {
+        foreach ($normalizedByPlate as $plate => $usagesForVehicle) {
             $years = [];
 
             foreach ($usagesForVehicle as $usage) {
-                $startRaw = $usage->getRawOriginal('start_date');
-                $endRaw = $usage->getRawOriginal('end_date');
-
-                try {
-                    $start = Carbon::createFromFormat('Y-m-d H:i:s', $startRaw);
-                } catch (\Exception $e) {
-                    \Log::error("Data invÃ¡lida em VehicleUsage ID {$usage->id} (start_date): '{$startRaw}'");
-                    continue;
-                }
-
-                if ($endRaw) {
-                    try {
-                        $end = Carbon::createFromFormat('Y-m-d H:i:s', $endRaw);
-                    } catch (\Exception $e) {
-                        \Log::error("Data invǭlida em VehicleUsage ID {$usage->id} (end_date): '{$endRaw}'");
-                        continue;
-                    }
-                } else {
-                    $end = Carbon::now()->endOfDay();
-                }
-
+                $start = $usage->start;
+                $end = $usage->end ?: Carbon::now()->endOfDay();
                 $exception = $usage->usage_exceptions ?? 'usage';
                 $period = CarbonPeriod::create($start, $end);
 
@@ -482,10 +531,12 @@ class VehicleUsageController extends Controller
             'yearlyStats',
             'monthlyStats',
             'availableYears',
+            'timelineItems',
             'monthlyStackedStats'
         ));
     }
 }
+
 
 
 
