@@ -49,6 +49,7 @@ class VehicleExpense extends Model implements HasMedia
         'date',
         'description',
         'value',
+        'invoice_value',
         'vat',
         'created_at',
         'updated_at',
