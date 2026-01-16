@@ -258,7 +258,9 @@ class VehicleUsageController extends Controller
         $timelineItems = [];
 
         foreach ($grouped as $plate => $usagesForVehicle) {
-            $sorted = $usagesForVehicle->sortBy('start_date')->values();
+            $sorted = $usagesForVehicle->sortBy(function ($item) {
+                return (string) ($item->getRawOriginal('start_date') ?? '');
+            })->values();
             $normalized = [];
 
             for ($i = 0; $i < $sorted->count(); $i++) {
@@ -268,17 +270,33 @@ class VehicleUsageController extends Controller
                     continue;
                 }
 
-                $start = Carbon::parse($startRaw);
+                try {
+                    $start = Carbon::parse($startRaw);
+                } catch (\Throwable $e) {
+                    continue;
+                }
                 $endRaw = $current->getRawOriginal('end_date');
-                $end = $endRaw ? Carbon::parse($endRaw) : null;
+                if ($endRaw) {
+                    try {
+                        $end = Carbon::parse($endRaw);
+                    } catch (\Throwable $e) {
+                        $end = null;
+                    }
+                } else {
+                    $end = null;
+                }
 
                 $next = $sorted[$i + 1] ?? null;
                 if ($next) {
                     $nextStartRaw = $next->getRawOriginal('start_date');
                     if ($nextStartRaw) {
-                        $nextStart = Carbon::parse($nextStartRaw);
-                        if ($end === null || $end->greaterThanOrEqualTo($nextStart)) {
-                            $end = $nextStart->copy()->subSecond();
+                        try {
+                            $nextStart = Carbon::parse($nextStartRaw);
+                            if ($end === null || $end->greaterThanOrEqualTo($nextStart)) {
+                                $end = $nextStart->copy()->subSecond();
+                            }
+                        } catch (\Throwable $e) {
+                            // ignore invalid next start date
                         }
                     }
                 }

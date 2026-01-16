@@ -155,8 +155,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     // === TIMELINE ===
     const rawTimelineItems = @json($timelineItems, JSON_NUMERIC_CHECK);
+    const safeTimelineItems = Array.isArray(rawTimelineItems) ? rawTimelineItems : [];
     const timelineItems = new vis.DataSet(
-        rawTimelineItems.map(item => {
+        safeTimelineItems.map(item => {
             if (!item.end) { delete item.end; }
             return item;
         })
@@ -233,7 +234,8 @@ document.addEventListener('DOMContentLoaded', function () {
     const container  = document.getElementById('occupancyChartContainer');
 
     // dados jÃ¡ reindexados pelo controller
-    const stackedStats = @json($monthlyStackedStats, JSON_NUMERIC_CHECK);
+    const rawStackedStats = @json($monthlyStackedStats, JSON_NUMERIC_CHECK);
+    const stackedStats = Array.isArray(rawStackedStats) ? rawStackedStats : [];
 
     const categoryLabels = {
         usage: 'UtilizaÃ§Ã£o',
