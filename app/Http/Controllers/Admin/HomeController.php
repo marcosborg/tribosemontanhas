@@ -14,6 +14,11 @@ use App\Models\CompanyData;
 use App\Models\Driver;
 use App\Models\ExpenseReceipt;
 use App\Models\TvdeWeek;
+use App\Models\CombustionTransaction;
+use App\Models\TeslaCharging;
+use App\Models\CarTrack;
+use App\Models\VehicleUsage;
+use Carbon\Carbon;
 
 class HomeController
 {
@@ -37,7 +42,7 @@ class HomeController
         if (!$driver) {
             return redirect('/admin/financial-statements');
         } else {
-            $driver->load('contract_vat');
+            $driver->load(['contract_vat', 'cards', 'card', 'electric']);
         }
 
         $driver_id = $driver->id;
@@ -108,6 +113,128 @@ class HomeController
             $driver_balance_last_week = null; // ou valor default
         }
 
+        $weekStart = Carbon::parse($current_week->getRawOriginal('start_date'))->startOfDay();
+        $weekEnd = Carbon::parse($current_week->getRawOriginal('end_date'))->endOfDay();
+
+        $normalizePlate = function ($plate) {
+            return $plate ? strtoupper(str_replace(['-', ' '], '', $plate)) : '';
+        };
+
+        $vehiclePlates = VehicleUsage::query()
+            ->with('vehicle_item')
+            ->where('driver_id', $driver_id)
+            ->where('start_date', '<=', $weekEnd)
+            ->where(function ($q) use ($weekStart) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', $weekStart);
+            })
+            ->where(function ($q) {
+                $q->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage')
+                    ->orWhereRaw("JSON_VALID(usage_exceptions) AND JSON_CONTAINS(COALESCE(usage_exceptions,'[]'), '\"usage\"')");
+            })
+            ->get()
+            ->pluck('vehicle_item.license_plate')
+            ->filter()
+            ->map($normalizePlate)
+            ->unique()
+            ->values()
+            ->all();
+
+        $cardCodes = collect($driver->cards ?? [])->pluck('code')->filter()->values();
+        if ($cardCodes->isEmpty() && $driver->card) {
+            $cardCodes = collect([$driver->card->code]);
+        }
+
+        $prioTransactions = collect();
+        if ($cardCodes->isNotEmpty()) {
+            $prioTransactions = CombustionTransaction::query()
+                ->where('tvde_week_id', $tvde_week_id)
+                ->whereIn('card', $cardCodes->all())
+                ->orderBy('created_at')
+                ->get(['total', 'created_at']);
+        }
+
+        $prioItems = $prioTransactions
+            ->groupBy(function ($tx) {
+                return Carbon::parse($tx->created_at)->toDateString();
+            })
+            ->map(function ($items, $date) {
+                return [
+                    'date' => $date,
+                    'total' => round($items->sum('total'), 2),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $teslaItems = [];
+        $teslaTotal = 0.0;
+        if (!empty($vehiclePlates)) {
+            $teslaChargings = TeslaCharging::query()
+                ->where('datetime', '>=', $weekStart)
+                ->where('datetime', '<=', $weekEnd)
+                ->get(['license', 'value', 'datetime']);
+
+            $teslaFiltered = $teslaChargings->filter(function ($charging) use ($vehiclePlates, $normalizePlate) {
+                return in_array($normalizePlate($charging->license), $vehiclePlates, true);
+            });
+
+            $teslaTotal = $teslaFiltered->sum('value');
+            $teslaItems = $teslaFiltered
+                ->groupBy(function ($charging) {
+                    return Carbon::parse($charging->datetime)->toDateString();
+                })
+                ->map(function ($items, $date) {
+                    return [
+                        'date' => $date,
+                        'total' => round($items->sum('value'), 2),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        $viaVerdeItems = [];
+        $viaVerdeTotal = 0.0;
+        if (!empty($vehiclePlates)) {
+            $carTracks = CarTrack::query()
+                ->where('tvde_week_id', $tvde_week_id)
+                ->get(['license_plate', 'value', 'date']);
+
+            $carTracks = $carTracks->filter(function ($track) use ($vehiclePlates, $normalizePlate) {
+                return in_array($normalizePlate($track->license_plate), $vehiclePlates, true);
+            });
+
+            $viaVerdeTotal = $carTracks->sum('value');
+            $viaVerdeItems = $carTracks
+                ->groupBy(function ($track) {
+                    return Carbon::parse($track->date)->toDateString();
+                })
+                ->map(function ($items, $date) {
+                    return [
+                        'date' => $date,
+                        'total' => round($items->sum('value'), 2),
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
+        $expense_details = [
+            'prio' => [
+                'total' => round($prioTransactions->sum('total'), 2),
+                'items' => $prioItems,
+            ],
+            'tesla' => [
+                'total' => round($teslaTotal, 2),
+                'items' => $teslaItems,
+            ],
+            'via_verde' => [
+                'total' => round($viaVerdeTotal, 2),
+                'items' => $viaVerdeItems,
+            ],
+        ];
+
         return view('home')->with([
             'company_id' => $company_id,
             'tvde_year_id' => $tvde_year_id,
@@ -133,6 +260,7 @@ class HomeController
             'fuel_transactions' => isset($results) ? $results->fuel_transactions : 0,
             'driver_balance' => $driver_balance ?? null,
             'expenseReceipt' => $expenseReceipt ?? null,
+            'expense_details' => $expense_details,
         ]);
     }
 

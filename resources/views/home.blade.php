@@ -125,6 +125,13 @@
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tbody>
+                            @php
+                                $expenseDetails = $expense_details ?? [
+                                    'prio' => ['items' => [], 'total' => 0],
+                                    'tesla' => ['items' => [], 'total' => 0],
+                                    'via_verde' => ['items' => [], 'total' => 0],
+                                ];
+                            @endphp
                             <tr>
                                 <th></th>
                                 <th style="text-align: right;">Créditos</th>
@@ -150,10 +157,68 @@
                                 <td>- {{ number_format($car_track, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>Abastecimento</th>
+                                <th>
+                                    Abastecimento
+                                    <a class="btn btn-xs btn-link" data-toggle="collapse" href="#fuel-details" aria-expanded="false" aria-controls="fuel-details" title="Detalhe">
+                                        <i class="fa fa-eye"></i>
+                                    </a>
+                                </th>
                                 <td></td>
-                                <td>- {{ number_format($fuel_transactions, 2) }}€</td>
-                                <td>- {{ number_format($fuel_transactions, 2) }}€</td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}?</td>
+                                <td>- {{ number_format($fuel_transactions, 2) }}?</td>
+                            </tr>
+                            <tr class="fuel-details-row">
+                                <td colspan="4" style="padding: 0;">
+                                    <div class="collapse" id="fuel-details">
+                                        <div class="fuel-details">
+                                            <div class="fuel-details-section">
+                                                <div class="fuel-details-title">PRIO</div>
+                                                @if (count($expenseDetails["prio"]["items"]) > 0)
+                                                    <table class="table table-condensed fuel-details-table">
+                                                        @foreach ($expenseDetails["prio"]["items"] as $item)
+                                                        <tr>
+                                                            <td>{{ $item["date"] }}</td>
+                                                            <td>{{ number_format($item["total"], 2) }}?</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </table>
+                                                @else
+                                                    <div class="text-muted">Sem registos</div>
+                                                @endif
+                                            </div>
+                                            <div class="fuel-details-section">
+                                                <div class="fuel-details-title">Tesla Charging</div>
+                                                @if (count($expenseDetails["tesla"]["items"]) > 0)
+                                                    <table class="table table-condensed fuel-details-table">
+                                                        @foreach ($expenseDetails["tesla"]["items"] as $item)
+                                                        <tr>
+                                                            <td>{{ $item["date"] }}</td>
+                                                            <td>{{ number_format($item["total"], 2) }}?</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </table>
+                                                @else
+                                                    <div class="text-muted">Sem registos</div>
+                                                @endif
+                                            </div>
+                                            <div class="fuel-details-section">
+                                                <div class="fuel-details-title">Via Verde</div>
+                                                @if (count($expenseDetails["via_verde"]["items"]) > 0)
+                                                    <table class="table table-condensed fuel-details-table">
+                                                        @foreach ($expenseDetails["via_verde"]["items"] as $item)
+                                                        <tr>
+                                                            <td>{{ $item["date"] }}</td>
+                                                            <td>{{ number_format($item["total"], 2) }}?</td>
+                                                        </tr>
+                                                        @endforeach
+                                                    </table>
+                                                @else
+                                                    <div class="text-muted">Sem registos</div>
+                                                @endif
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
                             </tr>
                             @php
                                 $ajustesCollection = collect($adjustments_array ?? []);
@@ -430,6 +495,19 @@
 
     /* Mobile filters */
     .mobile-filters .form-control { width: 100%; }
+    
+    .fuel-details { padding: 10px 12px; background: #f9f9f9; }
+    .fuel-details-section { margin-bottom: 10px; }
+    .fuel-details-title { font-weight: 600; text-align: left; }
+    .fuel-details-table { margin: 6px 0 0; }
+    .fuel-details-table td:first-child { text-align: left; width: 60%; }
+    .fuel-details-row .text-muted { text-align: left; padding: 4px 0; }
+    
+    @media (max-width: 767px) {
+        .fuel-details { padding: 8px; }
+        .fuel-details-title { font-size: 12px; }
+        .fuel-details-table td { font-size: 12px; }
+    }
 </style>
 @endsection
 
