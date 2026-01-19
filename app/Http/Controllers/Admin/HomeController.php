@@ -1,5 +1,4 @@
-﻿<?php
-
+<?php
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Traits\Reports;
@@ -385,4 +384,5 @@ class HomeController
         return redirect()->back();
     }
 }
+
 

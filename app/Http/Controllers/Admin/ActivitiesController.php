@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
-class ActivityLaunchController extends Controller
+class ActivitiesController extends Controller
 {
     public function index(Request $request)
     {
