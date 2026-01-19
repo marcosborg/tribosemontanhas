@@ -261,6 +261,11 @@ class HomeController
             }
         }
 
+        $adjustments_array = [];
+        if (isset($results) && isset($results->adjustments_array) && is_array($results->adjustments_array)) {
+            $adjustments_array = $results->adjustments_array;
+        }
+
         return view('home')->with([
             'company_id' => $company_id,
             'tvde_year_id' => $tvde_year_id,
@@ -278,7 +283,7 @@ class HomeController
             'total_gross' => isset($results) ? $results->total_gross : 0,
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
-            'adjustments_array' => isset($results) && isset($results->adjustments_array) ? $results->adjustments_array : 0,
+            'adjustments_array' => $adjustments_array,
             'total' => isset($results) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
