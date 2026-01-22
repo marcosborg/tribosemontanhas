@@ -68,6 +68,61 @@
                             <div id="timelineContainer" style="margin-bottom: 40px;">
                                 <div id="timeline" style="height: auto;"></div>
                             </div>
+
+                            <div class="modal fade" id="usageModal" tabindex="-1" role="dialog" aria-labelledby="usageModalLabel">
+                                <div class="modal-dialog modal-lg" role="document">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                            <h4 class="modal-title" id="usageModalLabel">Vehicle usage</h4>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form id="usageForm">
+                                                @csrf
+                                                <input type="hidden" name="_method" id="usageFormMethod" value="POST">
+                                                <input type="hidden" name="usage_id" id="usageId">
+                                                <div id="usageFormErrors" class="alert alert-danger" style="display:none;"></div>
+
+                                                <div class="form-group">
+                                                    <label for="usage_driver_id">Driver</label>
+                                                    <select class="form-control" name="driver_id" id="usage_driver_id"></select>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="required" for="usage_vehicle_item_id">Vehicle</label>
+                                                    <select class="form-control" name="vehicle_item_id" id="usage_vehicle_item_id" required></select>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label class="required" for="usage_start_date">Start date</label>
+                                                    <input class="form-control datetime" type="text" name="start_date" id="usage_start_date" required>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label for="usage_end_date">End date</label>
+                                                    <input class="form-control datetime" type="text" name="end_date" id="usage_end_date">
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label>Usage type</label>
+                                                    @foreach(App\Models\VehicleUsage::USAGE_EXCEPTIONS_RADIO as $key => $label)
+                                                        <div>
+                                                            <input type="radio" id="usage_exceptions_{{ $key }}" name="usage_exceptions" value="{{ $key }}">
+                                                            <label for="usage_exceptions_{{ $key }}" style="font-weight: 400">{{ $label }}</label>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </form>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                                            <button type="button" class="btn btn-primary" id="usageSaveBtn">Save</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
 
@@ -153,6 +208,247 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const vehicleByPlate = @json(collect($grouped)->mapWithKeys(function ($records, $plate) {
+        $vehicleItem = optional($records->first())->vehicle_item;
+        return $plate && $vehicleItem ? [$plate => $vehicleItem->id] : [];
+    })->all(), JSON_NUMERIC_CHECK);
+    const plateByVehicleId = Object.keys(vehicleByPlate).reduce((acc, plate) => {
+        acc[vehicleByPlate[plate]] = plate;
+        return acc;
+    }, {});
+
+    const usageCreateUrl = "{{ url('/admin/vehicle-usages') }}";
+    const usageEditBaseUrl = "{{ url('/admin/vehicle-usages') }}";
+    const usageModal = document.getElementById('usageModal');
+    const usageForm = document.getElementById('usageForm');
+    const usageSaveBtn = document.getElementById('usageSaveBtn');
+    const usageErrors = document.getElementById('usageFormErrors');
+    const driverSelect = document.getElementById('usage_driver_id');
+    const vehicleSelect = document.getElementById('usage_vehicle_item_id');
+    const startInput = document.getElementById('usage_start_date');
+    const endInput = document.getElementById('usage_end_date');
+    const methodInput = document.getElementById('usageFormMethod');
+    const usageIdInput = document.getElementById('usageId');
+
+    let modalMode = 'create';
+
+    function formatDateTime(d) {
+        const pad = n => String(n).padStart(2, '0');
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    function showErrors(errors) {
+        if (!usageErrors) return;
+        if (!errors || !errors.length) {
+            usageErrors.style.display = 'none';
+            usageErrors.innerHTML = '';
+            return;
+        }
+        usageErrors.innerHTML = errors.map(e => `<div>${e}</div>`).join('');
+        usageErrors.style.display = 'block';
+    }
+
+    function openModal() {
+        showErrors([]);
+        if (window.jQuery) {
+            $(usageModal).modal('show');
+        } else {
+            usageModal.style.display = 'block';
+        }
+    }
+
+    function closeModal() {
+        if (window.jQuery) {
+            $(usageModal).modal('hide');
+        } else {
+            usageModal.style.display = 'none';
+        }
+    }
+
+    function clearForm() {
+        usageForm.reset();
+        if (usageIdInput) usageIdInput.value = '';
+        if (methodInput) methodInput.value = 'POST';
+        modalMode = 'create';
+    }
+
+    async function loadOptionsIfNeeded() {
+        if (driverSelect.options.length && vehicleSelect.options.length) {
+            return;
+        }
+        const res = await fetch(`${usageEditBaseUrl}/create`, { credentials: 'same-origin' });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const driverOptions = doc.querySelectorAll('select[name="driver_id"] option');
+        const vehicleOptions = doc.querySelectorAll('select[name="vehicle_item_id"] option');
+
+        driverSelect.innerHTML = '';
+        vehicleSelect.innerHTML = '';
+        driverOptions.forEach(opt => driverSelect.appendChild(opt.cloneNode(true)));
+        vehicleOptions.forEach(opt => vehicleSelect.appendChild(opt.cloneNode(true)));
+    }
+
+    function setUsageType(value) {
+        const inputs = usageForm.querySelectorAll('input[name="usage_exceptions"]');
+        inputs.forEach(i => { i.checked = i.value === value; });
+    }
+
+    function getSelectedDriverName() {
+        const opt = driverSelect.options[driverSelect.selectedIndex];
+        return opt ? opt.textContent.trim() : '';
+    }
+
+    function getUsageClassAndContent(driverName, usageType) {
+        if (usageType) {
+            const label = usageType.charAt(0).toUpperCase() + usageType.slice(1);
+            return {
+                className: `${usageType}-item`,
+                content: driverName || (usageType === 'usage' ? 'Sem motorista' : label)
+            };
+        }
+        if (driverName) {
+            return { className: null, content: driverName };
+        }
+        return { className: 'exception-item', content: 'Sem motorista' };
+    }
+
+    async function openCreateModal(preselect) {
+        await loadOptionsIfNeeded();
+        clearForm();
+        modalMode = 'create';
+        methodInput.value = 'POST';
+        if (preselect?.vehicleId) {
+            vehicleSelect.value = String(preselect.vehicleId);
+            vehicleSelect.setAttribute('disabled', 'disabled');
+        } else {
+            vehicleSelect.removeAttribute('disabled');
+        }
+        if (preselect?.startDate) {
+            startInput.value = preselect.startDate;
+        }
+        setUsageType('usage');
+        openModal();
+    }
+
+    async function openEditModal(usageId) {
+        await loadOptionsIfNeeded();
+        clearForm();
+        modalMode = 'edit';
+        usageIdInput.value = usageId;
+        methodInput.value = 'PUT';
+        vehicleSelect.removeAttribute('disabled');
+
+        const res = await fetch(`${usageEditBaseUrl}/${usageId}/edit`, { credentials: 'same-origin' });
+        const html = await res.text();
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+
+        const driverValue = doc.querySelector('[name="driver_id"]')?.value || '';
+        const vehicleValue = doc.querySelector('[name="vehicle_item_id"]')?.value || '';
+        const startValue = doc.querySelector('[name="start_date"]')?.value || '';
+        const endValue = doc.querySelector('[name="end_date"]')?.value || '';
+        const usageValue = doc.querySelector('input[name="usage_exceptions"]:checked')?.value || '';
+
+        driverSelect.value = driverValue;
+        vehicleSelect.value = vehicleValue;
+        startInput.value = startValue;
+        endInput.value = endValue;
+        if (usageValue) {
+            setUsageType(usageValue);
+        }
+
+        openModal();
+    }
+
+    async function fetchUsageIdByMatch(match) {
+        const res = await fetch(`${usageEditBaseUrl}?ajax=1`, {
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const payload = await res.json();
+        const list = payload?.data || [];
+        const found = list.find(row => {
+            const start = row.start_date || row.start || '';
+            const end = row.end_date || row.end || '';
+            return String(row.vehicle_item_id) === String(match.vehicle_item_id) &&
+                String(row.driver_id || '') === String(match.driver_id || '') &&
+                String(start) === String(match.start_date) &&
+                String(end || '') === String(match.end_date || '');
+        });
+        return found ? found.id : null;
+    }
+
+    async function saveUsage() {
+        showErrors([]);
+        const formData = new FormData(usageForm);
+        if (vehicleSelect.hasAttribute('disabled')) {
+            formData.set('vehicle_item_id', vehicleSelect.value);
+        }
+        const url = modalMode === 'edit'
+            ? `${usageEditBaseUrl}/${usageIdInput.value}`
+            : usageCreateUrl;
+
+        const res = await fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            body: formData
+        });
+
+        if (res.status === 422) {
+            const data = await res.json();
+            const errors = [];
+            Object.values(data.errors || {}).forEach(errArr => {
+                (errArr || []).forEach(e => errors.push(e));
+            });
+            showErrors(errors);
+            return;
+        }
+
+        if (!res.ok) {
+            showErrors(['Ocorreu um erro ao guardar.']);
+            return;
+        }
+
+        const driverName = getSelectedDriverName();
+        const usageType = usageForm.querySelector('input[name="usage_exceptions"]:checked')?.value || '';
+        const startVal = startInput.value;
+        const endVal = endInput.value;
+        const { className, content } = getUsageClassAndContent(driverName, usageType);
+
+        if (modalMode === 'edit') {
+            timelineItems.update({
+                id: usageIdInput.value,
+                content,
+                start: startVal,
+                end: endVal || null,
+                group: plateByVehicleId[vehicleSelect.value] || null,
+                className
+            });
+            closeModal();
+            return;
+        }
+
+        const newId = await fetchUsageIdByMatch({
+            vehicle_item_id: vehicleSelect.value,
+            driver_id: driverSelect.value,
+            start_date: startVal,
+            end_date: endVal
+        });
+
+        if (newId) {
+            timelineItems.add({
+                id: newId,
+                content,
+                start: startVal,
+                end: endVal || null,
+                group: plateByVehicleId[vehicleSelect.value] || null,
+                className
+            });
+        }
+
+        closeModal();
+    }
+
     // === TIMELINE ===
     const rawTimelineItems = @json($timelineItems, JSON_NUMERIC_CHECK);
     const safeTimelineItems = Array.isArray(rawTimelineItems) ? rawTimelineItems : [];
@@ -183,6 +479,33 @@ document.addEventListener('DOMContentLoaded', function () {
             orientation: 'top'
         }
     );
+
+    timeline.on('click', function (props) {
+        if (!props) return;
+
+        if (props.item) {
+            openEditModal(props.item);
+            return;
+        }
+
+        if (!props.time || !props.group) {
+            return;
+        }
+
+        const vehicleId = vehicleByPlate[props.group];
+        if (!vehicleId) {
+            return;
+        }
+
+        const dateStr = formatDateTime(new Date(props.time));
+        openCreateModal({ vehicleId, startDate: dateStr });
+    });
+
+    if (usageSaveBtn) {
+        usageSaveBtn.addEventListener('click', function () {
+            saveUsage();
+        });
+    }
 
     // === Filtro de Ano/MÃªs para a TIMELINE ===
     const tYearSel  = document.getElementById('timelineYearFilter');
@@ -413,6 +736,40 @@ document.addEventListener('DOMContentLoaded', function () {
 <style>
 /* Canvas ocupa 100% do contÃªiner */
 #occupancyChart { width:100% !important; height:100% !important; }
+
+/* Sticky headers for usage detail table */
+#messages {
+    max-height: calc(100vh - 260px);
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+}
+#messages table {
+    width: 100%;
+    border-collapse: separate;
+}
+#messages table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: #f5f5f5;
+}
+
+/* Sticky headers for timeline (years/months) */
+#timelineContainer {
+    max-height: calc(100vh - 260px);
+    overflow: auto;
+    position: relative;
+}
+#timelineContainer .vis-panel.vis-top {
+    position: sticky !important;
+    top: 0;
+    z-index: 5;
+    background: #ffffff;
+}
+#timelineContainer .vis-time-axis {
+    background: #ffffff;
+}
 
 /* Cores da timeline por exceÃ§Ã£o */
 .vis-item.usage-item      { background-color:#28a745 !important; border-color:#1e7e34 !important; color:#fff !important; font-weight:bold; }
