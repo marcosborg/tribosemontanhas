@@ -316,32 +316,33 @@ $(document).on('click', '.flag-toggle', function(e){
                                             </div>";
                                 })->implode('');
 
-                            $ajustesAluguerList = $ajustesCollection
+                            $ajustesAluguerItems = $ajustesCollection
                                 ->filter(function($a){
                                     return is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false);
                                 })
                                 ->map(function($a){
                                     $type  = is_array($a) ? ($a['type'] ?? '') : ($a->type ?? '');
-                                    $name  = is_array($a) ? ($a['name'] ?? 'Ajuste') : ($a->name ?? 'Ajuste');
-                                    $amount= (float) (is_array($a) ? ($a['amount'] ?? 0) : ($a->amount ?? 0));
-                                    $notes = is_array($a) ? ($a['notes'] ?? '') : ($a->notes ?? '');
-                                    $sd    = is_array($a) ? ($a['start_date'] ?? '') : ($a->start_date ?? '');
-                                    $ed    = is_array($a) ? ($a['end_date'] ?? '') : ($a->end_date ?? '');
-                                    $sign  = $type === 'deduct' ? '-' : '+';
+                                    $name  = is_array($a) ? ($a['name'] ?? '') : ($a->name ?? '');
+                                    $amount= is_array($a) ? ($a['amount'] ?? null) : ($a->amount ?? null);
+                                    $label = trim((string) $name);
+                                    $labelLower = mb_strtolower($label);
 
-                                    $nameEsc  = e($name);
-                                    $notesEsc = e($notes);
-                                    $sdEsc    = e($sd);
-                                    $edEsc    = e($ed);
+                                    if ($label === '' || $labelLower === 'final' || $labelLower === 'resumo') {
+                                        return null;
+                                    }
+                                    if (!is_numeric($amount)) {
+                                        return null;
+                                    }
 
-                                    $dates = trim(($sdEsc || $edEsc) ? "{$sdEsc} a {$edEsc}" : '');
-
-                                    return "<div style='margin-bottom:6px;'>
-                                                <strong>{$nameEsc}</strong>" . ($dates ? " <small>({$dates})</small>" : "") . "<br>
-                                                {$sign}" . number_format($amount, 2) . "€ 
-                                                " . ($notesEsc ? "<br><em>{$notesEsc}</em>" : "") . "
-                                            </div>";
-                                })->implode('');
+                                    $sign = $type === 'deduct' ? '-' : '+';
+                                    return [
+                                        'label' => $label,
+                                        'amount' => (float) $amount,
+                                        'sign' => $sign,
+                                    ];
+                                })
+                                ->filter()
+                                ->values();
 
                             // valores numéricos para exibir nos totais
                             $ajustesCarHireValor = $ajustesCollection
@@ -356,6 +357,18 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             $ajustesValor = (float) ($driver->adjustments ?? 0) - (float) $ajustesCarHireValor;
                             $ajustesTotalSemAluguer += $ajustesValor;
+
+                            $carHireBase = (float) ($driver->earnings['car_hire'] ?? 0) - (float) $ajustesCarHireValor;
+                            $baseLine = "<div style='display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;'><span><strong>Base</strong></span><span>" . number_format($carHireBase, 2) . " €</span></div>";
+
+                            $ajustesLines = $ajustesAluguerItems->map(function($item){
+                                $label = e($item['label'] ?? 'Ajuste');
+                                $amount = number_format((float) ($item['amount'] ?? 0), 2);
+                                $sign = $item['sign'] ?? '';
+                                return "<div style='display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;'><span>{$label}</span><span>{$sign}{$amount} €</span></div>";
+                            })->implode('');
+
+                            $ajustesAluguerList = $baseLine . $ajustesLines;
 
                             $cca = $driver->current_account_data ?? null;
                             $fuelDetails = [];
