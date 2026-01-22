@@ -1,4 +1,12 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
+@section('styles')
+<style>
+    .section-title-row {
+        background: #eeeeee !important;
+        font-weight: 600;
+    }
+</style>
+@endsection
 @section('content')
 <div class="content">
     @if ($company_id == 0)
@@ -93,57 +101,56 @@
                                 $ajustesCollection = collect($ajustes);
                                 $ajustesAluguerCollection = $ajustesCollection
                                     ->filter(fn($a) => is_array($a) ? ($a['car_hire_deduct'] ?? false) : ($a->car_hire_deduct ?? false));
+                                $ajustesCarHireValor = $ajustesAluguerCollection
+                                    ->sum(function ($adj) {
+                                        $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
+                                        $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
+                                        return $type === 'deduct' ? -$amt : $amt;
+                                    });
+                                $carHireBase = (float) $car_hire - (float) $ajustesCarHireValor;
                                 $ajustesAluguerList = $ajustesAluguerCollection
                                     ->map(function ($adj) {
                                         $name  = is_array($adj) ? ($adj['name'] ?? '') : ($adj->name ?? '');
                                         $type  = is_array($adj) ? ($adj['type'] ?? '') : ($adj->type ?? '');
                                         $amt   = (float) (is_array($adj) ? ($adj['amount'] ?? 0) : ($adj->amount ?? 0));
-                                        $start = is_array($adj) ? ($adj['start_date'] ?? '') : ($adj->start_date ?? '');
-                                        $end   = is_array($adj) ? ($adj['end_date'] ?? '') : ($adj->end_date ?? '');
-                                        $sign  = ($type === 'deduct') ? '-' : '';
+                                        $sign  = ($type === 'deduct') ? '-' : '+';
                                         $amtFmt = number_format($amt, 2);
 
-                                        $html = "<div style='margin-bottom:6px;'><strong>".e($name)."</strong>: {$sign}{$amtFmt}€";
-                                        if ($start || $end) {
-                                            $html .= "<br><small>".e($start)." a ".e($end)."</small>";
-                                        }
-                                        $html .= "</div>";
-                                        return $html;
+                                        return "<div style='margin-bottom:6px;'><strong>".e($name ?: 'Ajuste')."</strong><br>{$sign}{$amtFmt} €</div>";
                                     })
                                     ->implode('');
+                                $ajustesAluguerList = "<div style='margin-bottom:6px;'><strong>Base</strong><br>" . number_format($carHireBase, 2) . " €</div>" . $ajustesAluguerList;
                             @endphp
-                            <tr>
+                            <tr class="section-title-row">
                                 <th>Ganhos</th>
                                 <td>{{ number_format($total_net, 2) }}€</td>
                                 <td></td>
                                 <td>{{ number_format($total_net, 2) }}€</td>
                             </tr>
-                            <tr>
+                            <tr class="section-title-row">
                                 <th>Aluguer</th>
                                 <td></td>
                                 <td>
-                                    @if ($ajustesAluguerCollection->count() > 0)
-                                        <button type="button"
-                                                class="btn btn-xs btn-default"
-                                                data-toggle="popover"
-                                                data-placement="left"
-                                                data-html="true"
-                                                title="Ajustes no aluguer"
-                                                data-content="{!! $ajustesAluguerList !!}">
-                                            <i class="fa fa-eye"></i>
-                                        </button>
-                                    @endif
+                                    <button type="button"
+                                            class="btn btn-xs btn-default"
+                                            data-toggle="popover"
+                                            data-placement="left"
+                                            data-html="true"
+                                            title="Ajustes no aluguer"
+                                            data-content="{!! $ajustesAluguerList !!}">
+                                        <i class="fa fa-eye"></i>
+                                    </button>
                                     - {{ number_format($car_hire, 2) }}€ 
                                 </td>
                                 <td>- {{ number_format($car_hire, 2) }}€</td>
                             </tr>
-                            <tr>
+                            <tr class="section-title-row">
                                 <th>Via Verde</th>
                                 <td></td>
                                 <td>- {{ number_format($car_track, 2) }}€</td>
                                 <td>- {{ number_format($car_track, 2) }}€</td>
                             </tr>
-                            <tr>
+                            <tr class="section-title-row">
                                 <th>Abastecimento</th>
                                 <td></td>
                                 <td>- {{ number_format($fuel_transactions, 2) }}€</td>
@@ -255,7 +262,7 @@
                             </tr>
                             {{-- =============================================================== --}}
 
-                            <tr>
+                            <tr class="section-title-row">
                                 <th>IVA</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>

@@ -47,6 +47,12 @@ class CompanyReportController extends Controller
 
     public function validateData(Request $request)
     {
+        $filter = $this->filter();
+        $company_id = $filter['company_id'];
+        $tvde_week_id = $filter['tvde_week_id'];
+        $results = $this->getWeekReport($company_id, $tvde_week_id);
+        $driversById = collect($results['drivers'] ?? [])->keyBy('id');
+
         foreach ($request->data as $data) {
 
             // 🔹 Função inline para normalizar valores vindos do front
@@ -64,6 +70,17 @@ class CompanyReportController extends Controller
             // 🔹 Normaliza o total do motorista
             $total = $normalize($data['driver']['total']);
 
+            $earnings = $data['driver']['earnings'] ?? [];
+            if (!is_array($earnings)) {
+                $earnings = (array) $earnings;
+            }
+
+            $serverDriver = $driversById->get($data['driver']['id']);
+            $detailsPayload = $this->buildFuelDetailsPayload($serverDriver);
+            if (!empty($detailsPayload)) {
+                $earnings = array_merge($earnings, $detailsPayload);
+            }
+
             // Registo/atualizacao da conta corrente
             CurrentAccount::updateOrCreate(
                 [
@@ -71,7 +88,7 @@ class CompanyReportController extends Controller
                     'driver_id'    => $data['driver']['id'],
                 ],
                 [
-                    'data' => json_encode($data['driver']['earnings']),
+                    'data' => json_encode($earnings),
                 ]
             );
 
@@ -120,7 +137,17 @@ class CompanyReportController extends Controller
             'tvde_week_id' => $tvde_week_id,
             'driver_id' => $driver_id
         ])->first();
-        $current_account->data = json_encode($data);
+        $results = $this->getWeekReport($company_id, $tvde_week_id);
+        $driversById = collect($results['drivers'] ?? [])->keyBy('id');
+        $serverDriver = $driversById->get($driver_id);
+        $detailsPayload = $this->buildFuelDetailsPayload($serverDriver);
+
+        $payload = is_array($data) ? $data : (array) $data;
+        if (!empty($detailsPayload)) {
+            $payload = array_merge($payload, $detailsPayload);
+        }
+
+        $current_account->data = json_encode($payload);
         $current_account->save();
 
         $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
@@ -171,6 +198,81 @@ class CompanyReportController extends Controller
         }
 
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
+    }
+
+    protected function buildFuelDetailsPayload($driver): array
+    {
+        if (!$driver) {
+            return [];
+        }
+
+        $details = data_get($driver, 'earnings.details', []);
+        if (empty($details) || !is_array($details)) {
+            return [];
+        }
+
+        $payload = [];
+
+        $fuelItems = $details['fuel'] ?? [];
+        if (!empty($fuelItems) && is_array($fuelItems)) {
+            $mapped = [];
+            foreach ($fuelItems as $item) {
+                $date = data_get($item, 'date');
+                $amount = data_get($item, 'total', data_get($item, 'amount', 0));
+                if ($date === null) {
+                    continue;
+                }
+                $mapped[] = [
+                    'date' => $date,
+                    'source' => 'PRIO',
+                    'amount' => (float) $amount,
+                ];
+            }
+            if (!empty($mapped)) {
+                $payload['fuel_transactions_details'] = $mapped;
+            }
+        }
+
+        $teslaItems = $details['tesla'] ?? [];
+        if (!empty($teslaItems) && is_array($teslaItems)) {
+            $mapped = [];
+            foreach ($teslaItems as $item) {
+                $date = data_get($item, 'date');
+                $amount = data_get($item, 'total', data_get($item, 'amount', 0));
+                if ($date === null) {
+                    continue;
+                }
+                $mapped[] = [
+                    'date' => $date,
+                    'source' => 'TESLA',
+                    'amount' => (float) $amount,
+                ];
+            }
+            if (!empty($mapped)) {
+                $payload['tesla_charging_details'] = $mapped;
+            }
+        }
+
+        $viaVerdeItems = $details['via_verde'] ?? [];
+        if (!empty($viaVerdeItems) && is_array($viaVerdeItems)) {
+            $mapped = [];
+            foreach ($viaVerdeItems as $item) {
+                $date = data_get($item, 'date');
+                $amount = data_get($item, 'total', data_get($item, 'amount', 0));
+                if ($date === null) {
+                    continue;
+                }
+                $mapped[] = [
+                    'date' => $date,
+                    'amount' => (float) $amount,
+                ];
+            }
+            if (!empty($mapped)) {
+                $payload['via_verde_details'] = $mapped;
+            }
+        }
+
+        return $payload;
     }
 
     public function driverReportAllWeeks($driver_id = NULL, $state_id = 1)

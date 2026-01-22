@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('styles')
 <style>
@@ -356,6 +356,71 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             $ajustesValor = (float) ($driver->adjustments ?? 0) - (float) $ajustesCarHireValor;
                             $ajustesTotalSemAluguer += $ajustesValor;
+
+                            $cca = $driver->current_account_data ?? null;
+                            $fuelDetails = [];
+                            $prioDetails = data_get($cca, 'fuel_transactions_details');
+                            $teslaDetails = data_get($cca, 'tesla_charging_details');
+
+                            if (is_array($prioDetails)) {
+                                foreach ($prioDetails as $item) {
+                                    $fuelDetails[] = [
+                                        'date' => data_get($item, 'date'),
+                                        'source' => data_get($item, 'source', 'PRIO'),
+                                        'amount' => (float) data_get($item, 'amount', 0),
+                                    ];
+                                }
+                            }
+                            if (is_array($teslaDetails)) {
+                                foreach ($teslaDetails as $item) {
+                                    $fuelDetails[] = [
+                                        'date' => data_get($item, 'date'),
+                                        'source' => data_get($item, 'source', 'TESLA'),
+                                        'amount' => (float) data_get($item, 'amount', 0),
+                                    ];
+                                }
+                            }
+
+                            if (empty($fuelDetails)) {
+                                $liveFuel = data_get($driver->earnings, 'details.fuel', []);
+                                $liveTesla = data_get($driver->earnings, 'details.tesla', []);
+
+                                if (is_array($liveFuel)) {
+                                    foreach ($liveFuel as $item) {
+                                        $fuelDetails[] = [
+                                            'date' => data_get($item, 'date'),
+                                            'source' => 'PRIO',
+                                            'amount' => (float) data_get($item, 'total', data_get($item, 'amount', 0)),
+                                        ];
+                                    }
+                                }
+                                if (is_array($liveTesla)) {
+                                    foreach ($liveTesla as $item) {
+                                        $fuelDetails[] = [
+                                            'date' => data_get($item, 'date'),
+                                            'source' => 'TESLA',
+                                            'amount' => (float) data_get($item, 'total', data_get($item, 'amount', 0)),
+                                        ];
+                                    }
+                                }
+                            }
+
+                            $fuelDetails = array_values(array_filter($fuelDetails, function ($item) {
+                                return !empty($item['date']);
+                            }));
+                            usort($fuelDetails, function ($a, $b) {
+                                return strcmp((string) $a['date'], (string) $b['date']);
+                            });
+
+                            $fuelDetailsHtml = '';
+                            if (!empty($fuelDetails)) {
+                                $fuelDetailsHtml = collect($fuelDetails)->map(function ($item) {
+                                    $date = e($item['date']);
+                                    $source = e($item['source'] ?? '');
+                                    $amount = number_format((float) ($item['amount'] ?? 0), 2);
+                                    return "<div style='margin-bottom:6px;'><strong>{$date}</strong> - {$source}<br>{$amount} &euro;</div>";
+                                })->implode('');
+                            }
                         @endphp
 
                         <tr>
@@ -365,7 +430,19 @@ $(document).on('click', '.flag-toggle', function(e){
                             <td style="text-align:right;">{{ number_format($driver->earnings['bolt']['bolt_net'] ?? 0, 2) }} <small>€</small></td>
 
                             <td style="text-align:right; color:red;">- {{ number_format($driver->earnings['vat_value'] ?? 0, 2) }} <small>€</small></td>
-                            <td style="text-align:right;">-{{ number_format($driver->fuel ?? 0, 2) }} <small>€</small></td>
+                            <td style="text-align:right;">
+                                -{{ number_format($driver->fuel ?? 0, 2) }} <small>€</small>
+                                @if(!empty($fuelDetailsHtml))
+                                    <a tabindex="0"
+                                       class="flag-red"
+                                       role="button"
+                                       data-toggle="popover"
+                                       data-trigger="focus"
+                                       data-html="true"
+                                       title="Abastecimento"
+                                       data-content="{!! $fuelDetailsHtml !!}"><span class="glyphicon glyphicon-eye-open"></span></a>
+                                @endif
+                            </td>
 
                             {{-- ================= AJUSTES com ícone/Popover ================= --}}
                             <td style="text-align:right;">
