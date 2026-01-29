@@ -43,6 +43,26 @@ class VehicleExpense extends Model implements HasMedia
         'Outros'     => 'Outros',
     ];
 
+    public const NORMALIZED_TYPE_MAP = [
+        // Maintenance
+        'mecânica' => 'maintenance',
+        'manutenção' => 'maintenance',
+        'bate-chapa' => 'maintenance',
+        'pneus' => 'maintenance',
+
+        // Rent / Loans
+        'empréstimos' => 'rent',
+        'rent' => 'rent',
+
+        // Acquisition
+        'aquisição' => 'acquisition',
+        'aquisição da viatura' => 'acquisition',
+
+        // Other examples
+        'seguro' => 'insurance',
+        'iuc' => 'tax',
+    ];
+
     protected $fillable = [
         'vehicle_item_id',
         'expense_type',
@@ -75,6 +95,21 @@ class VehicleExpense extends Model implements HasMedia
     public function setDateAttribute($value)
     {
         $this->attributes['date'] = $value ? Carbon::createFromFormat(config('panel.date_format'), $value)->format('Y-m-d') : null;
+    }
+
+    protected static function booted()
+    {
+        static::saving(function ($expense) {
+            if (!$expense->expense_type) {
+                $expense->normalized_type = 'other';
+                return;
+            }
+
+            $key = mb_strtolower(trim($expense->expense_type));
+
+            $expense->normalized_type =
+                self::NORMALIZED_TYPE_MAP[$key] ?? 'other';
+        });
     }
 
     public function getFilesAttribute()

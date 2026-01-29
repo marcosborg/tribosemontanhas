@@ -17,6 +17,12 @@ class VehicleProfitabilityCalculator
 {
     use Reports;
 
+    protected const PROFITABLE_NORMALIZED_TYPES = [
+        'acquisition',
+        'maintenance',
+        'rent',
+    ];
+
     /**
      * Cache in-memory per request to avoid recalculating week reports.
      *
@@ -197,6 +203,10 @@ class VehicleProfitabilityCalculator
         $expenses = VehicleExpense::where('vehicle_item_id', $vehicleItem->id)
             ->whereDate('date', '>=', $tvdeWeek->start_date)
             ->whereDate('date', '<=', $tvdeWeek->end_date)
+            ->where(function ($query) {
+                $query->whereNull('normalized_type')
+                    ->orWhereIn('normalized_type', self::PROFITABLE_NORMALIZED_TYPES);
+            })
             ->get();
 
         $treasury = 0.0;

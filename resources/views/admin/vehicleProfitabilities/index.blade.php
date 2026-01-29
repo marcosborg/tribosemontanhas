@@ -1,11 +1,11 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 
 @section('content')
 <div class="content">
     <div class="row">
         <div class="col-lg-12">
 
-            {{-- TÃ­tulo --}}
+            {{-- Título --}}
             <div class="panel panel-default">
                 <div class="panel-heading">
                     {{ trans('cruds.vehicleProfitability.title') ?? 'Vehicle Profitability' }}
@@ -14,12 +14,12 @@
                 {{-- FILTROS --}}
                 <div class="panel-body">
                     <form method="GET" action="{{ route('admin.vehicle-profitabilities.index') }}" class="form-inline" id="filtersForm">
-                        {{-- PerÃ­odo --}}
+                        {{-- Período --}}
                         <div class="form-group" style="margin-right:8px;">
-                            <label for="period">PerÃ­odo:&nbsp;</label>
+                            <label for="period">Período:&nbsp;</label>
                             <select name="period" id="period" class="form-control">
                                 <option value="week"  {{ $period=='week'  ? 'selected' : '' }}>Semanas</option>
-                                <option value="month" {{ $period=='month' ? 'selected' : '' }}>MÃªs</option>
+                                <option value="month" {{ $period=='month' ? 'selected' : '' }}>Mês</option>
                                 <option value="year"  {{ $period=='year'  ? 'selected' : '' }}>Ano</option>
                                 <option value="custom"{{ $period=='custom'? 'selected' : '' }}>Intervalo</option>
                             </select>
@@ -29,18 +29,18 @@
                         <div class="form-group period-block period-month period-year" style="margin-right:8px; display:none;">
                             <label for="year">Ano:&nbsp;</label>
                             <select name="year" id="year" class="form-control">
-                                <option value="">â€”</option>
+                                <option value="">—</option>
                                 @foreach($tvde_years as $y)
                                     <option value="{{ $y }}" {{ (string)$year === (string)$y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endforeach
                             </select>
                         </div>
 
-                        {{-- MÃªs --}}
+                        {{-- Mês --}}
                         <div class="form-group period-block period-month" style="margin-right:8px; display:none;">
-                            <label for="month">MÃªs:&nbsp;</label>
+                            <label for="month">Mês:&nbsp;</label>
                             <select name="month" id="month" class="form-control">
-                                <option value="">â€”</option>
+                                <option value="">—</option>
                                 @foreach($tvde_months as $m)
                                     <option value="{{ $m }}" {{ (string)$month === (string)$m ? 'selected' : '' }}>
                                         {{ \Carbon\Carbon::create()->month($m)->locale('pt_PT')->translatedFormat('F') }}
@@ -56,7 +56,7 @@
                                 @foreach($tvde_weeks as $w)
                                     <option value="{{ $w->id }}"
                                         {{ collect(request('weeks', []))->contains($w->id) ? 'selected' : '' }}>
-                                        {{ \Carbon\Carbon::parse($w->start_date)->format('d/m/Y') }} â€”
+                                        {{ \Carbon\Carbon::parse($w->start_date)->format('d/m/Y') }} —
                                         {{ \Carbon\Carbon::parse($w->end_date)->format('d/m/Y') }}
                                     </option>
                                 @endforeach
@@ -78,7 +78,7 @@
                             <label for="group_by">Agrupar por:&nbsp;</label>
                             <select name="group_by" id="group_by" class="form-control">
                                 <option value="week"  {{ $groupBy=='week'  ? 'selected' : '' }}>Semana</option>
-                                <option value="month" {{ $groupBy=='month' ? 'selected' : '' }}>MÃªs</option>
+                                <option value="month" {{ $groupBy=='month' ? 'selected' : '' }}>Mês</option>
                                 <option value="year"  {{ $groupBy=='year'  ? 'selected' : '' }}>Ano</option>
                             </select>
                         </div>
@@ -100,7 +100,7 @@
                 </div>
             </div>
 
-            {{-- CartÃµes de totais --}}
+            {{-- Cartões de totais --}}
             <div class="row">
                 <div class="col-md-4">
                     <div class="panel panel-default">
@@ -109,11 +109,11 @@
                             <table width="100%"><tbody>
                                 <tr>
                                     <th><h1><small>Tesouraria:&nbsp;</small></h1></th>
-                                    <td><h1>{{ number_format($totals['treasury'] ?? 0, 2, ',', '.') }}<small>â‚¬</small></h1></td>
+                                    <td><h1>{{ number_format($totals['treasury'] ?? 0, 2, ',', '.') }}<small>€</small></h1></td>
                                 </tr>
                                 <tr>
                                     <th><h1><small>Impostos:&nbsp;</small></h1></th>
-                                    <td><h1>{{ number_format($totals['taxes'] ?? 0, 2, ',', '.') }}<small>â‚¬</small></h1></td>
+                                    <td><h1>{{ number_format($totals['taxes'] ?? 0, 2, ',', '.') }}<small>€</small></h1></td>
                                 </tr>
                             </tbody></table>
                         </div>
@@ -123,17 +123,17 @@
                 @php $final = $totals['final'] ?? 0; @endphp
                 <div class="col-md-4">
                     <div class="panel panel-default">
-                        <div class="panel-heading">{{ $final >= 0 ? 'Lucro' : 'PrejuÃ­zo' }}</div>
+                        <div class="panel-heading">{{ $final >= 0 ? 'Lucro' : 'Prejuízo' }}</div>
                         <div class="panel-body">
-                            <h1 style="font-size:50px;">{{ number_format($final, 2, ',', '.') }}<small>â‚¬</small></h1>
+                            <h1 style="font-size:50px;">{{ number_format($final, 2, ',', '.') }}<small>€</small></h1>
                         </div>
                     </div>
                 </div>
 
-                {{-- GrÃ¡fico --}}
+                {{-- Gráfico --}}
                 <div class="col-md-4">
                     <div class="panel panel-default">
-                        <div class="panel-heading">GrÃ¡fico</div>
+                        <div class="panel-heading">Gráfico</div>
                         <div class="panel-body">
                             <canvas id="rentChart"></canvas>
                         </div>
@@ -145,7 +145,7 @@
             <div class="panel panel-default">
                 <div class="panel-heading">
                     @if($groupBy === 'year') Totais por Ano
-                    @elseif($groupBy === 'month') Totais por MÃªs
+                    @elseif($groupBy === 'month') Totais por Mês
                     @else Totais por Semana
                     @endif
                 </div>
@@ -153,7 +153,7 @@
                     <table class="table table-bordered table-striped table-sm">
                         <thead>
                             <tr>
-                                <th>PerÃ­odo</th>
+                                <th>Período</th>
                                 <th>Tesouraria</th>
                                 <th>Impostos</th>
                                 <th>Final</th>
@@ -179,9 +179,9 @@
                                         {{ \Carbon\Carbon::parse($w->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($w->end_date)->format('d/m') }}
                                     @endif
                                 </td>
-                                <td>{{ number_format($g['treasury'], 2, ',', '.') }} â‚¬</td>
-                                <td>{{ number_format($g['taxes'], 2, ',', '.') }} â‚¬</td>
-                                <td><strong>{{ number_format($g['final'], 2, ',', '.') }} â‚¬</strong></td>
+                                <td>{{ number_format($g['treasury'], 2, ',', '.') }} €</td>
+                                <td>{{ number_format($g['taxes'], 2, ',', '.') }} €</td>
+                                <td><strong>{{ number_format($g['final'], 2, ',', '.') }} €</strong></td>
                                 <td>
                                     {{-- Lista resumida de semanas do grupo --}}
                                     @if(!empty($g['weeks']))
@@ -191,9 +191,9 @@
                                                 @foreach($g['weeks'] as $row)
                                                     <li>
                                                         {{ \Carbon\Carbon::parse($row['week']->start_date)->format('d/m') }}
-                                                        â€”
+                                                        —
                                                         {{ \Carbon\Carbon::parse($row['week']->end_date)->format('d/m') }}
-                                                        (Final: {{ number_format($row['final_total'], 2, ',', '.') }} â‚¬)
+                                                        (Final: {{ number_format($row['final_total'], 2, ',', '.') }} €)
                                                     </li>
                                                 @endforeach
                                             </ul>
@@ -232,11 +232,11 @@
                                       a
                                       {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}
                                     </td>
-                                    <td>{{ $r['driver']->name ?? 'â€”' }}</td>
-                                    <td>{{ number_format($r['total_treasury'], 2, ',', '.') }} â‚¬</td>
-                                    <td>{{ number_format($r['total_taxes'], 2, ',', '.') }} â‚¬</td>
-                                    <td><strong>{{ number_format($r['final_total'], 2, ',', '.') }} â‚¬</strong></td>
-                                    <td>{{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} â‚¬</td>
+                                    <td>{{ $r['driver']->name ?? '—' }}</td>
+                                    <td>{{ number_format($r['total_treasury'], 2, ',', '.') }} €</td>
+                                    <td>{{ number_format($r['total_taxes'], 2, ',', '.') }} €</td>
+                                    <td><strong>{{ number_format($r['final_total'], 2, ',', '.') }} €</strong></td>
+                                    <td>{{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} €</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="6">Sem dados.</td></tr>
@@ -254,7 +254,7 @@
 @section('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script>
-    // Mostrar/ocultar blocos do formulÃ¡rio conforme o perÃ­odo
+    // Mostrar/ocultar blocos do formulário conforme o período
     function togglePeriodBlocks() {
         var p = document.getElementById('period').value;
         document.querySelectorAll('.period-block').forEach(el => el.style.display = 'none');
@@ -314,7 +314,7 @@
                     display: true,
                     text: 'Rentabilidade por ' + ({
                         'week': 'Semana',
-                        'month': 'Mes',
+                        'month': 'Mês',
                         'year': 'Ano'
                     })['{{ $groupBy }}']
                 }
