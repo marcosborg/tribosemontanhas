@@ -34,24 +34,30 @@ class VehicleProfitabilityCalculator
     {
         $driver = $this->resolveDriverForWeek($vehicleItem, $tvdeWeek);
 
-        if (!$driver) {
-            return $this->emptyRow($tvdeWeek);
+        $rawResults = null;
+        $results = $this->normalizeResults(null);
+
+        $iva = 0;
+        $rf = 0;
+        $adjustments = 0;
+        $receipt = null;
+
+        if ($driver) {
+            $rawResults = $this->getLiveDriverResults($vehicleItem, $tvdeWeek, $driver->id)
+                ?? $this->getSnapshotResults($tvdeWeek, $driver->id);
+
+            $results = $this->normalizeResults($rawResults);
+
+            $iva = $this->calculateDriverIva($driver, $results['total']);
+            $rf = $this->calculateDriverRf($driver, $results['total']);
+
+            $adjustments = $this->sumCompanyAdjustments($results['adjustments_array']);
+
+            $receipt = Receipt::where([
+                'tvde_week_id' => $tvdeWeek->id,
+                'driver_id'    => $driver->id,
+            ])->latest()->first();
         }
-
-        $rawResults = $this->getLiveDriverResults($vehicleItem, $tvdeWeek, $driver->id)
-            ?? $this->getSnapshotResults($tvdeWeek, $driver->id);
-
-        $results = $this->normalizeResults($rawResults);
-
-        $iva = $this->calculateDriverIva($driver, $results['total']);
-        $rf = $this->calculateDriverRf($driver, $results['total']);
-
-        $adjustments = $this->sumCompanyAdjustments($results['adjustments_array']);
-
-        $receipt = Receipt::where([
-            'tvde_week_id' => $tvdeWeek->id,
-            'driver_id'    => $driver->id,
-        ])->latest()->first();
 
         $fuelTransactionsVat = $this->calculateFuelVat($results['fuel_transactions']);
 
