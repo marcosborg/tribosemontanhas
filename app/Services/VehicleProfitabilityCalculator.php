@@ -215,6 +215,11 @@ class VehicleProfitabilityCalculator
         foreach ($expenses as $expense) {
             [$expenseTreasury, $expenseVat] = $this->calculateExpenseTreasuryAndVat($expense);
             $treasury += $expenseTreasury;
+
+            if ($expense->normalized_type === 'acquisition') {
+                continue;
+            }
+
             $vatTotal += $expenseVat;
         }
 
