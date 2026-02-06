@@ -153,6 +153,10 @@ $(function () {
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
+    initComplete: function () {
+      const api = this.api();
+      bindColumnSearch(api);
+    }
   };
 
   let table = $tableEl.DataTable(dtOverrideGlobals);
@@ -199,39 +203,42 @@ $(function () {
   $(window).on('resize', syncScrollWidth);
 
   // Pesquisa por coluna (inputs no segundo <thead>).
-  // Com scrollX/scrollY, o DataTables usa um <thead> clonado em `.dataTables_scrollHead`.
-  // Para evitar problemas de indexação, ligamos os eventos pelo índice do <th> na 2ª linha do header.
-  function bindColumnSearch($thead) {
-    const $cells = $thead.find('tr:eq(1) th');
-    if (!$cells.length) return;
+  // Com scrollX/scrollY o DataTables usa um <thead> clonado em `.dataTables_scrollHead`.
+  // Para evitar problemas de indexação/eventos, ligamos os inputs ao índice real da coluna.
+  function bindColumnSearch(api) {
+    const $container = $(api.table().container());
+    const $heads = [
+      $container.find('.dataTables_scrollHead thead'),
+      $tableEl.find('thead'),
+    ];
 
-    $cells.each(function (i) {
-      const $input = $(this).find('input.search, select.search');
-      if (!$input.length) return;
+    $heads.forEach(($thead) => {
+      const $cells = $thead.find('tr:eq(1) th');
+      if (!$cells.length) return;
 
-      $input.off('.dtcolsearch');
-      $input.on('input.dtcolsearch change.dtcolsearch keyup.dtcolsearch', function () {
-        const strict = $(this).attr('strict') || false;
-        const rawVal = $(this).val();
-        const value = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
+      api.columns().every(function (colIdx) {
+        const $cell = $cells.eq(colIdx);
+        const $input = $cell.find('input.search, select.search');
+        if (!$input.length) return;
 
-        table
-          .column(i)
-          .search(value, !!strict)
-          .draw();
+        $input.off('.dtcolsearch');
+        $input.on('input.dtcolsearch change.dtcolsearch keyup.dtcolsearch', function () {
+          const strict = $(this).attr('strict') || false;
+          const rawVal = $(this).val();
+          const value = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
+
+          api
+            .column(colIdx)
+            .search(value, !!strict)
+            .draw();
+        });
       });
     });
   }
 
-  // Bind no header visível (clonado) + fallback no header original
-  const $container = $(table.table().container());
-  bindColumnSearch($container.find('.dataTables_scrollHead thead'));
-  bindColumnSearch($tableEl.find('thead'));
-
-  // Rebind após ajustes/redraw (DataTables pode recriar header em alguns cenários)
+  // Rebind após redraw/ajustes (DataTables pode recriar header em alguns cenários)
   table.on('draw.dt column-visibility.dt', function () {
-    bindColumnSearch($container.find('.dataTables_scrollHead thead'));
-    bindColumnSearch($tableEl.find('thead'));
+    bindColumnSearch(table);
   });
 
   // Linhas clicáveis (leva para edit), mas ignorando cliques em botões/links/inputs
