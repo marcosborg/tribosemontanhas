@@ -939,7 +939,7 @@ return [
         'fields'         => [
             'id'                    => 'ID',
             'id_helper'             => ' ',
-            'code'                  => 'C├│digo interno',
+            'code'                  => 'Código interno',
             'code_helper'           => ' ',
             'name'                  => 'Nome',
             'name_helper'           => ' ',

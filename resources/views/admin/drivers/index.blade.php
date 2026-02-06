@@ -1,4 +1,4 @@
-﻿@extends('layouts.admin')
+@extends('layouts.admin')
 
 @section('content')
 <div class="content">
@@ -34,11 +34,9 @@
                               <th>{{ trans('cruds.driver.fields.code') }}</th>
                               <th>{{ trans('cruds.driver.fields.contract_vat') }}</th>
                               <th>{{ trans('cruds.driver.fields.state') }}</th>
-                              <th>{{ trans('cruds.driver.fields.payment_vat') }}</th>
                               <th>{{ trans('cruds.driver.fields.driver_vat') }}</th>
                               <th>{{ trans('cruds.driver.fields.uber_uuid') }}</th>
                               <th>{{ trans('cruds.driver.fields.bolt_name') }}</th>
-                              <th>{{ trans('cruds.driver.fields.company') }}</th>
                               <th>&nbsp;</th>
                           </tr>
                             {{-- Filtros por coluna --}}
@@ -50,11 +48,9 @@
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- code --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- contract_vat --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- state --}}
-                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- payment_vat --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- driver_vat --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- uber_uuid --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- bolt_name --}}
-                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- company --}}
                               <th></th>
                           </tr>
                         </thead>
@@ -147,12 +143,10 @@ $(function () {
       { data: 'contract_vat_name',  name: 'contract_vat_name' },
       { data: 'state_name',         name: 'state_name' },
 
-      { data: 'payment_vat',        name: 'drivers.payment_vat' },
       { data: 'driver_vat',         name: 'drivers.driver_vat' },
 
       { data: 'uber_uuid',          name: 'drivers.uber_uuid' },
       { data: 'bolt_name',          name: 'drivers.bolt_name' },
-      { data: 'company_name',       name: 'company_name' },
 
       { data: 'actions',       name: 'actions', orderable: false, searchable: false },
     ],
@@ -230,7 +224,7 @@ $(function () {
       });
   });
 
-  // Linhas clicÃ¡veis (leva para edit), mas ignorando cliques em botÃµes/links/inputs
+  // Linhas clicáveis (leva para edit), mas ignorando cliques em botões/links/inputs
 });
 </script>
 @endsection
