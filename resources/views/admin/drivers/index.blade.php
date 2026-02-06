@@ -200,7 +200,10 @@ $(function () {
 
   // Pesquisa por coluna (inputs no segundo thead)
   let visibleColumnsIndexes = null;
-  $(document).on('input change', '.datatable-Driver thead .search', function () {
+  // Com scrollX/scrollY o DataTables clona o <thead> para a zona fixa do header.
+  // Por isso, escutamos tanto no <thead> original como no <thead> clonado.
+  const searchSelector = '.datatable-Driver thead .search, .dataTables_scrollHead thead .search';
+  $(document).on('input change', searchSelector, function () {
       const $el = $(this);
       const strict = $el.attr('strict') || false; // se quiseres selects com strict, podes usar
       const rawVal = $el.val();
