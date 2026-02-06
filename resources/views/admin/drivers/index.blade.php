@@ -198,33 +198,40 @@ $(function () {
   resizeScrollBody();
   $(window).on('resize', syncScrollWidth);
 
-  // Pesquisa por coluna (inputs no segundo thead)
-  let visibleColumnsIndexes = null;
-  // Com scrollX/scrollY o DataTables clona o <thead> para a zona fixa do header.
-  // Por isso, escutamos tanto no <thead> original como no <thead> clonado.
-  const searchSelector = '.datatable-Driver thead .search, .dataTables_scrollHead thead .search';
-  $(document).on('input change', searchSelector, function () {
-      const $el = $(this);
-      const strict = $el.attr('strict') || false; // se quiseres selects com strict, podes usar
-      const rawVal = $el.val();
-      const value  = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
+  // Pesquisa por coluna (inputs no segundo <thead>).
+  // Com scrollX/scrollY, o DataTables usa um <thead> clonado em `.dataTables_scrollHead`.
+  // Para evitar problemas de indexação, ligamos os eventos pelo índice do <th> na 2ª linha do header.
+  function bindColumnSearch($thead) {
+    const $cells = $thead.find('tr:eq(1) th');
+    if (!$cells.length) return;
 
-      let index = $el.closest('th').index();
-      if (visibleColumnsIndexes !== null) {
-        index = visibleColumnsIndexes[index];
-      }
+    $cells.each(function (i) {
+      const $input = $(this).find('input.search, select.search');
+      if (!$input.length) return;
 
-      table
-        .column(index)
-        .search(value, !!strict) // usa regex quando strict = true
-        .draw();
-  });
+      $input.off('.dtcolsearch');
+      $input.on('input.dtcolsearch change.dtcolsearch keyup.dtcolsearch', function () {
+        const strict = $(this).attr('strict') || false;
+        const rawVal = $(this).val();
+        const value = strict && rawVal !== '' ? '^' + rawVal + '$' : rawVal;
 
-  table.on('column-visibility.dt', function(){
-      visibleColumnsIndexes = [];
-      table.columns(':visible').every(function(colIdx) {
-          visibleColumnsIndexes.push(colIdx);
+        table
+          .column(i)
+          .search(value, !!strict)
+          .draw();
       });
+    });
+  }
+
+  // Bind no header visível (clonado) + fallback no header original
+  const $container = $(table.table().container());
+  bindColumnSearch($container.find('.dataTables_scrollHead thead'));
+  bindColumnSearch($tableEl.find('thead'));
+
+  // Rebind após ajustes/redraw (DataTables pode recriar header em alguns cenários)
+  table.on('draw.dt column-visibility.dt', function () {
+    bindColumnSearch($container.find('.dataTables_scrollHead thead'));
+    bindColumnSearch($tableEl.find('thead'));
   });
 
   // Linhas clicáveis (leva para edit), mas ignorando cliques em botões/links/inputs
