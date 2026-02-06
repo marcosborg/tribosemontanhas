@@ -27,7 +27,7 @@
                             <label class="required">{{ trans('cruds.vehicleExpense.fields.expense_type') }}</label>
                             @foreach(App\Models\VehicleExpense::EXPENSE_TYPE_RADIO as $key => $label)
                                 <div>
-                                    <input type="radio" id="expense_type_{{ $key }}" name="expense_type" value="{{ $key }}" {{ old('expense_type', 'Manutenção') === (string) $key ? 'checked' : '' }} required>
+                                    <input type="radio" id="expense_type_{{ $key }}" name="expense_type" value="{{ $key }}" {{ old('expense_type', array_key_first(App\Models\VehicleExpense::EXPENSE_TYPE_RADIO)) === (string) $key ? 'checked' : '' }} required>
                                     <label for="expense_type_{{ $key }}" style="font-weight: 400">{{ $label }}</label>
                                 </div>
                             @endforeach

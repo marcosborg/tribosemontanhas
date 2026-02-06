@@ -96,9 +96,13 @@ class VehicleProfitabilityController extends Controller
 
         // Compute metrics per week using live calculator
         $calculator = app(VehicleProfitabilityCalculator::class);
+
+        // Carregar a lista de despesas por semana pode ficar pesado em períodos longos.
+        // Mantemos "ligado" por defeito quando o utilizador está a analisar poucas semanas.
+        $includeExpenseItems = $weeks->count() <= 12;
         $rows = [];
         foreach ($weeks as $week) {
-            $rows[] = $calculator->computeWeekMetrics($vehicle_item, $week);
+            $rows[] = $calculator->computeWeekMetrics($vehicle_item, $week, $includeExpenseItems);
         }
 
         // Group by week|month|year

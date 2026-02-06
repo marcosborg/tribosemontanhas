@@ -38,7 +38,7 @@
                                         {{ trans('cruds.vehicleExpense.fields.expense_type') }}
                                     </th>
                                     <td>
-                                        {{ App\Models\VehicleExpense::EXPENSE_TYPE_RADIO[$vehicleExpense->expense_type] ?? '' }}
+                                        {{ App\Models\VehicleExpense::EXPENSE_TYPE_RADIO[$vehicleExpense->expense_type] ?? $vehicleExpense->expense_type ?? '' }}
                                     </td>
                                 </tr>
                                 <tr>

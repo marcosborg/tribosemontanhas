@@ -29,23 +29,26 @@ class VehicleExpense extends Model implements HasMedia
     ];
 
     public const EXPENSE_TYPE_RADIO = [
-        'Manutenção' => 'Manutenção',
+        'Acessórios' => 'Acessórios',
+        'Aquisição' => 'Aquisição',
         'Bate-chapa' => 'Bate-chapa',
-        'Penus'      => 'Pneus',
-        'Rent'       => 'Rent',
-        'Seguro'     => 'Seguro',
-        'Aquisição da viatura' => 'Aquisição da viatura',
+        'Distico verde' => 'Distico verde',
+        'Empréstimos' => 'Empréstimos',
         'Inspeção' => 'Inspeção',
         'IUC' => 'IUC',
         'Limpeza' => 'Limpeza',
-        'Acessórios' => 'Acessórios',
-        'Distico verde' => 'Distico verde',
-        'Outros'     => 'Outros',
+        'Mecánica' => 'Mecánica',
+        'Penus' => 'Pneus',
+        'Seguro' => 'Seguro',
+        'Outros' => 'Outros',
     ];
+
 
     public const NORMALIZED_TYPE_MAP = [
         // Maintenance
         'mecânica' => 'maintenance',
+        'mecánica' => 'maintenance',
+        'mecanica' => 'maintenance',
         'manutenção' => 'maintenance',
         'bate-chapa' => 'maintenance',
         'pneus' => 'maintenance',

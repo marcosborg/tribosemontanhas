@@ -30,7 +30,7 @@ class VehicleProfitabilityCalculator
      */
     protected array $weekReports = [];
 
-    public function computeWeekMetrics(VehicleItem $vehicleItem, TvdeWeek $tvdeWeek): array
+    public function computeWeekMetrics(VehicleItem $vehicleItem, TvdeWeek $tvdeWeek, bool $includeExpenseItems = false): array
     {
         $driver = $this->resolveDriverForWeek($vehicleItem, $tvdeWeek);
 
@@ -61,7 +61,7 @@ class VehicleProfitabilityCalculator
 
         $fuelTransactionsVat = $this->calculateFuelVat($results['fuel_transactions']);
 
-        $vehicleExpenses = $this->calculateVehicleExpenses($vehicleItem, $tvdeWeek);
+        $vehicleExpenses = $this->calculateVehicleExpenses($vehicleItem, $tvdeWeek, $includeExpenseItems);
 
         $expenseReimbursementsValue = ExpenseReimbursement::where('vehicle_item_id', $vehicleItem->id)
             ->whereDate('date', '>=', $tvdeWeek->start_date)
@@ -98,6 +98,7 @@ class VehicleProfitabilityCalculator
             'fuel_transactions_vat' => $fuelTransactionsVat,
             'vehicle_expenses_value' => $vehicleExpenses['treasury'] ?? 0,
             'vehicle_expenses_vat' => $vehicleExpenses['vat'] ?? 0,
+            'vehicle_expenses_items' => $vehicleExpenses['items'] ?? [],
             'expense_reimbursements_value' => $expenseReimbursementsValue,
 
             'total_treasury' => $totalTreasury,
@@ -204,34 +205,68 @@ class VehicleProfitabilityCalculator
         return $adjustments;
     }
 
-    protected function calculateVehicleExpenses(VehicleItem $vehicleItem, TvdeWeek $tvdeWeek): array
+    protected function calculateVehicleExpenses(VehicleItem $vehicleItem, TvdeWeek $tvdeWeek, bool $includeItems = false): array
     {
-        $expenses = VehicleExpense::where('vehicle_item_id', $vehicleItem->id)
+        $baseQuery = VehicleExpense::where('vehicle_item_id', $vehicleItem->id)
             ->whereDate('date', '>=', $tvdeWeek->start_date)
-            ->whereDate('date', '<=', $tvdeWeek->end_date)
-            ->where(function ($query) {
+            ->whereDate('date', '<=', $tvdeWeek->end_date);
+
+        $expenses = $includeItems
+            ? $baseQuery->get()
+            : $baseQuery->where(function ($query) {
                 $query->whereNull('normalized_type')
                     ->orWhereIn('normalized_type', self::PROFITABLE_NORMALIZED_TYPES);
-            })
-            ->get();
+            })->get();
 
         $treasury = 0.0;
         $vatTotal = 0.0;
+        $items = [];
 
         foreach ($expenses as $expense) {
-            [$expenseTreasury, $expenseVat] = $this->calculateExpenseTreasuryAndVat($expense);
-            $treasury += $expenseTreasury;
+            $key = mb_strtolower(trim((string) $expense->expense_type));
 
-            if ($expense->normalized_type === 'acquisition') {
-                continue;
+            $effectiveNormalizedType = $expense->normalized_type;
+            if ($effectiveNormalizedType === null || $effectiveNormalizedType === 'other') {
+                $effectiveNormalizedType = VehicleExpense::NORMALIZED_TYPE_MAP[$key] ?? $effectiveNormalizedType;
             }
 
-            $vatTotal += $expenseVat;
+            $includedInProfitability = $effectiveNormalizedType === null
+                || in_array($effectiveNormalizedType, self::PROFITABLE_NORMALIZED_TYPES, true);
+
+            [$expenseTreasury, $expenseVat] = $this->calculateExpenseTreasuryAndVat($expense);
+
+            if ($includedInProfitability) {
+                $treasury += $expenseTreasury;
+
+                $vatIncluded = $effectiveNormalizedType !== 'acquisition';
+                if ($vatIncluded) {
+                    $vatTotal += $expenseVat;
+                }
+            }
+
+            if ($includeItems) {
+                $items[] = [
+                    'id' => $expense->id,
+                    'date' => $expense->date,
+                    'expense_type' => $expense->expense_type,
+                    'normalized_type' => $expense->normalized_type,
+                    'effective_normalized_type' => $effectiveNormalizedType,
+                    'included_in_profitability' => $includedInProfitability,
+                    'description' => $expense->description,
+                    'value' => (float) ($expense->value ?? 0),
+                    'invoice_value' => $expense->invoice_value !== null ? (float) $expense->invoice_value : null,
+                    'vat_rate' => (float) ($expense->vat ?? 0),
+                    'treasury' => (float) $expenseTreasury,
+                    'vat_amount' => (float) $expenseVat,
+                    'vat_included' => $includedInProfitability && ($effectiveNormalizedType !== 'acquisition'),
+                ];
+            }
         }
 
         return [
             'treasury' => $treasury,
             'vat' => $vatTotal,
+            'items' => $items,
         ];
     }
 

@@ -222,6 +222,7 @@
                                 <th>Impostos</th>
                                 <th>Final</th>
                                 <th>Transferido</th>
+                                <th>Despesas</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -237,9 +238,100 @@
                                     <td>{{ number_format($r['total_taxes'], 2, ',', '.') }} €</td>
                                     <td><strong>{{ number_format($r['final_total'], 2, ',', '.') }} €</strong></td>
                                     <td>{{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} €</td>
+                                    <td style="min-width:260px;">
+                                        @php
+                                            $items = $r['vehicle_expenses_items'] ?? [];
+                                            $weekStart = \Carbon\Carbon::parse($r['week']->start_date)->format('Y-m-d');
+                                            $weekEnd = \Carbon\Carbon::parse($r['week']->end_date)->format('Y-m-d');
+                                        @endphp
+
+                                        <div>
+                                            <small>
+                                                Total: <strong>{{ number_format($r['vehicle_expenses_value'] ?? 0, 2, ',', '.') }} €</strong>
+                                                &nbsp;|&nbsp;
+                                                IVA (contabilizado): <strong>{{ number_format($r['vehicle_expenses_vat'] ?? 0, 2, ',', '.') }} €</strong>
+                                            </small>
+                                        </div>
+
+                                        <details style="margin-top:6px;">
+                                            <summary>
+                                                {{ count($items) > 0 ? 'ver despesas (' . count($items) . ')' : 'ver despesas' }}
+                                            </summary>
+
+                                            @if(count($items) === 0)
+                                                <div style="margin-top:8px;">
+                                                    <em>Sem despesas registadas (ou lista desativada para períodos longos).</em>
+                                                    <div style="margin-top:6px;">
+                                                        <a class="btn btn-xs btn-default" href="{{ route('admin.vehicle-expenses.index') }}">
+                                                            abrir despesas
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            @else
+                                                <div style="margin-top:8px;">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-bordered table-striped table-sm" style="margin-bottom:0;">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>Data</th>
+                                                                    <th>Tipo</th>
+                                                                    <th>Valor</th>
+                                                                    <th>Fatura</th>
+                                                                    <th>IVA</th>
+                                                                    <th>Tesouraria</th>
+                                                                    <th>IVA (valor)</th>
+                                                                    <th>Obs.</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @foreach($items as $e)
+                                                                    <tr>
+                                                                        <td>{{ \Carbon\Carbon::parse($e['date'])->format('d/m/Y') }}</td>
+                                                                        <td>
+                                                                            {{ $e['expense_type'] ?? '—' }}
+                                                                            @php
+                                                                                $norm = $e['effective_normalized_type'] ?? $e['normalized_type'] ?? null;
+                                                                            @endphp
+                                                                            @if(!empty($norm))
+                                                                                <br><small style="color:#666;">({{ $norm }})</small>
+                                                                            @endif
+                                                                        </td>
+                                                                        <td>{{ number_format($e['value'] ?? 0, 2, ',', '.') }} €</td>
+                                                                        <td>
+                                                                            {{ $e['invoice_value'] !== null ? number_format($e['invoice_value'], 2, ',', '.') . ' €' : '—' }}
+                                                                        </td>
+                                                                        <td>{{ number_format($e['vat_rate'] ?? 0, 2, ',', '.') }}%</td>
+                                                                        <td>{{ number_format($e['treasury'] ?? 0, 2, ',', '.') }} €</td>
+                                                                        <td>
+                                                                            {{ number_format($e['vat_amount'] ?? 0, 2, ',', '.') }} €
+                                                                            @if(($e['included_in_profitability'] ?? true) === false)
+                                                                                <br><small style="color:#666;">(excluída do cálculo)</small>
+                                                                            @elseif(($e['vat_included'] ?? true) === false)
+                                                                                <br><small style="color:#666;">(IVA não conta)</small>
+                                                                            @endif
+                                                                        </td>
+                                                                        <td style="white-space:nowrap;">
+                                                                            <a class="btn btn-xs btn-primary" href="{{ route('admin.vehicle-expenses.edit', $e['id']) }}">
+                                                                                editar
+                                                                            </a>
+                                                                        </td>
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div style="margin-top:6px;">
+                                                        <small style="color:#666;">
+                                                            Nota: despesas com tipo normalizado <code>acquisition</code> não entram no cálculo de IVA desta semana.
+                                                        </small>
+                                                    </div>
+                                                </div>
+                                            @endif
+                                        </details>
+                                    </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="6">Sem dados.</td></tr>
+                                <tr><td colspan="7">Sem dados.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
