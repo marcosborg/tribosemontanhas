@@ -7,7 +7,7 @@
                 <div class="panel-heading">
                     <div class="row">
                         <div class="col-md-8">
-                            {{ trans('cruds.vehicleUsage.title') }} - VisÃ£o Geral
+                            {{ trans('cruds.vehicleUsage.title') }} - Visão Geral
                         </div>
                         <div class="col-md-4">
                             <a href="/admin/vehicle-usages/create" class="btn btn-primary btn-sm pull-right">Vehicle usage</a>
@@ -23,10 +23,10 @@
                                 <a href="#home" role="tab" data-toggle="tab">Linha do Tempo das Viaturas</a>
                             </li>
                             <li role="presentation">
-                                <a href="#profile" role="tab" data-toggle="tab">GrÃ¡fico da Taxa de OcupaÃ§Ã£o</a>
+                                <a href="#profile" role="tab" data-toggle="tab">Gráfico da Taxa de Ocupação</a>
                             </li>
                             <li role="presentation">
-                                <a href="#messages" role="tab" data-toggle="tab">Detalhe da OcupaÃ§Ã£o por Viatura</a>
+                                <a href="#messages" role="tab" data-toggle="tab">Detalhe da Ocupação por Viatura</a>
                             </li>
                         </ul>
 
@@ -36,7 +36,7 @@
                             <div role="tabpanel" class="tab-pane active" id="home">
                             <h3>Linha do Tempo das Viaturas</h3>
 
-                            {{-- Filtros para focar a timeline num mÃªs especÃ­fico --}}
+                            {{-- Filtros para focar a timeline num mês específico --}}
                             <div class="form-inline" style="margin-bottom: 15px;">
                                 <div class="form-group" style="margin-right: 10px;">
                                     <label for="timelineYearFilter" style="margin-right: 6px;">Ano:</label>
@@ -49,7 +49,7 @@
                                 </div>
 
                                 <div class="form-group" style="margin-right: 10px;">
-                                    <label for="timelineMonthFilter" style="margin-right: 6px;">MÃªs:</label>
+                                    <label for="timelineMonthFilter" style="margin-right: 6px;">Mês:</label>
                                     <select id="timelineMonthFilter" class="form-control" style="max-width: 200px;">
                                         <option value="all">Todos</option>
                                         @for ($m = 1; $m <= 12; $m++)
@@ -126,7 +126,7 @@
                         </div>
 
 
-                            <!-- GrÃ¡fico -->
+                            <!-- Gráfico -->
                             <div role="tabpanel" class="tab-pane" id="profile">
                                 <div class="form-inline" style="margin-top:15px;">
                                     <div class="form-group" style="margin-right:10px;">
@@ -140,7 +140,7 @@
                                     </div>
 
                                     <div class="form-group">
-                                        <label for="monthFilter" style="margin-right:6px;">Selecionar MÃªs:</label>
+                                        <label for="monthFilter" style="margin-right:6px;">Selecionar Mês:</label>
                                         <select id="monthFilter" class="form-control" style="max-width: 200px;">
                                             <option value="all">Todos os meses</option>
                                             @for ($m = 1; $m <= 12; $m++)
@@ -152,20 +152,20 @@
                                     </div>
                                 </div>
 
-                                <h3 id="chartTitle" style="margin-top:20px;">GrÃ¡fico da Taxa de OcupaÃ§Ã£o</h3>
+                                <h3 id="chartTitle" style="margin-top:20px;">Gráfico da Taxa de Ocupação</h3>
 
-                                {{-- Altura controlada no CONTÃŠINER, nÃ£o no canvas --}}
+                                {{-- Altura controlada no CONTENTOR, não no canvas --}}
                                 <div id="occupancyChartContainer" style="width:100%; height:420px; position:relative;">
                                     <canvas id="occupancyChart"></canvas>
                                 </div>
                                 <p class="text-muted" style="margin-top:10px;">
-                                    As barras estÃ£o ordenadas por <strong>maior percentagem de utilizaÃ§Ã£o</strong> (verde). O rÃ³tulo no fim da barra Ã© o <strong>aluguer da Ãºltima semana</strong>.
+                                    As barras estão ordenadas por <strong>maior percentagem de utilização</strong> (verde). O rótulo no fim da barra é o <strong>aluguer da última semana</strong>.
                                 </p>
                             </div>
 
                             <!-- Detalhe por Viatura -->
                             <div role="tabpanel" class="tab-pane" id="messages">
-                                <h3 class="mt-5">Detalhe da OcupaÃ§Ã£o por Viatura</h3>
+                                <h3 class="mt-5">Detalhe da Ocupação por Viatura</h3>
                                 @foreach($occupancyStats as $plate => $years)
                                     <h4>{{ $plate }}</h4>
                                     <table class="table table-bordered">
@@ -175,7 +175,7 @@
                                                 <th>Ano</th>
                                                 <th>Dias em uso</th>
                                                 <th>Total de dias</th>
-                                                <th>Taxa de ocupaÃ§Ã£o (%)</th>
+                                                <th>Taxa de ocupação (%)</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
     );
 
-    // numerar grupos sem alterar a ordem de inserÃ§Ã£o
+    // numerar grupos sem alterar a ordem de inserção
     const timelineGroups = new vis.DataSet([
         @php $__grp_i = 1; @endphp
         @foreach($grouped as $plate => $records)
@@ -473,7 +473,7 @@ document.addEventListener('DOMContentLoaded', function () {
         timelineGroups,
         {
             stack: false,
-            groupOrder: function (a,b){ return 0; }, // manter ordem de inserÃ§Ã£o
+            groupOrder: function (a,b){ return 0; }, // manter ordem de inserção
             editable: false,
             margin: { item: 10, axis: 5 },
             orientation: 'top'
@@ -507,7 +507,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // === Filtro de Ano/MÃªs para a TIMELINE ===
+    // === Filtro de Ano/Mês para a TIMELINE ===
     const tYearSel  = document.getElementById('timelineYearFilter');
     const tMonthSel = document.getElementById('timelineMonthFilter');
     const tResetBtn = document.getElementById('timelineResetBtn');
@@ -518,7 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const year  = tYearSel.value;
         const month = tMonthSel.value;
 
-        // Se algum estiver em "Todos", mostra o perÃ­odo completo
+        // Se algum estiver em "Todos", mostra o período completo
         if (year === 'all' || month === 'all') {
             timeline.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
             return;
@@ -527,9 +527,9 @@ document.addEventListener('DOMContentLoaded', function () {
         const y = parseInt(year, 10);
         const m = parseInt(month, 10) - 1; // JS: 0 = Jan
 
-        // 1Âº dia do mÃªs
+        // 1º dia do mês
         const start = new Date(y, m, 1);
-        // Ãºltimo dia do mÃªs Ã s 23:59:59
+        // último dia do mês às 23:59:59
         const end   = new Date(y, m + 1, 0, 23, 59, 59, 999);
 
         timeline.setWindow(start, end, {
@@ -556,16 +556,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const ctx        = document.getElementById('occupancyChart').getContext('2d');
     const container  = document.getElementById('occupancyChartContainer');
 
-    // dados jÃ¡ reindexados pelo controller
+    // dados já reindexados pelo controller
     const rawStackedStats = @json($monthlyStackedStats, JSON_NUMERIC_CHECK);
     const stackedStats = Array.isArray(rawStackedStats) ? rawStackedStats : [];
 
     const categoryLabels = {
-        usage: 'UtilizaÃ§Ã£o',
-        maintenance: 'ManutenÃ§Ã£o',
+        usage: 'Utilização',
+        maintenance: 'Manutenção',
         accident: 'Sinistrado',
-        unassigned: 'Sem utilizaÃ§Ã£o',
-        personal: 'UtilizaÃ§Ã£o pessoal'
+        unassigned: 'Sem utilização',
+        personal: 'Utilização pessoal'
     };
     const categoryColors = {
         usage: '#28a745',
@@ -602,7 +602,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // Criar UMA instÃ¢ncia de Chart
+    // Criar UMA instância de Chart
     const chart = new Chart(ctx, {
         type: 'bar',
         data: { labels: [], datasets: [] },
@@ -622,18 +622,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 stacked: true,
                 min: 0,
                 max: 100,
-                // Mostra todos os valores do eixo X tambÃ©m (se quiser)
+                // Mostra todos os valores do eixo X também (se quiser)
                 ticks: { stepSize: 10, autoSkip: false, callback: v => v + '%' }
             },
             y: {
                 stacked: true,
-                // <- o que resolve os â€œparesâ€ a desaparecer
+                // <- o que resolve os "pares" a desaparecer
                 ticks: {
-                autoSkip: false,   // nÃ£o salta rÃ³tulos
+                autoSkip: false,   // não salta rótulos
                 padding: 4,
                 crossAlign: 'near' // evita cortar o texto
                 },
-                // dÃ¡ um bocadinho mais de largura ao eixo para nÃ£o cortar "1. ABC..."
+                // dá um bocadinho mais de largura ao eixo para não cortar "1. ABC..."
                 afterFit(scale) { scale.width += 24; }
             }
             }
@@ -658,13 +658,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const year  = document.getElementById('yearFilter').value;
         const month = document.getElementById('monthFilter').value;
 
-        // filtra por ano/mÃªs
+        // filtra por ano/mês
         let filtered = stackedStats.filter(stat =>
             (year  === 'all' || stat.year  == year) &&
             (month === 'all' || stat.month == month)
         );
 
-        // se mÃªs = all, agrega por viatura(ano)
+        // se mês = all, agrega por viatura(ano)
         if (month === 'all') {
             const grouped = {};
             filtered.forEach(stat => {
@@ -683,35 +683,35 @@ document.addEventListener('DOMContentLoaded', function () {
             filtered = Object.values(grouped);
         }
 
-        // ordenar por % de utilizaÃ§Ã£o desc (verde)
+        // ordenar por % de utilização desc (verde)
         filtered.sort((a, b) => {
             const totA = categories.reduce((s, k) => s + (a[k] || 0), 0);
             const totB = categories.reduce((s, k) => s + (b[k] || 0), 0);
             const pA = totA ? (a.usage || 0) / totA : 0;
             const pB = totB ? (b.usage || 0) / totB : 0;
-            if (pB === pA) return ('' + a.label).localeCompare(b.label); // tie-break estÃ¡vel
+            if (pB === pA) return ('' + a.label).localeCompare(b.label); // tie-break estável
             return pB - pA;
         });
 
-        // Altura dinÃ¢mica no CONTÃŠINER (evita loop de resize do canvas)
+        // Altura dinâmica no CONTENTOR (evita loop de resize do canvas)
         const BAR_HEIGHT = 20; // px por item
         const targetHeight = Math.max(320, filtered.length * BAR_HEIGHT);
         if (container.style.height !== targetHeight + 'px') {
             container.style.height = targetHeight + 'px';
-            chart.resize(); // pede ao chart para adaptar-se ao novo contÃªiner
+            chart.resize(); // pede ao chart para adaptar-se ao novo contentor
         }
 
-        // === Labels numerados (1., 2., 3., â€¦) sem mexer na ordem ===
+        // === Labels numerados (1., 2., 3., ...) sem mexer na ordem ===
         chart.data.labels   = filtered.map((d, i) => `${i + 1}. ${d.label}`);
         chart.data.datasets = buildDatasets(filtered);
 
-        // === Valores de aluguer no fim de cada barra (vÃªm do controller: stat.rent) ===
-        chart.$_rents = filtered.map(stat => (stat.rent != null ? `${stat.rent} â‚¬` : 'â€”'));
+        // === Valores de aluguer no fim de cada barra (vêm do controller: stat.rent) ===
+        chart.$_rents = filtered.map(stat => (stat.rent != null ? `${stat.rent} €` : '—'));
 
         chart.update();
     }
 
-    // Recalcular quando a aba de grÃ¡fico for exibida
+    // Recalcular quando a aba de gráfico for exibida
     const tabLink = document.querySelector('a[href="#profile"]');
     if (tabLink) {
         if (window.jQuery) {
@@ -734,7 +734,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
 @section('styles')
 <style>
-/* Canvas ocupa 100% do contÃªiner */
+/* Canvas ocupa 100% do contentor */
 #occupancyChart { width:100% !important; height:100% !important; }
 
 /* Sticky headers for usage detail table */
@@ -771,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function () {
     background: #ffffff;
 }
 
-/* Cores da timeline por exceÃ§Ã£o */
+/* Cores da timeline por exceção */
 .vis-item.usage-item      { background-color:#28a745 !important; border-color:#1e7e34 !important; color:#fff !important; font-weight:bold; }
 .vis-item.maintenance-item{ background-color:#fd7e14 !important; border-color:#e8590c !important; color:#fff !important; font-weight:bold; }
 .vis-item.accident-item   { background-color:#dc3545 !important; border-color:#a71d2a !important; color:#fff !important; font-weight:bold; }
