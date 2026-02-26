@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     );
 
-    timeline.on('click', function (props) {
+    timeline.on('doubleClick', function (props) {
         if (!props) return;
 
         if (props.item) {
