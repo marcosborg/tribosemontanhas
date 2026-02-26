@@ -431,7 +431,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                     $date = e($item['date']);
                                     $source = e($item['source'] ?? '');
                                     $amount = number_format((float) ($item['amount'] ?? 0), 2);
-                                    return "<div style='margin-bottom:6px;'><strong>{$date}</strong> - {$source}<br>{$amount} &euro;</div>";
+                                    return "<div style='margin-bottom:6px;'><strong>{$date}</strong> - {$source}<br>{$amount} €</div>";
                                 })->implode('');
                             }
                         @endphp

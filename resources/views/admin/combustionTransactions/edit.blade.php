@@ -48,6 +48,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.combustionTransaction.fields.total_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('transaction_date') ? 'has-error' : '' }}">
+                            <label for="transaction_date">{{ trans('cruds.combustionTransaction.fields.transaction_date') }}</label>
+                            <input class="form-control" type="date" name="transaction_date" id="transaction_date" value="{{ old('transaction_date', optional($combustionTransaction->transaction_date)->format('Y-m-d')) }}">
+                            @if($errors->has('transaction_date'))
+                                <span class="help-block" role="alert">{{ $errors->first('transaction_date') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.combustionTransaction.fields.transaction_date_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

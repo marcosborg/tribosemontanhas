@@ -32,6 +32,7 @@
                                 <th>Existe</th>
                                 <th>{{ trans('cruds.combustionTransaction.fields.amount') }}</th>
                                 <th>{{ trans('cruds.combustionTransaction.fields.total') }}</th>
+                                <th>{{ trans('cruds.combustionTransaction.fields.transaction_date') }}</th>
                                 <th>&nbsp;</th>
                             </tr>
                             {{-- Filtros por coluna --}}
@@ -48,6 +49,7 @@
                                         <option value="Não">Não</option>
                                     </select>
                                 </th>
+                                <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th>
                                 <th></th>
@@ -108,6 +110,7 @@ $(function () {
       { data: 'exist',                  name: 'exist', orderable: false, searchable: true },
       { data: 'amount',                 name: 'combustion_transactions.amount' },
       { data: 'total',                  name: 'combustion_transactions.total' },
+      { data: 'transaction_date',       name: 'combustion_transactions.transaction_date' },
       { data: 'actions',                name: 'actions', orderable: false, searchable: false },
     ],
     orderCellsTop: true,

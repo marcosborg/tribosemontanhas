@@ -32,6 +32,10 @@ class UpdateCombustionTransactionRequest extends FormRequest
             'total' => [
                 'required',
             ],
+            'transaction_date' => [
+                'nullable',
+                'date',
+            ],
         ];
     }
 }

@@ -1583,6 +1583,8 @@ return [
             'amount_helper'     => ' ',
             'total'             => 'Total',
             'total_helper'      => ' ',
+            'transaction_date'        => 'Data da transação',
+            'transaction_date_helper' => ' ',
             'created_at'        => 'Criado em',
             'created_at_helper' => ' ',
             'updated_at'        => 'Atualizado em',

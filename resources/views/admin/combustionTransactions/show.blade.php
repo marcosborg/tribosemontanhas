@@ -57,6 +57,14 @@
                                         {{ $combustionTransaction->total }}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.combustionTransaction.fields.transaction_date') }}
+                                    </th>
+                                    <td>
+                                        {{ $combustionTransaction->transaction_date ? $combustionTransaction->transaction_date->format('Y-m-d') : '' }}
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

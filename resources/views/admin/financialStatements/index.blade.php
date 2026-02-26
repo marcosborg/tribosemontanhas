@@ -270,16 +270,23 @@
                             </tr>
 
                             @php
-                                $ajustesTotal = $ajustesValor ?? ($adjustments ?? 0);
-                                if ($ajustesTotal > 0) {
-                                    $total_net = $total_net + $ajustesTotal;
-                                }
+                                $ganhosCredito = (float) ($total_net ?? 0);
+                                $ajustesCredito = max((float) ($ajustesValor ?? 0), 0);
+                                $ajustesDebito = max(-(float) ($ajustesValor ?? 0), 0);
+                                $debitoBase = (float) ($car_hire ?? 0)
+                                    + (float) ($car_track ?? 0)
+                                    + (float) ($fuel_transactions ?? 0)
+                                    + (float) ($vat_value ?? 0);
+
+                                $totaisCreditos = $ganhosCredito + $ajustesCredito;
+                                $totaisDebitos = $debitoBase + $ajustesDebito;
+                                $totaisFinal = $totaisCreditos - $totaisDebitos;
                             @endphp
                             <tr>
                                 <th>Totais</th>
-                                <th style="text-align: right;">{{ number_format($total_net, 2) }}€</th>
-                                <th style="text-align: right;">{{ number_format(($total - $total_net), 2) }}€</th>
-                                <th style="text-align: right;">{{ number_format($total, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($totaisCreditos, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($totaisDebitos, 2) }}€</th>
+                                <th style="text-align: right;">{{ number_format($totaisFinal, 2) }}€</th>
                             </tr>
                         </tbody>
                     </table>

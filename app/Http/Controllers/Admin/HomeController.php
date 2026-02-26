@@ -146,18 +146,17 @@ class HomeController
             $prioTransactions = CombustionTransaction::query()
                 ->where('tvde_week_id', $tvde_week_id)
                 ->whereIn('card', $cardCodes->all())
-                ->orderBy('created_at')
+                ->orderBy('id')
                 ->get(['total', 'created_at']);
         }
 
         $prioItems = $prioTransactions
-            ->groupBy(function ($tx) {
-                return Carbon::parse($tx->transaction_date ?? $tx->date ?? $tx->created_at)->toDateString();
-            })
-            ->map(function ($items, $date) {
+            ->map(function ($tx) {
+                $rawDate = $tx->transaction_date ?? $tx->date ?? $tx->created_at;
+
                 return [
-                    'date' => $date,
-                    'total' => round($items->sum('total'), 2),
+                    'date' => $rawDate ? Carbon::parse($rawDate)->format('Y-m-d H:i') : null,
+                    'total' => round((float) $tx->total, 2),
                 ];
             })
             ->values()
@@ -177,13 +176,10 @@ class HomeController
 
             $teslaTotal = $teslaFiltered->sum('value');
             $teslaItems = $teslaFiltered
-                ->groupBy(function ($charging) {
-                    return Carbon::parse($charging->datetime)->toDateString();
-                })
-                ->map(function ($items, $date) {
+                ->map(function ($charging) {
                     return [
-                        'date' => $date,
-                        'total' => round($items->sum('value'), 2),
+                        'date' => Carbon::parse($charging->datetime)->format('Y-m-d H:i'),
+                        'total' => round((float) $charging->value, 2),
                     ];
                 })
                 ->values()
@@ -203,13 +199,10 @@ class HomeController
 
             $viaVerdeTotal = $carTracks->sum('value');
             $viaVerdeItems = $carTracks
-                ->groupBy(function ($track) {
-                    return Carbon::parse($track->date)->toDateString();
-                })
-                ->map(function ($items, $date) {
+                ->map(function ($track) {
                     return [
-                        'date' => $date,
-                        'total' => round($items->sum('value'), 2),
+                        'date' => Carbon::parse($track->date)->format('Y-m-d'),
+                        'total' => round((float) $track->value, 2),
                     ];
                 })
                 ->values()
@@ -258,6 +251,25 @@ class HomeController
             }
             if (empty($expense_details['via_verde']['items']) && !empty($details->via_verde)) {
                 $expense_details['via_verde']['items'] = $normalizeItems($details->via_verde);
+            }
+
+            // Fallback: when PRIO transactions have no timestamp in source table,
+            // reuse the week detail date already stored in current_account (if present).
+            if (!empty($expense_details['prio']['items']) && !empty($details->fuel) && is_array($details->fuel)) {
+                $fallbackFuelDate = collect($details->fuel)->pluck('date')->filter()->first();
+
+                if ($fallbackFuelDate) {
+                    $expense_details['prio']['items'] = collect($expense_details['prio']['items'])
+                        ->map(function ($item) use ($fallbackFuelDate) {
+                            if (empty($item['date'])) {
+                                $item['date'] = $fallbackFuelDate;
+                            }
+
+                            return $item;
+                        })
+                        ->values()
+                        ->all();
+                }
             }
         }
 
