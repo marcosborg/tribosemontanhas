@@ -80,7 +80,8 @@ class VehicleProfitabilityCalculator
         $totalTaxes = - ($results['vat_value'] ?? 0)
             + ($iva ?? 0)
             + ($fuelTransactionsVat ?? 0)
-            + ($vehicleExpenses['vat'] ?? 0);
+            + ($vehicleExpenses['vat'] ?? 0)
+            + ($vehicleExpenses['taxes'] ?? 0);
 
         $finalTotal = $totalTreasury + $totalTaxes;
 
@@ -220,6 +221,7 @@ class VehicleProfitabilityCalculator
 
         $treasury = 0.0;
         $vatTotal = 0.0;
+        $taxesTotal = 0.0;
         $items = [];
 
         foreach ($expenses as $expense) {
@@ -236,7 +238,13 @@ class VehicleProfitabilityCalculator
             [$expenseTreasury, $expenseVat] = $this->calculateExpenseTreasuryAndVat($expense);
 
             if ($includedInProfitability) {
-                $treasury += $expenseTreasury;
+                $isTaxException = $this->isAcquisitionSaleTaxExpense($expense);
+
+                if ($isTaxException) {
+                    $taxesTotal += $expenseTreasury;
+                } else {
+                    $treasury += $expenseTreasury;
+                }
 
                 $vatIncluded = $effectiveNormalizedType !== 'acquisition';
                 if ($vatIncluded) {
@@ -258,6 +266,7 @@ class VehicleProfitabilityCalculator
                     'vat_rate' => (float) ($expense->vat ?? 0),
                     'treasury' => (float) $expenseTreasury,
                     'vat_amount' => (float) $expenseVat,
+                    'as_tax_exception' => $includedInProfitability && $this->isAcquisitionSaleTaxExpense($expense),
                     'vat_included' => $includedInProfitability && ($effectiveNormalizedType !== 'acquisition'),
                 ];
             }
@@ -266,8 +275,17 @@ class VehicleProfitabilityCalculator
         return [
             'treasury' => $treasury,
             'vat' => $vatTotal,
+            'taxes' => $taxesTotal,
             'items' => $items,
         ];
+    }
+
+    protected function isAcquisitionSaleTaxExpense(VehicleExpense $expense): bool
+    {
+        $type = mb_strtolower(trim((string) $expense->expense_type));
+        $target = mb_strtolower(VehicleExpense::EXPENSE_TYPE_ACQUISITION_SALE_TAX);
+
+        return $type === $target;
     }
 
     protected function calculateExpenseTreasuryAndVat(VehicleExpense $expense): array

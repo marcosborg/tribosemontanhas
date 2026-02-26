@@ -15,6 +15,8 @@ class VehicleExpense extends Model implements HasMedia
 {
     use SoftDeletes, InteractsWithMedia, HasFactory;
 
+    public const EXPENSE_TYPE_ACQUISITION_SALE_TAX = 'Aquisição / Venda (Imposto)';
+
     protected $appends = [
         'files',
     ];
