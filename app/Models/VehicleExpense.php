@@ -30,7 +30,8 @@ class VehicleExpense extends Model implements HasMedia
 
     public const EXPENSE_TYPE_RADIO = [
         'Acessórios' => 'Acessórios',
-        'Aquisição' => 'Aquisição',
+        'Aquisição / Venda' => 'Aquisição / Venda',
+        'Aquisição / Venda (Imposto)' => 'Aquisição / Venda (Imposto)',
         'Bate-chapa' => 'Bate-chapa',
         'Distico verde' => 'Distico verde',
         'Empréstimos' => 'Empréstimos',
@@ -59,6 +60,8 @@ class VehicleExpense extends Model implements HasMedia
 
         // Acquisition
         'aquisição' => 'acquisition',
+        'aquisição / venda' => 'acquisition',
+        'aquisição / venda (imposto)' => 'acquisition',
         'aquisição da viatura' => 'acquisition',
 
         // Other examples

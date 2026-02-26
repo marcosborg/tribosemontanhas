@@ -62,3 +62,36 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Database profiles (sandbox/production)
+
+The project includes two Artisan commands to help switch DB credentials and clone production data into sandbox.
+
+Configure these variables in `.env`:
+
+```env
+DB_SANDBOX_HOST=127.0.0.1
+DB_SANDBOX_PORT=3306
+DB_SANDBOX_DATABASE=tribos
+DB_SANDBOX_USERNAME=root
+DB_SANDBOX_PASSWORD=
+
+DB_PRODUCTION_HOST=162.241.85.33
+DB_PRODUCTION_PORT=3306
+DB_PRODUCTION_DATABASE=gestvde_tribos
+DB_PRODUCTION_USERNAME=gestvde_tribos
+DB_PRODUCTION_PASSWORD=...
+```
+
+Available commands:
+
+```bash
+php artisan db:switch sandbox
+php artisan db:switch production
+php artisan db:sync-prod-to-sandbox
+```
+
+Notes:
+
+- `db:switch` updates `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME`, and `DB_PASSWORD` in `.env`.
+- `db:sync-prod-to-sandbox` drops and recreates the sandbox database, then copies tables, data, and views.
