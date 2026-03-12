@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
         timelineItems,
         timelineGroups,
         {
-            stack: true,
+            stack: false,
             groupOrder: function (a,b){ return 0; }, // manter ordem de inserção
             editable: false,
             margin: { item: 10, axis: 5 },
