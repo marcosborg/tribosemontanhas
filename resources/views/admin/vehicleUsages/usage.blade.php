@@ -216,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
         acc[vehicleByPlate[plate]] = plate;
         return acc;
     }, {});
+    const usageTypeLabels = @json(App\Models\VehicleUsage::USAGE_EXCEPTIONS_RADIO);
 
     const usageCreateUrl = "{{ url('/admin/vehicle-usages') }}";
     const usageEditBaseUrl = "{{ url('/admin/vehicle-usages') }}";
@@ -294,22 +295,29 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function getSelectedDriverName() {
+        if (!driverSelect || !driverSelect.value) {
+            return '';
+        }
         const opt = driverSelect.options[driverSelect.selectedIndex];
-        return opt ? opt.textContent.trim() : '';
+        const name = opt ? opt.textContent.trim() : '';
+        return /please\s*select/i.test(name) ? '' : name;
     }
 
     function getUsageClassAndContent(driverName, usageType) {
-        if (usageType) {
-            const label = usageType.charAt(0).toUpperCase() + usageType.slice(1);
+        const normalizedType = usageType || 'usage';
+        const label = usageTypeLabels[normalizedType] || normalizedType;
+
+        if (driverName) {
             return {
-                className: `${usageType}-item`,
-                content: driverName || (usageType === 'usage' ? 'Sem motorista' : label)
+                className: `${normalizedType}-item`,
+                content: driverName
             };
         }
-        if (driverName) {
-            return { className: null, content: driverName };
-        }
-        return { className: 'exception-item', content: 'Sem motorista' };
+
+        return {
+            className: `${normalizedType}-item`,
+            content: label
+        };
     }
 
     async function openCreateModal(preselect) {
@@ -452,6 +460,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // === TIMELINE ===
     const rawTimelineItems = @json($timelineItems, JSON_NUMERIC_CHECK);
     const safeTimelineItems = Array.isArray(rawTimelineItems) ? rawTimelineItems : [];
+    const openEndedItemIds = safeTimelineItems
+        .filter(item => !!item.openEnded)
+        .map(item => item.id);
     const timelineItems = new vis.DataSet(
         safeTimelineItems.map(item => {
             if (!item.end) { delete item.end; }
@@ -479,6 +490,24 @@ document.addEventListener('DOMContentLoaded', function () {
             orientation: 'top'
         }
     );
+
+    function syncOpenEndedItemsToWindowEnd() {
+        if (!timeline || !openEndedItemIds.length) return;
+
+        const range = timeline.getWindow();
+        if (!range || !range.end) return;
+
+        const visibleEnd = new Date(range.end);
+        timelineItems.update(
+            openEndedItemIds.map(id => ({
+                id,
+                end: visibleEnd
+            }))
+        );
+    }
+
+    timeline.on('rangechanged', syncOpenEndedItemsToWindowEnd);
+    setTimeout(syncOpenEndedItemsToWindowEnd, 0);
 
     timeline.on('doubleClick', function (props) {
         if (!props) return;

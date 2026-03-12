@@ -167,33 +167,19 @@ class VehicleUsageController extends Controller
 
     public function store(StoreVehicleUsageRequest $request)
     {
-        // As datas estÇœo validadas no formato Y-m-d H:i:s, podemos usÇ­-las diretamente
-        $startDate = $request->start_date;
-        $endDate = $request->end_date;
-        $endDateForOverlap = $endDate ?: '9999-12-31 23:59:59';
+        $startDate = Carbon::parse($request->start_date)->format('Y-m-d H:i:s');
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->format('Y-m-d H:i:s')
+            : null;
 
-        // Criar SEMPRE o novo registo
-        $newUsage = VehicleUsage::create($request->all());
-
-        // Verificar sobreposiÇõÇœo com outros registos (excluindo o registo recÇ¸m-criado)
-        $hasOverlap = VehicleUsage::where('vehicle_item_id', $request->vehicle_item_id)
-            ->where('id', '!=', $newUsage->id)
-            ->where(function ($query) use ($startDate, $endDateForOverlap) {
-                $query->where('start_date', '<=', $endDateForOverlap)
-                    ->where(function ($q) use ($startDate) {
-                        $q->whereNull('end_date')
-                            ->orWhere('end_date', '>=', $startDate);
-                    });
-            })
-            ->first();
-
-        if ($hasOverlap) {
-            return redirect()->route('admin.vehicle-usages.index')
-                ->with('error_message', "UtilizaÇõÇœo criada com sucesso (ID {$newUsage->id}), mas sobrepÇæe a utilizaÇõÇœo existente com ID {$hasOverlap->id}.");
+        if ($this->hasStrictOverlap((int) $request->vehicle_item_id, $startDate, $endDate)) {
+            return $this->overlapValidationResponse($request);
         }
 
+        $newUsage = VehicleUsage::create($request->all());
+
         return redirect()->route('admin.vehicle-usages.index')
-            ->with('success', "UtilizaÇõÇœo criada com sucesso (ID {$newUsage->id}).");
+            ->with('success', "UtilizaÃ‡ÃµÃ‡Å“o criada com sucesso (ID {$newUsage->id}).");
     }
 
     public function edit(VehicleUsage $vehicleUsage)
@@ -210,6 +196,15 @@ class VehicleUsageController extends Controller
 
     public function update(UpdateVehicleUsageRequest $request, VehicleUsage $vehicleUsage)
     {
+        $startDate = Carbon::parse($request->start_date)->format('Y-m-d H:i:s');
+        $endDate = $request->filled('end_date')
+            ? Carbon::parse($request->end_date)->format('Y-m-d H:i:s')
+            : null;
+
+        if ($this->hasStrictOverlap((int) $request->vehicle_item_id, $startDate, $endDate, (int) $vehicleUsage->id)) {
+            return $this->overlapValidationResponse($request);
+        }
+
         $vehicleUsage->update($request->all());
 
         return redirect()->route('admin.vehicle-usages.index');
@@ -292,8 +287,9 @@ class VehicleUsageController extends Controller
                     if ($nextStartRaw) {
                         try {
                             $nextStart = Carbon::parse($nextStartRaw);
-                            if ($end === null || $end->greaterThanOrEqualTo($nextStart)) {
-                                $end = $nextStart->copy()->subSecond();
+                            if ($end === null || $end->greaterThan($nextStart)) {
+                                // Encosta ao próximo início sem criar gap artificial.
+                                $end = $nextStart->copy();
                             }
                         } catch (\Throwable $e) {
                             // ignore invalid next start date
@@ -319,22 +315,18 @@ class VehicleUsageController extends Controller
 
         foreach ($normalizedByPlate as $plate => $usagesForVehicle) {
             foreach ($usagesForVehicle as $usage) {
+                $usageExceptionKey = $this->normalizeUsageExceptionKey($usage->usage_exceptions);
                 $content = $usage->driver
                     ? $usage->driver->name
-                    : ($usage->usage_exceptions ? ucfirst($usage->usage_exceptions) : 'Sem motorista');
-
-                $className = null;
-                if ($usage->usage_exceptions) {
-                    $className = $usage->usage_exceptions . '-item';
-                } elseif (!$usage->driver) {
-                    $className = 'exception-item';
-                }
+                    : (VehicleUsage::USAGE_EXCEPTIONS_RADIO[$usageExceptionKey] ?? 'UtilizaÃ§Ã£o');
+                $className = $usageExceptionKey . '-item';
 
                 $timelineItems[] = [
                     'id' => $usage->id,
                     'content' => $content,
                     'start' => $usage->start->format('Y-m-d H:i:s'),
                     'end' => $usage->end ? $usage->end->format('Y-m-d H:i:s') : null,
+                    'openEnded' => $usage->end === null,
                     'group' => $plate,
                     'className' => $className,
                 ];
@@ -549,7 +541,149 @@ class VehicleUsageController extends Controller
             'monthlyStackedStats'
         ));
     }
+
+    private function hasStrictOverlap(int $vehicleItemId, string $startDate, ?string $endDate, ?int $ignoreId = null): bool
+    {
+        $newStart = Carbon::parse($startDate);
+        $openEnd = Carbon::create(9999, 12, 31, 23, 59, 59);
+        $newEnd = $endDate ? Carbon::parse($endDate) : $openEnd->copy();
+        $toleranceSeconds = 60;
+
+        $baseQuery = VehicleUsage::query()
+            ->where('vehicle_item_id', $vehicleItemId);
+
+        if ($ignoreId !== null) {
+            $baseQuery->where('id', '!=', $ignoreId);
+        }
+
+        $existingUsages = $baseQuery
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get(['id', 'start_date', 'end_date']);
+
+        $capEndByClosestStart = function (Carbon $start, Carbon $end, ?int $currentId = null) use ($existingUsages): Carbon {
+            $closestStart = $existingUsages
+                ->filter(function ($u) use ($currentId, $start) {
+                    $itemStart = Carbon::parse((string) $u->start_date);
+                    $itemId = (int) $u->id;
+
+                    if ($currentId !== null && $itemId === $currentId) {
+                        return false;
+                    }
+
+                    if ($itemStart->greaterThan($start)) {
+                        return true;
+                    }
+
+                    // Para resolver duplicados no mesmo instante, só usa "igual" quando
+                    // o registo corrente for conhecido e houver um id posterior.
+                    return $currentId !== null
+                        && $itemStart->equalTo($start)
+                        && $itemId > $currentId;
+                })
+                ->map(fn($u) => Carbon::parse((string) $u->start_date))
+                ->sort()
+                ->first();
+
+            if ($closestStart && $end->greaterThan($closestStart)) {
+                return $closestStart->copy();
+            }
+
+            return $end;
+        };
+
+        // Se novo registo não tiver fim, considera o próximo início como limite efetivo.
+        if ($endDate === null) {
+            $newEnd = $capEndByClosestStart($newStart, $newEnd, null);
+        }
+
+        if ($newEnd->lessThanOrEqualTo($newStart)) {
+            return false;
+        }
+
+        foreach ($existingUsages as $existing) {
+            $existingStart = Carbon::parse((string) $existing->start_date);
+
+            // Para registos sem fim (abertos), só valida contra eventos anteriores.
+            // Se cair no mesmo minuto (<= 60s), considera válido.
+            if ($endDate === null) {
+                if (!$existingStart->lessThan($newStart)) {
+                    continue;
+                }
+
+                if ($existingStart->diffInSeconds($newStart) <= $toleranceSeconds) {
+                    continue;
+                }
+            }
+
+            $existingEnd = $existing->end_date
+                ? Carbon::parse((string) $existing->end_date)
+                : $openEnd->copy();
+
+            // Mantém coerência com a timeline: fim efetivo é no início mais próximo >= start.
+            $existingEnd = $capEndByClosestStart($existingStart, $existingEnd, (int) $existing->id);
+
+            if ($existingEnd->lessThanOrEqualTo($existingStart)) {
+                continue;
+            }
+
+            $intersectionStart = $existingStart->greaterThan($newStart) ? $existingStart : $newStart;
+            $intersectionEnd = $existingEnd->lessThan($newEnd) ? $existingEnd : $newEnd;
+
+            if ($intersectionEnd->lessThanOrEqualTo($intersectionStart)) {
+                continue;
+            }
+
+            $overlapSeconds = $intersectionStart->diffInSeconds($intersectionEnd, false);
+
+            // Válido até 1 minuto de interseção; bloqueia apenas acima disso.
+            if ($overlapSeconds > $toleranceSeconds) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function overlapValidationResponse(Request $request)
+    {
+        $message = 'Existe sobreposicao de horario para esta viatura.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'errors' => [
+                    'start_date' => [$message],
+                ],
+            ], 422);
+        }
+
+        return redirect()
+            ->back()
+            ->withInput()
+            ->withErrors(['start_date' => $message]);
+    }
+
+    private function normalizeUsageExceptionKey($usageException): string
+    {
+        if (is_string($usageException) && $usageException !== '') {
+            $decoded = json_decode($usageException, true);
+            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                $first = reset($decoded);
+                if (is_string($first) && array_key_exists($first, VehicleUsage::USAGE_EXCEPTIONS_RADIO)) {
+                    return $first;
+                }
+            }
+
+            if (array_key_exists($usageException, VehicleUsage::USAGE_EXCEPTIONS_RADIO)) {
+                return $usageException;
+            }
+        }
+
+        return 'usage';
+    }
 }
+
 
 
 
