@@ -472,7 +472,7 @@ document.addEventListener('DOMContentLoaded', function () {
         timelineItems,
         timelineGroups,
         {
-            stack: false,
+            stack: true,
             groupOrder: function (a,b){ return 0; }, // manter ordem de inserção
             editable: false,
             margin: { item: 10, axis: 5 },
@@ -511,8 +511,20 @@ document.addEventListener('DOMContentLoaded', function () {
     const tYearSel  = document.getElementById('timelineYearFilter');
     const tMonthSel = document.getElementById('timelineMonthFilter');
     const tResetBtn = document.getElementById('timelineResetBtn');
+    const timelineAnimation = { duration: 400, easingFunction: 'easeInOutQuad' };
 
-    function focusTimelineMonth() {
+    function forceTimelineReflow() {
+        if (!timeline) return;
+        // Força recálculo após mudança de janela
+        requestAnimationFrame(function () {
+            timeline.redraw();
+        });
+        setTimeout(function () {
+            timeline.redraw();
+        }, 50);
+    }
+
+    function focusTimelineMonth(animationOptions = timelineAnimation) {
         if (!timeline || !tYearSel || !tMonthSel) return;
 
         const year  = tYearSel.value;
@@ -520,7 +532,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Se algum estiver em "Todos", mostra o período completo
         if (year === 'all' || month === 'all') {
-            timeline.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+            timeline.fit({ animation: animationOptions });
+            forceTimelineReflow();
             return;
         }
 
@@ -533,13 +546,36 @@ document.addEventListener('DOMContentLoaded', function () {
         const end   = new Date(y, m + 1, 0, 23, 59, 59, 999);
 
         timeline.setWindow(start, end, {
-            animation: { duration: 400, easingFunction: 'easeInOutQuad' }
+            animation: animationOptions
         });
+        forceTimelineReflow();
+    }
+
+    function setTimelineToCurrentMonthYear() {
+        if (!tYearSel || !tMonthSel) return;
+
+        const now = new Date();
+        const currentYear = String(now.getFullYear());
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+
+        const hasCurrentYear = Array.from(tYearSel.options || []).some(opt => opt.value === currentYear);
+        if (hasCurrentYear) {
+            tYearSel.value = currentYear;
+            tMonthSel.value = currentMonth;
+            // Dispara o mesmo fluxo do utilizador (change), evitando diferenças no arranque
+            setTimeout(function () {
+                tMonthSel.dispatchEvent(new Event('change'));
+            }, 0);
+            return;
+        }
+
+        timeline.fit({ animation: false });
+        forceTimelineReflow();
     }
 
     if (tYearSel && tMonthSel) {
-        tYearSel.addEventListener('change', focusTimelineMonth);
-        tMonthSel.addEventListener('change', focusTimelineMonth);
+        tYearSel.addEventListener('change', function () { focusTimelineMonth(); });
+        tMonthSel.addEventListener('change', function () { focusTimelineMonth(); });
     }
 
     if (tResetBtn) {
@@ -547,9 +583,14 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             if (tYearSel)  tYearSel.value  = 'all';
             if (tMonthSel) tMonthSel.value = 'all';
-            timeline.fit({ animation: { duration: 400, easingFunction: 'easeInOutQuad' } });
+            focusTimelineMonth();
         });
     }
+
+    // Posiciona a timeline no mês/ano atuais após o primeiro render da vis.js
+    timeline.once('changed', function () {
+        setTimelineToCurrentMonthYear();
+    });
 
 
     // === CHART.JS (STACKED HORIZONTAL) ===
@@ -758,17 +799,30 @@ document.addEventListener('DOMContentLoaded', function () {
 /* Sticky headers for timeline (years/months) */
 #timelineContainer {
     max-height: calc(100vh - 260px);
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: auto;
+    position: relative;
+    background: #ffffff;
+}
+#timelineContainer .vis-timeline {
+    border: 1px solid #ddd;
+    overflow: visible !important;
     position: relative;
 }
 #timelineContainer .vis-panel.vis-top {
     position: sticky !important;
     top: 0;
-    z-index: 5;
+    z-index: 1000;
     background: #ffffff;
+    border-bottom: 1px solid #ddd;
 }
 #timelineContainer .vis-time-axis {
     background: #ffffff;
+}
+#timelineContainer .vis-panel.vis-center,
+#timelineContainer .vis-panel.vis-left,
+#timelineContainer .vis-panel.vis-right {
+    z-index: 1;
 }
 
 /* Cores da timeline por exceção */
