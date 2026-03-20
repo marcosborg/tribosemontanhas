@@ -51,7 +51,15 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'emergency_contact' => [
+                'string',
+                'nullable',
+            ],
             'payment_vat' => [
+                'string',
+                'nullable',
+            ],
+            'document_type' => [
                 'string',
                 'nullable',
             ],

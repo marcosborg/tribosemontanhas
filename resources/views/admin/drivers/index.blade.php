@@ -92,6 +92,19 @@ $(function () {
   }
 
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
+  dtButtons = dtButtons.filter(function (button) {
+    return button.extend !== 'excel';
+  });
+
+  dtButtons.push({
+    text: '{{ trans('global.datatables.excel') }}',
+    className: 'btn-default',
+    action: function (e, dt) {
+      const params = $.extend(true, {}, dt.ajax.params());
+      const query = $.param(params, true);
+      window.location = "{{ route('admin.drivers.export') }}" + (query ? ('?' + query) : '');
+    }
+  });
 
   @can('driver_delete')
   let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';

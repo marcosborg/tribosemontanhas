@@ -123,10 +123,26 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.driver.fields.emergency_contact') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->emergency_contact }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.driver.fields.payment_vat') }}
                                     </th>
                                     <td>
                                         {{ $driver->payment_vat }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.driver.fields.document_type') }}
+                                    </th>
+                                    <td>
+                                        {{ $driver->document_type_label }}
                                     </td>
                                 </tr>
                                 <tr>

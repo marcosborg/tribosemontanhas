@@ -147,6 +147,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.phone_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('emergency_contact') ? 'has-error' : '' }}">
+                            <label for="emergency_contact">{{ trans('cruds.driver.fields.emergency_contact') }}</label>
+                            <input class="form-control" type="text" name="emergency_contact" id="emergency_contact" value="{{ old('emergency_contact', '') }}">
+                            @if($errors->has('emergency_contact'))
+                                <span class="help-block" role="alert">{{ $errors->first('emergency_contact') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.emergency_contact_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('payment_vat') ? 'has-error' : '' }}">
                             <label for="payment_vat">{{ trans('cruds.driver.fields.payment_vat') }}</label>
                             <input class="form-control" type="text" name="payment_vat" id="payment_vat" value="{{ old('payment_vat', '') }}">
@@ -154,6 +162,19 @@
                                 <span class="help-block" role="alert">{{ $errors->first('payment_vat') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.payment_vat_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('document_type') ? 'has-error' : '' }}">
+                            <label for="document_type">{{ trans('cruds.driver.fields.document_type') }}</label>
+                            <select class="form-control" name="document_type" id="document_type">
+                                <option value="">{{ trans('global.pleaseSelect') }}</option>
+                                @foreach($document_types as $value => $label)
+                                    <option value="{{ $value }}" {{ old('document_type') === $value ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('document_type'))
+                                <span class="help-block" role="alert">{{ $errors->first('document_type') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.document_type_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('citizen_card') ? 'has-error' : '' }}">
                             <label for="citizen_card">{{ trans('cruds.driver.fields.citizen_card') }}</label>

@@ -12,6 +12,11 @@ class Driver extends Model
 {
     use SoftDeletes, HasFactory;
 
+    public const DOCUMENT_TYPE_CC = 'cc';
+    public const DOCUMENT_TYPE_PASSPORT = 'passport';
+    public const DOCUMENT_TYPE_RESIDENCE_CERTIFICATE = 'residence_certificate';
+    public const DOCUMENT_TYPE_OTHER = 'other';
+
     public $table = 'drivers';
 
     protected $dates = [
@@ -35,7 +40,9 @@ class Driver extends Model
         'end_date',
         'reason',
         'phone',
+        'emergency_contact',
         'payment_vat',
+        'document_type',
         'citizen_card',
         'email',
         'iban',
@@ -56,6 +63,10 @@ class Driver extends Model
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $appends = [
+        'document_type_label',
     ];
 
     protected function serializeDate(DateTimeInterface $date)
@@ -156,6 +167,21 @@ class Driver extends Model
     public function vehicleUsages()
     {
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
+    }
+
+    public static function documentTypeOptions(): array
+    {
+        return [
+            self::DOCUMENT_TYPE_CC => 'CC',
+            self::DOCUMENT_TYPE_PASSPORT => 'Passaporte',
+            self::DOCUMENT_TYPE_RESIDENCE_CERTIFICATE => 'Certificado de residência',
+            self::DOCUMENT_TYPE_OTHER => 'Outro',
+        ];
+    }
+
+    public function getDocumentTypeLabelAttribute(): string
+    {
+        return self::documentTypeOptions()[$this->document_type] ?? '';
     }
 
 }
