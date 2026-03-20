@@ -27,9 +27,13 @@ class VehicleProfitabilityController extends Controller
         $groupBy    = $request->input('group_by', 'week');   // week|month|year
 
         // Selected vehicle (keep session behavior)
-        $vehicle_items   = VehicleItem::with('driver')->get();
-        $vehicle_item_id = session('vehicle_item_id', optional(VehicleItem::first())->id ?? 0);
-        $vehicle_item    = VehicleItem::find($vehicle_item_id);
+        $vehicle_items = VehicleItem::with('driver')
+            ->orderByRaw('UPPER(license_plate) ASC')
+            ->get();
+        $defaultVehicleItemId = optional($vehicle_items->first())->id ?? 0;
+        $vehicle_item_id = session('vehicle_item_id', $defaultVehicleItemId);
+        $isGlobal = (string) $vehicle_item_id === 'global';
+        $vehicle_item = $isGlobal ? null : $vehicle_items->firstWhere('id', (int) $vehicle_item_id);
 
         // Resolve weeks for the period
         $weeksQuery = TvdeWeek::query();
@@ -70,7 +74,7 @@ class VehicleProfitabilityController extends Controller
         $weeks = $weeksQuery->orderBy('start_date')->get();
 
         // If no vehicle or weeks, return empty view with filters
-        if (!$vehicle_item || $weeks->isEmpty()) {
+        if (($isGlobal && $weeks->isEmpty()) || (!$isGlobal && !$vehicle_item) || $weeks->isEmpty()) {
             $tvde_years  = TvdeWeek::selectRaw('YEAR(start_date) as y')->distinct()->orderBy('y', 'desc')->pluck('y');
             $tvde_months = TvdeWeek::when($year, fn($q) => $q->whereYear('start_date', $year))
                                    ->selectRaw('MONTH(start_date) as m')->distinct()->orderBy('m')->pluck('m');
@@ -79,6 +83,7 @@ class VehicleProfitabilityController extends Controller
             return view('admin.vehicleProfitabilities.index', [
                 'vehicle_items' => $vehicle_items,
                 'vehicle_item_id' => $vehicle_item_id,
+                'isGlobal' => $isGlobal,
                 'period' => $period,
                 'groupBy' => $groupBy,
                 'year' => $year,
@@ -91,6 +96,8 @@ class VehicleProfitabilityController extends Controller
                 'groups' => [],
                 'totals' => ['treasury' => 0, 'taxes' => 0, 'final' => 0],
                 'chart' => ['labels' => [], 'treasury' => [], 'taxes' => [], 'final' => []],
+                'globalRows' => [],
+                'globalChart' => ['labels' => [], 'final' => []],
             ]);
         }
 
@@ -101,32 +108,73 @@ class VehicleProfitabilityController extends Controller
         // Mantemos "ligado" por defeito quando o utilizador está a analisar poucas semanas.
         $includeExpenseItems = $weeks->count() <= 12;
         $rows = [];
-        foreach ($weeks as $week) {
-            $rows[] = $calculator->computeWeekMetrics($vehicle_item, $week, $includeExpenseItems);
-        }
+        $groups = collect();
+        $totals = ['treasury' => 0, 'taxes' => 0, 'final' => 0];
+        $chart = ['labels' => [], 'treasury' => [], 'taxes' => [], 'final' => []];
+        $globalRows = [];
+        $globalChart = ['labels' => [], 'final' => []];
 
-        // Group by week|month|year
-        $groups = collect($rows)->groupBy(function ($row) use ($groupBy) {
-            if ($groupBy === 'year')  return $row['year'];
-            if ($groupBy === 'month') return sprintf('%04d-%02d', $row['year'], $row['month']);
-            return $row['week']->id;
-        })->map(function ($items) {
-            return [
-                'treasury' => collect($items)->sum('total_treasury'),
-                'taxes'    => collect($items)->sum('total_taxes'),
-                'final'    => collect($items)->sum('final_total'),
-                'weeks'    => $items,
+        if ($isGlobal) {
+            foreach ($vehicle_items as $vehicle) {
+                $vehicleRows = [];
+
+                foreach ($weeks as $week) {
+                    $vehicleRows[] = $calculator->computeWeekMetrics($vehicle, $week, false);
+                }
+
+                $vehicleTotals = [
+                    'vehicle_item' => $vehicle,
+                    'treasury' => collect($vehicleRows)->sum('total_treasury'),
+                    'taxes' => collect($vehicleRows)->sum('total_taxes'),
+                    'final' => collect($vehicleRows)->sum('final_total'),
+                    'rows' => $vehicleRows,
+                ];
+
+                $globalRows[] = $vehicleTotals;
+            }
+
+            $globalRows = collect($globalRows)
+                ->sortBy(fn ($row) => mb_strtoupper((string) $row['vehicle_item']->license_plate))
+                ->values();
+
+            $totals = [
+                'treasury' => $globalRows->sum('treasury'),
+                'taxes' => $globalRows->sum('taxes'),
+                'final' => $globalRows->sum('final'),
             ];
-        });
 
-        // Totals for the period
-        $totals = [
-            'treasury' => $groups->sum('treasury'),
-            'taxes'    => $groups->sum('taxes'),
-            'final'    => $groups->sum('final'),
-        ];
+            $globalChart = [
+                'labels' => $globalRows->map(fn ($row) => $row['vehicle_item']->license_plate)->all(),
+                'final' => $globalRows->map(fn ($row) => round((float) $row['final'], 2))->all(),
+            ];
+        } else {
+            foreach ($weeks as $week) {
+                $rows[] = $calculator->computeWeekMetrics($vehicle_item, $week, $includeExpenseItems);
+            }
 
-        $chart = $this->buildChartSeries($groups, $weeks, $groupBy);
+            // Group by week|month|year
+            $groups = collect($rows)->groupBy(function ($row) use ($groupBy) {
+                if ($groupBy === 'year')  return $row['year'];
+                if ($groupBy === 'month') return sprintf('%04d-%02d', $row['year'], $row['month']);
+                return $row['week']->id;
+            })->map(function ($items) {
+                return [
+                    'treasury' => collect($items)->sum('total_treasury'),
+                    'taxes'    => collect($items)->sum('total_taxes'),
+                    'final'    => collect($items)->sum('final_total'),
+                    'weeks'    => $items,
+                ];
+            });
+
+            // Totals for the period
+            $totals = [
+                'treasury' => $groups->sum('treasury'),
+                'taxes'    => $groups->sum('taxes'),
+                'final'    => $groups->sum('final'),
+            ];
+
+            $chart = $this->buildChartSeries($groups, $weeks, $groupBy);
+        }
 
         // Aux lists for the filters
         $tvde_years  = TvdeWeek::selectRaw('YEAR(start_date) as y')->distinct()->orderBy('y', 'desc')->pluck('y');
@@ -137,6 +185,7 @@ class VehicleProfitabilityController extends Controller
         return view('admin.vehicleProfitabilities.index', compact(
             'vehicle_items',
             'vehicle_item_id',
+            'isGlobal',
             'period',
             'groupBy',
             'year',
@@ -148,7 +197,9 @@ class VehicleProfitabilityController extends Controller
             'rows',
             'groups',
             'totals',
-            'chart'
+            'chart',
+            'globalRows',
+            'globalChart'
         ));
     }
 
