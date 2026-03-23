@@ -75,6 +75,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.vehicleItem.fields.vin') }}
+                                    </th>
+                                    <td>
+                                        {{ $vehicleItem->vin }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.documents') }}
                                     </th>
                                     <td>

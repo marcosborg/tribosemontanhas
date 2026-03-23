@@ -33,6 +33,10 @@ class StoreVehicleItemRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'vin' => [
+                'string',
+                'nullable',
+            ],
             'documents' => [
                 'array',
             ],

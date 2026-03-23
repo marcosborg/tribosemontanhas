@@ -33,6 +33,7 @@ class VehicleItem extends Model implements HasMedia
         'vehicle_model_id',
         'year',
         'license_plate',
+        'vin',
         'suspended',
         'created_at',
         'updated_at',

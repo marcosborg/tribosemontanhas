@@ -63,6 +63,14 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.license_plate_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('vin') ? 'has-error' : '' }}">
+                            <label for="vin">{{ trans('cruds.vehicleItem.fields.vin') }}</label>
+                            <input class="form-control" type="text" name="vin" id="vin" value="{{ old('vin', '') }}">
+                            @if($errors->has('vin'))
+                                <span class="help-block" role="alert">{{ $errors->first('vin') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.vehicleItem.fields.vin_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('documents') ? 'has-error' : '' }}">
                             <label for="documents">{{ trans('cruds.vehicleItem.fields.documents') }}</label>
                             <div class="needsclick dropzone" id="documents-dropzone">

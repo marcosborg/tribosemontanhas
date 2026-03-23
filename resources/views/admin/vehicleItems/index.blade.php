@@ -43,6 +43,9 @@
                                         {{ trans('cruds.vehicleItem.fields.license_plate') }}
                                     </th>
                                     <th>
+                                        {{ trans('cruds.vehicleItem.fields.vin') }}
+                                    </th>
+                                    <th>
                                         Suspended
                                     </th>
                                     <th>
@@ -76,6 +79,9 @@
                                         </td>
                                         <td>
                                             {{ $vehicleItem->license_plate ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ $vehicleItem->vin ?? '' }}
                                         </td>
                                         <td>
                                             <span style="display:none">{{ $vehicleItem->suspended ?? '' }}</span>

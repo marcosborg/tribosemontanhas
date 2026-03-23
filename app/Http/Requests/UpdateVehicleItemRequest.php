@@ -33,6 +33,10 @@ class UpdateVehicleItemRequest extends FormRequest
                 'string',
                 'required',
             ],
+            'vin' => [
+                'string',
+                'nullable',
+            ],
             'documents' => [
                 'array',
             ],

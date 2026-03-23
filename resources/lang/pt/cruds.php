@@ -1419,6 +1419,8 @@ return [
             'year_helper'          => ' ',
             'license_plate'        => 'Matrícula',
             'license_plate_helper' => ' ',
+            'vin'                  => 'VIN',
+            'vin_helper'           => ' ',
             'documents'            => 'Documentos',
             'documents_helper'     => ' ',
             'created_at'           => 'Criado em',
