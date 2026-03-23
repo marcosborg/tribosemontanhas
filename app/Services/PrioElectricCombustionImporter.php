@@ -60,7 +60,7 @@ class PrioElectricCombustionImporter
                 'card' => $card,
                 'amount' => 0,
                 'total' => $this->toDecimal($row[self::COLUMN_TOTAL] ?? null),
-                'transaction_date' => $this->toMysqlDate($row[self::COLUMN_DATE] ?? null),
+                'transaction_date' => $this->toMysqlDateTime($row[self::COLUMN_DATE] ?? null),
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -242,7 +242,7 @@ class PrioElectricCombustionImporter
         return is_numeric($normalized) ? (float) $normalized : 0.0;
     }
 
-    private function toMysqlDate($value): ?string
+    private function toMysqlDateTime($value): ?string
     {
         if ($value === null) {
             return null;
@@ -256,7 +256,9 @@ class PrioElectricCombustionImporter
 
         if (is_numeric($value)) {
             $date = Carbon::createFromDate(1899, 12, 30)->addDays((int) floor((float) $value));
-            return $date->format('Y-m-d');
+            $secondsInDay = ((float) $value - floor((float) $value)) * 86400;
+            $date->addSeconds((int) round($secondsInDay));
+            return $date->format('Y-m-d H:i:s');
         }
 
         $formats = [
@@ -284,14 +286,14 @@ class PrioElectricCombustionImporter
                     $date->year($date->year + 2000);
                 }
 
-                return $date->format('Y-m-d');
+                return $date->format('Y-m-d H:i:s');
             } catch (\Throwable $exception) {
                 continue;
             }
         }
 
         try {
-            return Carbon::parse($value)->format('Y-m-d');
+            return Carbon::parse($value)->format('Y-m-d H:i:s');
         } catch (\Throwable $exception) {
             throw new RuntimeException("Data inválida no ficheiro: [{$value}]");
         }
