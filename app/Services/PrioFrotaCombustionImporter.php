@@ -18,9 +18,14 @@ class PrioFrotaCombustionImporter
     public function import(string $path, int $tvdeWeekId, ?string $originalName = null): int
     {
         $rows = $this->parseRows($path, $tvdeWeekId, $originalName);
+        $cards = collect($rows)->pluck('card')->filter()->unique()->values()->all();
 
-        DB::transaction(function () use ($tvdeWeekId, $rows): void {
-            CombustionTransaction::where('tvde_week_id', $tvdeWeekId)->delete();
+        DB::transaction(function () use ($tvdeWeekId, $rows, $cards): void {
+            if ($cards !== []) {
+                CombustionTransaction::where('tvde_week_id', $tvdeWeekId)
+                    ->whereIn('card', $cards)
+                    ->delete();
+            }
 
             if ($rows !== []) {
                 foreach (array_chunk($rows, 100) as $chunk) {
