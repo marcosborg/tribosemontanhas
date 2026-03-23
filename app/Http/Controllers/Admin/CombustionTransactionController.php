@@ -10,6 +10,7 @@ use App\Http\Requests\UpdateCombustionTransactionRequest;
 use App\Models\CombustionTransaction;
 use App\Models\TvdeWeek;
 use App\Services\PrioElectricCombustionImporter;
+use App\Services\PrioFrotaCombustionImporter;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -228,7 +229,13 @@ class CombustionTransactionController extends Controller
 
         $data = $request->validate([
             'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
-            'report_file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
+            'report_file' => ['required', 'file', function ($attribute, $value, $fail) {
+                $extension = strtolower((string) $value->getClientOriginalExtension());
+
+                if (!in_array($extension, ['csv', 'txt', 'xlsx', 'xls'], true)) {
+                    $fail('O :attribute deve ser um arquivo do tipo csv, txt, xlsx, xls.');
+                }
+            }],
         ], [], [
             'tvde_week_id' => 'Semana',
             'report_file' => 'Ficheiro',
@@ -251,5 +258,42 @@ class CombustionTransactionController extends Controller
             ->route('admin.combustion-transactions.index')
             ->with('open_import_panel', 'prio-electric')
             ->with('message', "Import Prio Electric concluído com {$rows} linhas.");
+    }
+
+    public function importPrioFrota(Request $request, PrioFrotaCombustionImporter $importer)
+    {
+        abort_if(Gate::denies('combustion_transaction_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file', function ($attribute, $value, $fail) {
+                $extension = strtolower((string) $value->getClientOriginalExtension());
+
+                if (!in_array($extension, ['csv', 'txt', 'xlsx', 'xls'], true)) {
+                    $fail('O :attribute deve ser um arquivo do tipo csv, txt, xlsx, xls.');
+                }
+            }],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import(
+                $data['report_file']->getRealPath(),
+                (int) $data['tvde_week_id'],
+                $data['report_file']->getClientOriginalName()
+            );
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'prio-frota')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.combustion-transactions.index')
+            ->with('open_import_panel', 'prio-frota')
+            ->with('message', "Import Prio Frota concluído com {$rows} linhas.");
     }
 }

@@ -17,10 +17,48 @@
                 <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#prioElectricImportPanel" aria-expanded="false" aria-controls="prioElectricImportPanel">
                     Importar Prio Electric
                 </button>
+                <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#prioFrotaImportPanel" aria-expanded="false" aria-controls="prioFrotaImportPanel">
+                    Importar Prio Frota
+                </button>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'CombustionTransaction', 'route' => 'admin.combustion-transactions.parseCsvImport'])
+            </div>
+        </div>
+    @endcan
+
+    @can('combustion_transaction_create')
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="prioFrotaImportPanel" class="panel panel-default collapse {{ session('open_import_panel') === 'prio-frota' ? 'in' : '' }}" style="margin-top: 10px;">
+                    <div class="panel-heading">
+                        Importar Prio Frota
+                    </div>
+                    <div class="panel-body">
+                        <form method="POST" action="{{ route('admin.combustion-transactions.importPrioFrota') }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" id="prio_frota_import_week_hidden" value="{{ old('tvde_week_id', $selectedWeekId) }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group {{ session('open_import_panel') === 'prio-frota' && $errors->has('report_file') ? 'has-error' : '' }}">
+                                        <label class="required" for="prio_frota_report_file">Ficheiro Prio Frota</label>
+                                        <input class="form-control" type="file" name="report_file" id="prio_frota_report_file" accept=".csv,.txt,.xlsx,.xls" required>
+                                        @if(session('open_import_panel') === 'prio-frota' && $errors->has('report_file'))
+                                            <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
+                                        @endif
+                                        <span class="help-block">Usa D=data, E=hora, F=cartão, S=total, `amount=0` e a semana escolhida no topo.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" style="margin-top: 25px;">
+                                        <button class="btn btn-primary" type="submit">Processar Prio Frota</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     @endcan
@@ -114,10 +152,16 @@
 $(function () {
   const $prioWeekSelector = $('#prio_import_week_selector');
   const $prioWeekHidden = $('#prio_import_week_hidden');
+  const $prioFrotaWeekHidden = $('#prio_frota_import_week_hidden');
 
-  if ($prioWeekSelector.length && $prioWeekHidden.length) {
+  if ($prioWeekSelector.length) {
     $prioWeekSelector.on('change', function () {
-      $prioWeekHidden.val(this.value);
+      if ($prioWeekHidden.length) {
+        $prioWeekHidden.val(this.value);
+      }
+      if ($prioFrotaWeekHidden.length) {
+        $prioFrotaWeekHidden.val(this.value);
+      }
     });
   }
 
