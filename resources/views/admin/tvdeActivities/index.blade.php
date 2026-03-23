@@ -8,10 +8,93 @@
                 <a class="btn btn-success" href="{{ route('admin.tvde-activities.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.tvdeActivity.title_singular') }}
                 </a>
+                <select class="form-control select2" id="uber_import_week_selector" style="width: 260px; display: inline-block; vertical-align: middle;">
+                    @foreach($tvdeWeeks as $tvdeWeek)
+                        <option value="{{ $tvdeWeek->id }}" {{ (string) old('tvde_week_id', $selectedWeekId) === (string) $tvdeWeek->id ? 'selected' : '' }}>
+                            {{ $tvdeWeek->start_date }} a {{ $tvdeWeek->end_date }}
+                        </option>
+                    @endforeach
+                </select>
+                <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#uberImportPanel" aria-expanded="false" aria-controls="uberImportPanel">
+                    Importar Uber semanal
+                </button>
+                <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#boltImportPanel" aria-expanded="false" aria-controls="boltImportPanel">
+                    Importar Bolt semanal
+                </button>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'TvdeActivity', 'route' => 'admin.tvde-activities.parseCsvImport'])
+            </div>
+        </div>
+    @endcan
+
+    @can('tvde_activity_create')
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="uberImportPanel" class="panel panel-default collapse {{ $errors->has('report_file') || $errors->has('tvde_week_id') ? 'in' : '' }}" style="margin-top: 10px;">
+                    <div class="panel-heading">
+                        Importar relatório semanal Uber
+                    </div>
+                    <div class="panel-body">
+                        <form method="POST" action="{{ route('admin.tvde-activities.importUber') }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" id="uber_import_week_hidden" value="{{ old('tvde_week_id', $selectedWeekId) }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group {{ $errors->has('report_file') ? 'has-error' : '' }}">
+                                        <label class="required" for="report_file">Ficheiro Uber</label>
+                                        <input class="form-control" type="file" name="report_file" id="report_file" accept=".csv,.txt,.xlsx,.xls" required>
+                                        @if($errors->has('report_file'))
+                                            <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
+                                        @endif
+                                        <span class="help-block">Semana escolhida no topo. Mapeamento: identificador=A, brutos=G, líquidos=D.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" style="margin-top: 25px;">
+                                        <button class="btn btn-primary" type="submit">Processar Uber</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endcan
+
+    @can('tvde_activity_create')
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="boltImportPanel" class="panel panel-default collapse {{ session('open_import_panel') === 'bolt' ? 'in' : '' }}" style="margin-top: 10px;">
+                    <div class="panel-heading">
+                        Importar relatório semanal Bolt
+                    </div>
+                    <div class="panel-body">
+                        <form method="POST" action="{{ route('admin.tvde-activities.importBolt') }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" id="bolt_import_week_hidden" value="{{ old('tvde_week_id', $selectedWeekId) }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group {{ session('open_import_panel') === 'bolt' && $errors->has('report_file') ? 'has-error' : '' }}">
+                                        <label class="required" for="bolt_report_file">Ficheiro Bolt</label>
+                                        <input class="form-control" type="file" name="report_file" id="bolt_report_file" accept=".csv,.txt,.xlsx,.xls" required>
+                                        @if(session('open_import_panel') === 'bolt' && $errors->has('report_file'))
+                                            <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
+                                        @endif
+                                        <span class="help-block">Semana escolhida no topo. Mapeamento: identificador=AB, brutos=E, líquidos=V.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" style="margin-top: 25px;">
+                                        <button class="btn btn-primary" type="submit">Processar Bolt</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     @endcan
@@ -73,6 +156,21 @@
 $.fn.dataTable.ext.errMode = 'throw';
 
 $(function () {
+  const $uberWeekSelector = $('#uber_import_week_selector');
+  const $uberWeekHidden = $('#uber_import_week_hidden');
+  const $boltWeekHidden = $('#bolt_import_week_hidden');
+
+  if ($uberWeekSelector.length) {
+    $uberWeekSelector.on('change', function () {
+      if ($uberWeekHidden.length) {
+        $uberWeekHidden.val(this.value);
+      }
+      if ($boltWeekHidden.length) {
+        $boltWeekHidden.val(this.value);
+      }
+    });
+  }
+
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 
   @can('tvde_activity_delete')

@@ -9,14 +9,15 @@ use App\Http\Requests\StoreTvdeActivityRequest;
 use App\Http\Requests\UpdateTvdeActivityRequest;
 use App\Models\Company;
 use App\Models\TvdeActivity;
-use App\Models\TvdeOperator;
 use App\Models\TvdeWeek;
+use App\Models\TvdeOperator;
+use App\Services\BoltWeeklyReportImporter;
+use App\Services\UberWeeklyReportImporter;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
+use RuntimeException;
 
 class TvdeActivityController extends Controller
 {
@@ -134,7 +135,10 @@ class TvdeActivityController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.tvdeActivities.index');
+        $tvdeWeeks = TvdeWeek::orderBy('start_date', 'desc')->get(['id', 'start_date', 'end_date']);
+        $selectedWeekId = session()->get('tvde_week_id') ?: optional($tvdeWeeks->first())->id;
+
+        return view('admin.tvdeActivities.index', compact('selectedWeekId', 'tvdeWeeks'));
     }
 
 
@@ -207,6 +211,60 @@ class TvdeActivityController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function importUber(Request $request, UberWeeklyReportImporter $importer)
+    {
+        abort_if(Gate::denies('tvde_activity_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import($data['report_file']->getRealPath(), (int) $data['tvde_week_id']);
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'uber')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.tvde-activities.index')
+            ->with('open_import_panel', 'uber')
+            ->with('message', "Import Uber concluído com {$rows} linhas.");
+    }
+
+    public function importBolt(Request $request, BoltWeeklyReportImporter $importer)
+    {
+        abort_if(Gate::denies('tvde_activity_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import($data['report_file']->getRealPath(), (int) $data['tvde_week_id']);
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'bolt')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.tvde-activities.index')
+            ->with('open_import_panel', 'bolt')
+            ->with('message', "Import Bolt concluído com {$rows} linhas.");
     }
 
     public function deleteFilter(Request $request)
