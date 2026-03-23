@@ -381,6 +381,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('combustion-transactions/destroy', 'CombustionTransactionController@massDestroy')->name('combustion-transactions.massDestroy');
     Route::post('combustion-transactions/parse-csv-import', 'CombustionTransactionController@parseCsvImport')->name('combustion-transactions.parseCsvImport');
     Route::post('combustion-transactions/process-csv-import', 'CombustionTransactionController@processCsvImport')->name('combustion-transactions.processCsvImport');
+    Route::post('combustion-transactions/import-prio-electric', 'CombustionTransactionController@importPrioElectric')->name('combustion-transactions.importPrioElectric');
     Route::resource('combustion-transactions', 'CombustionTransactionController');
 
     // Electric Transaction

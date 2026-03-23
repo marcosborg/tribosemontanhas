@@ -9,11 +9,13 @@ use App\Http\Requests\StoreCombustionTransactionRequest;
 use App\Http\Requests\UpdateCombustionTransactionRequest;
 use App\Models\CombustionTransaction;
 use App\Models\TvdeWeek;
+use App\Services\PrioElectricCombustionImporter;
 use Gate;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
+use RuntimeException;
 
 class CombustionTransactionController extends Controller
 {
@@ -151,7 +153,10 @@ class CombustionTransactionController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.combustionTransactions.index');
+        $tvdeWeeks = TvdeWeek::orderBy('start_date', 'desc')->get(['id', 'start_date', 'end_date']);
+        $selectedWeekId = session()->get('tvde_week_id') ?: optional($tvdeWeeks->first())->id;
+
+        return view('admin.combustionTransactions.index', compact('selectedWeekId', 'tvdeWeeks'));
     }
 
     public function create()
@@ -215,5 +220,36 @@ class CombustionTransactionController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function importPrioElectric(Request $request, PrioElectricCombustionImporter $importer)
+    {
+        abort_if(Gate::denies('combustion_transaction_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls'],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import(
+                $data['report_file']->getRealPath(),
+                (int) $data['tvde_week_id'],
+                $data['report_file']->getClientOriginalName()
+            );
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'prio-electric')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.combustion-transactions.index')
+            ->with('open_import_panel', 'prio-electric')
+            ->with('message', "Import Prio Electric concluído com {$rows} linhas.");
     }
 }
