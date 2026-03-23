@@ -366,9 +366,9 @@ trait Reports
                             // motorista certo
                             ->where('vu.driver_id', $driver->id)
 
-                            // ativo na DATA (ignora horas)
-                            ->whereRaw('DATE(vu.start_date) <= DATE(ct.date)')
-                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(ct.date))')
+                            // ativo no instante exato da passagem
+                            ->whereRaw('vu.start_date <= ct.date')
+                            ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= ct.date)')
 
                             // regra de exceções (compatível com texto ou JSON)
                             ->where(function ($s) {
@@ -384,8 +384,8 @@ trait Reports
                     WHERE vu2.vehicle_item_id = vu.vehicle_item_id
                       AND vu2.driver_id = vu.driver_id
                       AND vu2.deleted_at IS NULL
-                      AND DATE(vu2.start_date) <= DATE(ct.date)
-                      AND (vu2.end_date IS NULL OR DATE(vu2.end_date) >= DATE(ct.date))
+                      AND vu2.start_date <= ct.date
+                      AND (vu2.end_date IS NULL OR vu2.end_date >= ct.date)
                     ORDER BY vu2.start_date DESC
                     LIMIT 1
               )');
@@ -414,7 +414,7 @@ trait Reports
                 ->get();
 
             foreach ($carTracks as $track) {
-                $trackDate = \Carbon\Carbon::parse($track->date)->toDateString();
+                $trackDate = \Carbon\Carbon::parse($track->date);
                 $trackPlate = $normalizePlate($track->license_plate);
 
                 $matched = false;
@@ -423,16 +423,17 @@ trait Reports
                     if ($usagePlate === '' || $usagePlate !== $trackPlate) {
                         continue;
                     }
-                    $start = \Carbon\Carbon::parse($usage->start_date)->toDateString();
-                    $end = $usage->end_date ? \Carbon\Carbon::parse($usage->end_date)->toDateString() : null;
-                    if ($start <= $trackDate && ($end === null || $end >= $trackDate)) {
+                    $start = \Carbon\Carbon::parse($usage->start_date);
+                    $end = $usage->end_date ? \Carbon\Carbon::parse($usage->end_date) : null;
+                    if ($start->lte($trackDate) && ($end === null || $end->gte($trackDate))) {
                         $matched = true;
                         break;
                     }
                 }
 
                 if ($matched) {
-                    $viaVerdeByDate[$trackDate] = ($viaVerdeByDate[$trackDate] ?? 0) + (float) ($track->value ?? 0);
+                    $dateKey = $trackDate->toDateString();
+                    $viaVerdeByDate[$dateKey] = ($viaVerdeByDate[$dateKey] ?? 0) + (float) ($track->value ?? 0);
                 }
             }
 

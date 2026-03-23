@@ -520,6 +520,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('car-tracks/destroy', 'CarTrackController@massDestroy')->name('car-tracks.massDestroy');
     Route::post('car-tracks/parse-csv-import', 'CarTrackController@parseCsvImport')->name('car-tracks.parseCsvImport');
     Route::post('car-tracks/process-csv-import', 'CarTrackController@processCsvImport')->name('car-tracks.processCsvImport');
+    Route::post('car-tracks/import-via-verde', 'CarTrackController@importViaVerde')->name('car-tracks.importViaVerde');
     Route::resource('car-tracks', 'CarTrackController');
 
     // Car Hire

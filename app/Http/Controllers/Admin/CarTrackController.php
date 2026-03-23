@@ -9,11 +9,13 @@ use App\Http\Requests\StoreCarTrackRequest;
 use App\Http\Requests\UpdateCarTrackRequest;
 use App\Models\CarTrack;
 use App\Models\TvdeWeek;
+use App\Services\CarTrackImporter;
 use Gate;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use RuntimeException;
 
 class CarTrackController extends Controller
 {
@@ -45,8 +47,8 @@ class CarTrackController extends Controller
                               AND vu.deleted_at IS NULL
                               AND vi.deleted_at IS NULL
                               AND d.deleted_at  IS NULL
-                              AND DATE(vu.start_date) <= DATE(car_tracks.date)
-                              AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
+                              AND vu.start_date <= car_tracks.date
+                              AND (vu.end_date IS NULL OR vu.end_date >= car_tracks.date)
                             ORDER BY vu.start_date DESC
                             LIMIT 1
                         ) AS driver_name
@@ -63,8 +65,8 @@ class CarTrackController extends Controller
                               AND vu.deleted_at IS NULL
                               AND vi.deleted_at IS NULL
                               AND d.deleted_at  IS NULL
-                              AND DATE(vu.start_date) <= DATE(car_tracks.date)
-                              AND (vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))
+                              AND vu.start_date <= car_tracks.date
+                              AND (vu.end_date IS NULL OR vu.end_date >= car_tracks.date)
                         ) AS exist
                     "),
                 ]);
@@ -113,8 +115,8 @@ class CarTrackController extends Controller
                         ->whereNull('vu.deleted_at')
                         ->whereNull('vi.deleted_at')
                         ->whereNull('d.deleted_at')
-                        ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
-                        ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))')
+                        ->whereRaw('vu.start_date <= car_tracks.date')
+                        ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)')
                         ->where('d.name', 'like', "%{$keyword}%");
                 });
             });
@@ -162,8 +164,8 @@ class CarTrackController extends Controller
                             ->whereNull('vu.deleted_at')
                             ->whereNull('vi.deleted_at')
                             ->whereNull('d.deleted_at')
-                            ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
-                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))');
+                            ->whereRaw('vu.start_date <= car_tracks.date')
+                            ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)');
                     });
                 }
 
@@ -178,8 +180,8 @@ class CarTrackController extends Controller
                             ->whereNull('vu.deleted_at')
                             ->whereNull('vi.deleted_at')
                             ->whereNull('d.deleted_at')
-                            ->whereRaw('DATE(vu.start_date) <= DATE(car_tracks.date)')
-                            ->whereRaw('(vu.end_date IS NULL OR DATE(vu.end_date) >= DATE(car_tracks.date))');
+                            ->whereRaw('vu.start_date <= car_tracks.date')
+                            ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)');
                     });
                 }
             });
@@ -190,7 +192,10 @@ class CarTrackController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.carTracks.index');
+        $tvdeWeeks = TvdeWeek::orderBy('start_date', 'desc')->get(['id', 'start_date', 'end_date']);
+        $selectedWeekId = session()->get('tvde_week_id') ?: optional($tvdeWeeks->first())->id;
+
+        return view('admin.carTracks.index', compact('selectedWeekId', 'tvdeWeeks'));
     }
 
     public function create()
@@ -252,5 +257,36 @@ class CarTrackController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function importViaVerde(Request $request, CarTrackImporter $importer)
+    {
+        abort_if(Gate::denies('car_track_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file'],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import(
+                $data['report_file']->getRealPath(),
+                $data['report_file']->getClientOriginalName(),
+                (int) $data['tvde_week_id']
+            );
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'via_verde')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.car-tracks.index')
+            ->with('open_import_panel', 'via_verde')
+            ->with('message', "Import Via Verde concluído com {$rows} linhas.");
     }
 }

@@ -8,10 +8,55 @@
                 <a class="btn btn-success" href="{{ route('admin.car-tracks.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.carTrack.title_singular') }}
                 </a>
+                <select class="form-control select2" id="car_track_import_week_selector" style="width: 260px; display: inline-block; vertical-align: middle;">
+                    @foreach($tvdeWeeks as $tvdeWeek)
+                        <option value="{{ $tvdeWeek->id }}" {{ (string) old('tvde_week_id', $selectedWeekId) === (string) $tvdeWeek->id ? 'selected' : '' }}>
+                            {{ $tvdeWeek->start_date }} a {{ $tvdeWeek->end_date }}
+                        </option>
+                    @endforeach
+                </select>
+                <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#viaVerdeImportPanel" aria-expanded="false" aria-controls="viaVerdeImportPanel">
+                    Importar Via Verde
+                </button>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'CarTrack', 'route' => 'admin.car-tracks.parseCsvImport'])
+            </div>
+        </div>
+    @endcan
+
+    @can('car_track_create')
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="viaVerdeImportPanel" class="panel panel-default collapse {{ session('open_import_panel') === 'via_verde' || $errors->has('report_file') || $errors->has('tvde_week_id') ? 'in' : '' }}" style="margin-top: 10px;">
+                    <div class="panel-heading">
+                        Importar relatório Via Verde
+                    </div>
+                    <div class="panel-body">
+                        <form method="POST" action="{{ route('admin.car-tracks.importViaVerde') }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" id="car_track_import_week_hidden" value="{{ old('tvde_week_id', $selectedWeekId) }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group {{ session('open_import_panel') === 'via_verde' && $errors->has('report_file') ? 'has-error' : '' }}">
+                                        <label class="required" for="via_verde_report_file">Ficheiro Via Verde</label>
+                                        <input class="form-control" type="file" name="report_file" id="via_verde_report_file" accept=".csv,.txt,.xlsx" required>
+                                        @if(session('open_import_panel') === 'via_verde' && $errors->has('report_file'))
+                                            <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
+                                        @endif
+                                        <span class="help-block">Semana escolhida no topo. Mapeamento: matrícula=A, data de entrada=H, valor=S. Ignora linhas de Mobilidade e Acessórios.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" style="margin-top: 25px;">
+                                        <button class="btn btn-primary" type="submit">Processar Via Verde</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     @endcan
@@ -70,6 +115,17 @@
 <script>
 $(function () {
   $.fn.dataTable.ext.errMode = 'throw';
+
+  const $carTrackWeekSelector = $('#car_track_import_week_selector');
+  const $carTrackWeekHidden = $('#car_track_import_week_hidden');
+
+  if ($carTrackWeekSelector.length) {
+    $carTrackWeekSelector.on('change', function () {
+      if ($carTrackWeekHidden.length) {
+        $carTrackWeekHidden.val(this.value);
+      }
+    });
+  }
 
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 
