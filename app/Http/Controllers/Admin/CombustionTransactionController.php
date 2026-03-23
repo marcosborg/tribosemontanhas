@@ -77,7 +77,7 @@ class CombustionTransactionController extends Controller
 
             $table->editColumn('amount', fn($row) => $row->amount ?: '');
             $table->editColumn('total', fn($row) => $row->total ?: '');
-            $table->editColumn('transaction_date', fn($row) => $row->transaction_date ?: '');
+            $table->editColumn('transaction_date', fn($row) => $row->transaction_date ? $row->transaction_date->format('Y-m-d H:i:s') : '');
 
             // ---- Filtros server-side por coluna ----
             $table->filterColumn('tvde_week_start_date', function ($q, $k) {

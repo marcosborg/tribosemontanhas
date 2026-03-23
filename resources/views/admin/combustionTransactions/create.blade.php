@@ -49,7 +49,7 @@
                         </div>
                         <div class="form-group {{ $errors->has('transaction_date') ? 'has-error' : '' }}">
                             <label for="transaction_date">{{ trans('cruds.combustionTransaction.fields.transaction_date') }}</label>
-                            <input class="form-control" type="date" name="transaction_date" id="transaction_date" value="{{ old('transaction_date', '') }}">
+                            <input class="form-control" type="datetime-local" name="transaction_date" id="transaction_date" value="{{ old('transaction_date', '') }}">
                             @if($errors->has('transaction_date'))
                                 <span class="help-block" role="alert">{{ $errors->first('transaction_date') }}</span>
                             @endif
