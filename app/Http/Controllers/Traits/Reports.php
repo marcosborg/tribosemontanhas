@@ -209,10 +209,17 @@ trait Reports
                         $q->whereNull('d.deleted_at')->orWhereNull('vehicle_usages.driver_id');
                     })
                     // normalizar matrícula em ambos os lados
-                    ->whereRaw(
-                        "REPLACE(REPLACE(UPPER(vi.license_plate), ' ', ''), '-', '') = ?",
-                        [str_replace(['-', ' '], '', strtoupper($charging->license))]
-                    )
+                    ->where(function ($q) use ($charging) {
+                        $normalizedIdentifier = str_replace(['-', ' '], '', strtoupper((string) $charging->license));
+
+                        $q->whereRaw(
+                            "REPLACE(REPLACE(UPPER(vi.license_plate), ' ', ''), '-', '') = ?",
+                            [$normalizedIdentifier]
+                        )->orWhereRaw(
+                            "REPLACE(REPLACE(UPPER(COALESCE(vi.vin, '')), ' ', ''), '-', '') = ?",
+                            [$normalizedIdentifier]
+                        );
+                    })
                     // ativo nesse instante (inclusivo)
                     ->where('vehicle_usages.start_date', '<=', $chargingDt)
                     ->where(function ($q) use ($chargingDt) {

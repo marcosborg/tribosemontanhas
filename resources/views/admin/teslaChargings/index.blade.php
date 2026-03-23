@@ -8,10 +8,55 @@
                 <a class="btn btn-success" href="{{ route('admin.tesla-chargings.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.teslaCharging.title_singular') }}
                 </a>
+                <select class="form-control select2" id="tesla_import_week_selector" style="width: 260px; display: inline-block; vertical-align: middle;">
+                    @foreach($tvdeWeeks as $tvdeWeek)
+                        <option value="{{ $tvdeWeek->id }}" {{ (string) old('tvde_week_id', $selectedWeekId) === (string) $tvdeWeek->id ? 'selected' : '' }}>
+                            {{ $tvdeWeek->start_date }} a {{ $tvdeWeek->end_date }}
+                        </option>
+                    @endforeach
+                </select>
+                <button class="btn btn-info" type="button" data-toggle="collapse" data-target="#teslaImportPanel" aria-expanded="false" aria-controls="teslaImportPanel">
+                    Importar Tesla Charging
+                </button>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
                 @include('csvImport.modal', ['model' => 'TeslaCharging', 'route' => 'admin.tesla-chargings.parseCsvImport'])
+            </div>
+        </div>
+    @endcan
+
+    @can('tesla_charging_create')
+        <div class="row">
+            <div class="col-lg-12">
+                <div id="teslaImportPanel" class="panel panel-default collapse {{ session('open_import_panel') === 'tesla' || $errors->has('report_file') || $errors->has('tvde_week_id') ? 'in' : '' }}" style="margin-top: 10px;">
+                    <div class="panel-heading">
+                        Importar relatório Tesla Charging
+                    </div>
+                    <div class="panel-body">
+                        <form method="POST" action="{{ route('admin.tesla-chargings.importReport') }}" enctype="multipart/form-data">
+                            @csrf
+                            <input type="hidden" name="tvde_week_id" id="tesla_import_week_hidden" value="{{ old('tvde_week_id', $selectedWeekId) }}">
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="form-group {{ session('open_import_panel') === 'tesla' && $errors->has('report_file') ? 'has-error' : '' }}">
+                                        <label class="required" for="tesla_report_file">Ficheiro Tesla Charging</label>
+                                        <input class="form-control" type="file" name="report_file" id="tesla_report_file" accept=".csv,.txt" required>
+                                        @if(session('open_import_panel') === 'tesla' && $errors->has('report_file'))
+                                            <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
+                                        @endif
+                                        <span class="help-block">Semana escolhida no topo. Mapeamento: data=B, VIN=F, valor=W.</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" style="margin-top: 25px;">
+                                        <button class="btn btn-primary" type="submit">Processar Tesla Charging</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     @endcan
@@ -56,6 +101,16 @@
 @parent
 <script>
 $(function () {
+  const $teslaWeekSelector = $('#tesla_import_week_selector')
+  const $teslaWeekHidden = $('#tesla_import_week_hidden')
+
+  if ($teslaWeekSelector.length) {
+    $teslaWeekSelector.on('change', function () {
+      if ($teslaWeekHidden.length) {
+        $teslaWeekHidden.val(this.value)
+      }
+    })
+  }
   // Botões (mass delete etc.)
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 

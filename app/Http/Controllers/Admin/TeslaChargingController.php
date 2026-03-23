@@ -10,8 +10,10 @@ use App\Http\Requests\UpdateTeslaChargingRequest;
 use App\Models\Driver;
 use App\Models\TeslaCharging;
 use App\Models\TvdeWeek;
+use App\Services\TeslaChargingImporter;
 use Gate;
 use Illuminate\Http\Request;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -64,7 +66,10 @@ class TeslaChargingController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.teslaChargings.index');
+        $tvdeWeeks = TvdeWeek::orderBy('start_date', 'desc')->get(['id', 'start_date', 'end_date']);
+        $selectedWeekId = session()->get('tvde_week_id') ?: optional($tvdeWeeks->first())->id;
+
+        return view('admin.teslaChargings.index', compact('selectedWeekId', 'tvdeWeeks'));
     }
 
     public function create()
@@ -122,5 +127,36 @@ class TeslaChargingController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function importReport(Request $request, TeslaChargingImporter $importer)
+    {
+        abort_if(Gate::denies('tesla_charging_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
+            'report_file' => ['required', 'file'],
+        ], [], [
+            'tvde_week_id' => 'Semana',
+            'report_file' => 'Ficheiro',
+        ]);
+
+        try {
+            $rows = $importer->import(
+                $data['report_file']->getRealPath(),
+                $data['report_file']->getClientOriginalName(),
+                (int) $data['tvde_week_id']
+            );
+        } catch (RuntimeException $exception) {
+            return back()
+                ->with('open_import_panel', 'tesla')
+                ->withInput()
+                ->withErrors(['report_file' => $exception->getMessage()]);
+        }
+
+        return redirect()
+            ->route('admin.tesla-chargings.index')
+            ->with('open_import_panel', 'tesla')
+            ->with('message', "Import Tesla Charging concluído com {$rows} linhas.");
     }
 }

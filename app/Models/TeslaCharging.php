@@ -23,6 +23,7 @@ class TeslaCharging extends Model
         'value',
         'license',
         'datetime',
+        'tvde_week_id',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -33,5 +34,10 @@ class TeslaCharging extends Model
     protected function serializeDate(DateTimeInterface $date)
     {
         return $date->format('Y-m-d H:i:s');
+    }
+
+    public function tvde_week()
+    {
+        return $this->belongsTo(TvdeWeek::class, 'tvde_week_id');
     }
 }

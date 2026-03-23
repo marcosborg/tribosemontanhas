@@ -564,6 +564,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('tesla-chargings/destroy', 'TeslaChargingController@massDestroy')->name('tesla-chargings.massDestroy');
     Route::post('tesla-chargings/parse-csv-import', 'TeslaChargingController@parseCsvImport')->name('tesla-chargings.parseCsvImport');
     Route::post('tesla-chargings/process-csv-import', 'TeslaChargingController@processCsvImport')->name('tesla-chargings.processCsvImport');
+    Route::post('tesla-chargings/import-report', 'TeslaChargingController@importReport')->name('tesla-chargings.importReport');
     Route::resource('tesla-chargings', 'TeslaChargingController');
 
     // Expense Reimbursement
