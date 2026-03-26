@@ -9,6 +9,7 @@ use App\Services\VehicleProfitabilityCalculator;
 use Carbon\Carbon;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class VehicleProfitabilityController extends Controller
@@ -25,15 +26,6 @@ class VehicleProfitabilityController extends Controller
         $startDate  = $request->input('start_date');         // YYYY-MM-DD
         $endDate    = $request->input('end_date');           // YYYY-MM-DD
         $groupBy    = $request->input('group_by', 'week');   // week|month|year
-
-        // Selected vehicle (keep session behavior)
-        $vehicle_items = VehicleItem::with('driver')
-            ->orderByRaw('UPPER(license_plate) ASC')
-            ->get();
-        $defaultVehicleItemId = optional($vehicle_items->first())->id ?? 0;
-        $vehicle_item_id = session('vehicle_item_id', $defaultVehicleItemId);
-        $isGlobal = (string) $vehicle_item_id === 'global';
-        $vehicle_item = $isGlobal ? null : $vehicle_items->firstWhere('id', (int) $vehicle_item_id);
 
         // Resolve weeks for the period
         $weeksQuery = TvdeWeek::query();
@@ -72,6 +64,21 @@ class VehicleProfitabilityController extends Controller
         }
 
         $weeks = $weeksQuery->orderBy('start_date')->get();
+
+        // Selected vehicle list filtered by financial movement in the selected period
+        $vehicle_items = $this->queryVehicleItemsWithFinancialMovement($weeks)
+            ->with('driver')
+            ->orderByRaw('UPPER(license_plate) ASC')
+            ->get();
+        $defaultVehicleItemId = optional($vehicle_items->first())->id ?? 0;
+        $vehicle_item_id = session('vehicle_item_id', $defaultVehicleItemId);
+        $isGlobal = (string) $vehicle_item_id === 'global';
+        $vehicle_item = $isGlobal ? null : $vehicle_items->firstWhere('id', (int) $vehicle_item_id);
+
+        if (!$isGlobal && !$vehicle_item && $defaultVehicleItemId) {
+            $vehicle_item_id = $defaultVehicleItemId;
+            $vehicle_item = $vehicle_items->firstWhere('id', (int) $vehicle_item_id);
+        }
 
         // If no vehicle or weeks, return empty view with filters
         if (($isGlobal && $weeks->isEmpty()) || (!$isGlobal && !$vehicle_item) || $weeks->isEmpty()) {
@@ -253,5 +260,192 @@ class VehicleProfitabilityController extends Controller
     {
         session()->put('vehicle_item_id', $vehicle_item_id);
         return redirect()->back();
+    }
+
+    private function queryVehicleItemsWithFinancialMovement($weeks)
+    {
+        $query = VehicleItem::query();
+
+        if ($weeks->isEmpty()) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        $weekIds = $weeks->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $periodStart = Carbon::parse($weeks->map(fn ($week) => $week->getRawOriginal('start_date'))->min())->startOfDay();
+        $periodEnd = Carbon::parse($weeks->map(fn ($week) => $week->getRawOriginal('end_date'))->max())->endOfDay();
+
+        return $query->where(function ($vehicleQuery) use ($weekIds, $periodStart, $periodEnd) {
+            $vehicleQuery
+                // Direct vehicle expenses
+                ->whereExists(function ($sub) use ($periodStart, $periodEnd) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_expenses as ve')
+                        ->whereColumn('ve.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('ve.deleted_at')
+                        ->whereBetween('ve.date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                })
+                // Direct reimbursements
+                ->orWhereExists(function ($sub) use ($periodStart, $periodEnd) {
+                    $sub->select(DB::raw(1))
+                        ->from('expense_reimbursements as er')
+                        ->whereColumn('er.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('er.deleted_at')
+                        ->whereBetween('er.date', [$periodStart->toDateString(), $periodEnd->toDateString()]);
+                })
+                // Revenue by driver/week usage
+                ->orWhereExists(function ($sub) use ($weekIds) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('tvde_weeks as tw', function ($join) use ($weekIds) {
+                            $join->whereIn('tw.id', $weekIds)
+                                ->whereNull('tw.deleted_at');
+                        })
+                        ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                        ->join('tvde_activities as ta', function ($join) {
+                            $join->on('ta.tvde_week_id', '=', 'tw.id')
+                                ->on('ta.company_id', '=', 'vehicle_items.company_id')
+                                ->where(function ($or) {
+                                    $or->whereColumn('ta.driver_code', 'd.uber_uuid')
+                                        ->orWhereColumn('ta.driver_code', 'd.bolt_name');
+                                });
+                        })
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('d.deleted_at')
+                        ->whereNull('ta.deleted_at')
+                        ->where('vu.start_date', '<=', DB::raw("CONCAT(tw.end_date, ' 23:59:59')"))
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', DB::raw("CONCAT(tw.start_date, ' 00:00:00')"));
+                        });
+                })
+                // Transfers / receipts by driver/week usage
+                ->orWhereExists(function ($sub) use ($weekIds) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('tvde_weeks as tw', function ($join) use ($weekIds) {
+                            $join->whereIn('tw.id', $weekIds)
+                                ->whereNull('tw.deleted_at');
+                        })
+                        ->join('receipts as r', 'r.driver_id', '=', 'vu.driver_id')
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('r.deleted_at')
+                        ->whereColumn('r.tvde_week_id', 'tw.id')
+                        ->where('vu.start_date', '<=', DB::raw("CONCAT(tw.end_date, ' 23:59:59')"))
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', DB::raw("CONCAT(tw.start_date, ' 00:00:00')"));
+                        });
+                })
+                // Company expense adjustments that affect treasury
+                ->orWhereExists(function ($sub) use ($weekIds) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('tvde_weeks as tw', function ($join) use ($weekIds) {
+                            $join->whereIn('tw.id', $weekIds)
+                                ->whereNull('tw.deleted_at');
+                        })
+                        ->join('adjustment_driver as ad', 'ad.driver_id', '=', 'vu.driver_id')
+                        ->join('adjustments as a', 'a.id', '=', 'ad.adjustment_id')
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('a.deleted_at')
+                        ->whereColumn('a.company_id', 'vehicle_items.company_id')
+                        ->where('a.company_expense', 1)
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('a.start_date')
+                                ->orWhereColumn('a.start_date', '<=', 'tw.start_date');
+                        })
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('a.end_date')
+                                ->orWhereColumn('a.end_date', '>=', 'tw.end_date');
+                        })
+                        ->where('vu.start_date', '<=', DB::raw("CONCAT(tw.end_date, ' 23:59:59')"))
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', DB::raw("CONCAT(tw.start_date, ' 00:00:00')"));
+                        });
+                })
+                // Fuel transactions via main or pivot cards in selected weeks
+                ->orWhereExists(function ($sub) use ($weekIds) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('tvde_weeks as tw', function ($join) use ($weekIds) {
+                            $join->whereIn('tw.id', $weekIds)
+                                ->whereNull('tw.deleted_at');
+                        })
+                        ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                        ->leftJoin('cards as c_main', 'c_main.id', '=', 'd.card_id')
+                        ->leftJoin('card_driver as cd', 'cd.driver_id', '=', 'd.id')
+                        ->leftJoin('cards as c_pivot', 'c_pivot.id', '=', 'cd.card_id')
+                        ->join('combustion_transactions as ct', function ($join) {
+                            $join->where(function ($cardQuery) {
+                                $cardQuery->whereColumn('ct.card', 'c_main.code')
+                                    ->orWhereColumn('ct.card', 'c_pivot.code');
+                            });
+                        })
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('d.deleted_at')
+                        ->whereNull('ct.deleted_at')
+                        ->whereColumn('ct.tvde_week_id', 'tw.id')
+                        ->where('vu.start_date', '<=', DB::raw("CONCAT(tw.end_date, ' 23:59:59')"))
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', DB::raw("CONCAT(tw.start_date, ' 00:00:00')"));
+                        });
+                })
+                // Electric transactions in selected weeks
+                ->orWhereExists(function ($sub) use ($weekIds) {
+                    $sub->select(DB::raw(1))
+                        ->from('vehicle_usages as vu')
+                        ->join('tvde_weeks as tw', function ($join) use ($weekIds) {
+                            $join->whereIn('tw.id', $weekIds)
+                                ->whereNull('tw.deleted_at');
+                        })
+                        ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
+                        ->join('electrics as e', 'e.id', '=', 'd.electric_id')
+                        ->join('electric_transactions as et', 'et.card', '=', 'e.code')
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereNull('vu.deleted_at')
+                        ->whereNull('d.deleted_at')
+                        ->whereNull('et.deleted_at')
+                        ->whereColumn('et.tvde_week_id', 'tw.id')
+                        ->where('vu.start_date', '<=', DB::raw("CONCAT(tw.end_date, ' 23:59:59')"))
+                        ->where(function ($dateQuery) {
+                            $dateQuery->whereNull('vu.end_date')
+                                ->orWhere('vu.end_date', '>=', DB::raw("CONCAT(tw.start_date, ' 00:00:00')"));
+                        });
+                })
+                // Toll / car track by real date assigned to the vehicle on that date
+                ->orWhereExists(function ($sub) use ($periodStart, $periodEnd) {
+                    $sub->select(DB::raw(1))
+                        ->from('car_tracks as ct')
+                        ->join('vehicle_usages as vu', function ($join) {
+                            $join->on('vu.vehicle_item_id', '=', 'vehicle_items.id')
+                                ->whereNull('vu.deleted_at')
+                                ->whereRaw("REPLACE(REPLACE(UPPER(vehicle_items.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(ct.license_plate), ' ', ''), '-', '')")
+                                ->whereRaw('vu.start_date <= ct.date')
+                                ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= ct.date)');
+                        })
+                        ->whereNull('ct.deleted_at')
+                        ->whereBetween('ct.date', [$periodStart->toDateTimeString(), $periodEnd->toDateTimeString()]);
+                })
+                // Tesla charging by real date and license match
+                ->orWhereExists(function ($sub) use ($periodStart, $periodEnd) {
+                    $sub->select(DB::raw(1))
+                        ->from('tesla_chargings as tc')
+                        ->join('vehicle_usages as vu', function ($join) {
+                            $join->on('vu.vehicle_item_id', '=', 'vehicle_items.id')
+                                ->whereNull('vu.deleted_at')
+                                ->whereRaw("REPLACE(REPLACE(UPPER(vehicle_items.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(tc.license), ' ', ''), '-', '')")
+                                ->whereRaw('vu.start_date <= tc.datetime')
+                                ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= tc.datetime)');
+                        })
+                        ->whereNull('tc.deleted_at')
+                        ->whereBetween('tc.datetime', [$periodStart->toDateTimeString(), $periodEnd->toDateTimeString()]);
+                });
+        });
     }
 }
