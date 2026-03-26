@@ -423,12 +423,12 @@ class VehicleProfitabilityController extends Controller
                     $sub->select(DB::raw(1))
                         ->from('car_tracks as ct')
                         ->join('vehicle_usages as vu', function ($join) {
-                            $join->on('vu.vehicle_item_id', '=', 'vehicle_items.id')
-                                ->whereNull('vu.deleted_at')
+                            $join->whereNull('vu.deleted_at')
                                 ->whereRaw("REPLACE(REPLACE(UPPER(vehicle_items.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(ct.license_plate), ' ', ''), '-', '')")
                                 ->whereRaw('vu.start_date <= ct.date')
                                 ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= ct.date)');
                         })
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
                         ->whereNull('ct.deleted_at')
                         ->whereBetween('ct.date', [$periodStart->toDateTimeString(), $periodEnd->toDateTimeString()]);
                 })
@@ -437,12 +437,12 @@ class VehicleProfitabilityController extends Controller
                     $sub->select(DB::raw(1))
                         ->from('tesla_chargings as tc')
                         ->join('vehicle_usages as vu', function ($join) {
-                            $join->on('vu.vehicle_item_id', '=', 'vehicle_items.id')
-                                ->whereNull('vu.deleted_at')
+                            $join->whereNull('vu.deleted_at')
                                 ->whereRaw("REPLACE(REPLACE(UPPER(vehicle_items.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(tc.license), ' ', ''), '-', '')")
                                 ->whereRaw('vu.start_date <= tc.datetime')
                                 ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= tc.datetime)');
                         })
+                        ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
                         ->whereNull('tc.deleted_at')
                         ->whereBetween('tc.datetime', [$periodStart->toDateTimeString(), $periodEnd->toDateTimeString()]);
                 });
