@@ -30,6 +30,15 @@ class VehicleExpensesController extends Controller
 
         if ($request->ajax()) {
             $query = VehicleExpense::with(['vehicle_item'])->select(sprintf('%s.*', (new VehicleExpense)->table));
+
+            if ($request->filled('date_from')) {
+                $query->whereDate('date', '>=', $request->input('date_from'));
+            }
+
+            if ($request->filled('date_to')) {
+                $query->whereDate('date', '<=', $request->input('date_to'));
+            }
+
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');

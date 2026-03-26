@@ -21,6 +21,35 @@
                     {{ trans('cruds.vehicleExpense.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    <div class="row" style="margin-bottom: 15px;">
+                        <div class="col-md-3">
+                            <label for="date_from_filter">Data inicial</label>
+                            <input
+                                type="date"
+                                id="date_from_filter"
+                                class="form-control"
+                                value=""
+                            >
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to_filter">Data final</label>
+                            <input
+                                type="date"
+                                id="date_to_filter"
+                                class="form-control"
+                                value=""
+                            >
+                        </div>
+                        <div class="col-md-3" style="padding-top: 25px;">
+                            <button type="button" id="apply_date_range_filter" class="btn btn-primary">
+                                Filtrar datas
+                            </button>
+                            <button type="button" id="reset_date_range_filter" class="btn btn-default">
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleExpense">
                         <thead>
                             <tr>
@@ -139,13 +168,21 @@
             retrieve: true,
             stateSave: true, // Enable state saving
             stateSaveCallback: function (settings, data) {
+                data.date_from = $('#date_from_filter').val();
+                data.date_to = $('#date_to_filter').val();
                 localStorage.setItem('datatable-vehicle-expenses', JSON.stringify(data));
             },
             stateLoadCallback: function (settings) {
                 return JSON.parse(localStorage.getItem('datatable-vehicle-expenses'));
             },
             aaSorting: [],
-            ajax: "{{ route('admin.vehicle-expenses.index') }}",
+            ajax: {
+                url: "{{ route('admin.vehicle-expenses.index') }}",
+                data: function (d) {
+                    d.date_from = $('#date_from_filter').val();
+                    d.date_to = $('#date_to_filter').val();
+                }
+            },
             columns: [
                 { data: 'placeholder', name: 'placeholder' },
                 { data: 'id', name: 'id' },
@@ -163,9 +200,35 @@
         };
         let table = $('.datatable-VehicleExpense').DataTable(dtOverrideGlobals);
 
+        const savedState = JSON.parse(localStorage.getItem('datatable-vehicle-expenses') || 'null');
+        if (savedState && savedState.date_from) {
+            $('#date_from_filter').val(savedState.date_from);
+        }
+        if (savedState && savedState.date_to) {
+            $('#date_to_filter').val(savedState.date_to);
+        }
+
         $('a[data-toggle="tab"]').on('shown.bs.tab click', function (e) {
             $($.fn.dataTable.tables(true)).DataTable()
                 .columns.adjust();
+        });
+
+        $('#apply_date_range_filter').on('click', function () {
+            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses') || '{}');
+            state.date_from = $('#date_from_filter').val();
+            state.date_to = $('#date_to_filter').val();
+            localStorage.setItem('datatable-vehicle-expenses', JSON.stringify(state));
+            table.draw();
+        });
+
+        $('#reset_date_range_filter').on('click', function () {
+            $('#date_from_filter').val('');
+            $('#date_to_filter').val('');
+            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses') || '{}');
+            delete state.date_from;
+            delete state.date_to;
+            localStorage.setItem('datatable-vehicle-expenses', JSON.stringify(state));
+            table.draw();
         });
 
         let visibleColumnsIndexes = null;
