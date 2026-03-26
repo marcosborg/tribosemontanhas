@@ -265,9 +265,14 @@
                                 @forelse($rows as $r)
                                     <tr>
                                         <td>
-                                            {{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }}
-                                            a
-                                            {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}
+                                            <strong>
+                                                {{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }}
+                                                a
+                                                {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}
+                                            </strong>
+                                            <div>
+                                                <small style="color:#666;">abrir detalhe abaixo</small>
+                                            </div>
                                         </td>
                                         <td>{{ $r['driver']->name ?? '—' }}</td>
                                         <td>{{ number_format($r['total_treasury'], 2, ',', '.') }} €</td>
@@ -359,7 +364,12 @@
                                         </td>
                                     </tr>
                                     <tr>
-                                        <td colspan="7" style="background:#fafafa;">
+                                        <td colspan="7" style="background:#fafafa; padding:0;">
+                                            <details>
+                                                <summary style="cursor:pointer; padding:10px 12px; font-weight:600; background:#f3f3f3;">
+                                                    Ver detalhe da semana {{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m') }} a {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m') }}
+                                                </summary>
+                                            <div style="padding:12px;">
                                             <div class="row">
                                                 <div class="col-md-8">
                                                     <div style="margin-bottom:10px;">
@@ -491,6 +501,8 @@
                                                     </div>
                                                 </div>
                                             </div>
+                                            </div>
+                                            </details>
                                         </td>
                                     </tr>
                                 @empty
