@@ -25,18 +25,18 @@
                         <div class="col-md-3">
                             <label for="date_from_filter">Data inicial</label>
                             <input
-                                type="date"
+                                type="text"
                                 id="date_from_filter"
-                                class="form-control"
+                                class="form-control date"
                                 value=""
                             >
                         </div>
                         <div class="col-md-3">
                             <label for="date_to_filter">Data final</label>
                             <input
-                                type="date"
+                                type="text"
                                 id="date_to_filter"
-                                class="form-control"
+                                class="form-control date"
                                 value=""
                             >
                         </div>
