@@ -43,4 +43,14 @@ class Card extends Model
     {
         return $this->belongsTo(Company::class, 'company_id');
     }
+
+    public function primaryDrivers()
+    {
+        return $this->hasMany(Driver::class, 'card_id');
+    }
+
+    public function drivers()
+    {
+        return $this->belongsToMany(Driver::class);
+    }
 }
