@@ -424,6 +424,12 @@ document.addEventListener('DOMContentLoaded', function () {
         const { className, content } = getUsageClassAndContent(driverName, usageType);
 
         if (modalMode === 'edit') {
+            if (endVal) {
+                openEndedItemIds.delete(usageIdInput.value);
+            } else {
+                openEndedItemIds.add(usageIdInput.value);
+            }
+
             timelineItems.update({
                 id: usageIdInput.value,
                 content,
@@ -432,6 +438,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 group: plateByVehicleId[vehicleSelect.value] || null,
                 className
             });
+            syncOpenEndedItemsToWindowEnd();
             closeModal();
             return;
         }
@@ -444,6 +451,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
 
         if (newId) {
+            if (!endVal) {
+                openEndedItemIds.add(newId);
+            }
+
             timelineItems.add({
                 id: newId,
                 content,
@@ -454,15 +465,18 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        syncOpenEndedItemsToWindowEnd();
         closeModal();
     }
 
     // === TIMELINE ===
     const rawTimelineItems = @json($timelineItems, JSON_NUMERIC_CHECK);
     const safeTimelineItems = Array.isArray(rawTimelineItems) ? rawTimelineItems : [];
-    const openEndedItemIds = safeTimelineItems
-        .filter(item => !!item.openEnded)
-        .map(item => item.id);
+    const openEndedItemIds = new Set(
+        safeTimelineItems
+            .filter(item => !!item.openEnded)
+            .map(item => item.id)
+    );
     const timelineItems = new vis.DataSet(
         safeTimelineItems.map(item => {
             if (!item.end) { delete item.end; }
@@ -492,14 +506,14 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
     function syncOpenEndedItemsToWindowEnd() {
-        if (!timeline || !openEndedItemIds.length) return;
+        if (!timeline || !openEndedItemIds.size) return;
 
         const range = timeline.getWindow();
         if (!range || !range.end) return;
 
         const visibleEnd = new Date(range.end);
         timelineItems.update(
-            openEndedItemIds.map(id => ({
+            Array.from(openEndedItemIds).map(id => ({
                 id,
                 end: visibleEnd
             }))

@@ -271,6 +271,7 @@ class VehicleUsageController extends Controller
                     continue;
                 }
                 $endRaw = $current->getRawOriginal('end_date');
+                $isOpenEnded = empty($endRaw);
                 if ($endRaw) {
                     try {
                         $end = Carbon::parse($endRaw);
@@ -307,6 +308,7 @@ class VehicleUsageController extends Controller
                     'usage_exceptions' => $current->usage_exceptions,
                     'start' => $start,
                     'end' => $end,
+                    'is_open_ended' => $isOpenEnded,
                 ];
             }
 
@@ -325,8 +327,8 @@ class VehicleUsageController extends Controller
                     'id' => $usage->id,
                     'content' => $content,
                     'start' => $usage->start->format('Y-m-d H:i:s'),
-                    'end' => $usage->end ? $usage->end->format('Y-m-d H:i:s') : null,
-                    'openEnded' => $usage->end === null,
+                    'end' => $usage->is_open_ended ? null : ($usage->end ? $usage->end->format('Y-m-d H:i:s') : null),
+                    'openEnded' => (bool) $usage->is_open_ended,
                     'group' => $plate,
                     'className' => $className,
                 ];
