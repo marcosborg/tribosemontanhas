@@ -303,13 +303,13 @@ class VehicleProfitabilityController extends Controller
                         ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
                         ->join('tvde_activities as ta', function ($join) {
                             $join->on('ta.tvde_week_id', '=', 'tw.id')
-                                ->on('ta.company_id', '=', 'vehicle_items.company_id')
                                 ->where(function ($or) {
                                     $or->whereColumn('ta.driver_code', 'd.uber_uuid')
                                         ->orWhereColumn('ta.driver_code', 'd.bolt_name');
                                 });
                         })
                         ->whereColumn('vu.vehicle_item_id', 'vehicle_items.id')
+                        ->whereColumn('ta.company_id', 'vehicle_items.company_id')
                         ->whereNull('vu.deleted_at')
                         ->whereNull('d.deleted_at')
                         ->whereNull('ta.deleted_at')
