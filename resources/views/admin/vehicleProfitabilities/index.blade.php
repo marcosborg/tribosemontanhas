@@ -358,6 +358,141 @@
                                             </details>
                                         </td>
                                     </tr>
+                                    <tr>
+                                        <td colspan="7" style="background:#fafafa;">
+                                            <div class="row">
+                                                <div class="col-md-8">
+                                                    <div style="margin-bottom:10px;">
+                                                        <strong>Como a conta e feita</strong>
+                                                        <small style="color:#666;">
+                                                            {{ \Carbon\Carbon::parse($r['week']->start_date)->format('d/m/Y') }}
+                                                            a
+                                                            {{ \Carbon\Carbon::parse($r['week']->end_date)->format('d/m/Y') }}
+                                                        </small>
+                                                    </div>
+
+                                                    <div class="table-responsive" style="margin-bottom:12px;">
+                                                        <table class="table table-bordered table-striped table-sm" style="margin-bottom:0;">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th colspan="5">Tesouraria</th>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th>Parcela</th>
+                                                                    <th>Origem</th>
+                                                                    <th>Valor</th>
+                                                                    <th>Sinal</th>
+                                                                    <th>Acumulado</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @forelse(($r['treasury_breakdown'] ?? []) as $line)
+                                                                    <tr>
+                                                                        <td>{{ $line['label'] }}</td>
+                                                                        <td><code>{{ $line['source'] }}</code></td>
+                                                                        <td>{{ number_format($line['amount'] ?? 0, 2, ',', '.') }} €</td>
+                                                                        <td>{{ $line['operator'] }}</td>
+                                                                        <td>{{ number_format($line['running_total'] ?? 0, 2, ',', '.') }} €</td>
+                                                                    </tr>
+                                                                @empty
+                                                                    <tr>
+                                                                        <td colspan="5">Sem decomposicao disponivel.</td>
+                                                                    </tr>
+                                                                @endforelse
+                                                            </tbody>
+                                                            <tfoot>
+                                                                <tr>
+                                                                    <th colspan="4">Tesouraria final</th>
+                                                                    <th>{{ number_format($r['total_treasury'] ?? 0, 2, ',', '.') }} €</th>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+
+                                                    <div class="table-responsive">
+                                                        <table class="table table-bordered table-striped table-sm" style="margin-bottom:0;">
+                                                            <thead>
+                                                                <tr>
+                                                                    <th colspan="5">Impostos</th>
+                                                                </tr>
+                                                                <tr>
+                                                                    <th>Parcela</th>
+                                                                    <th>Origem</th>
+                                                                    <th>Valor</th>
+                                                                    <th>Sinal</th>
+                                                                    <th>Acumulado</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                @forelse(($r['taxes_breakdown'] ?? []) as $line)
+                                                                    <tr>
+                                                                        <td>{{ $line['label'] }}</td>
+                                                                        <td><code>{{ $line['source'] }}</code></td>
+                                                                        <td>{{ number_format($line['amount'] ?? 0, 2, ',', '.') }} €</td>
+                                                                        <td>{{ $line['operator'] }}</td>
+                                                                        <td>{{ number_format($line['running_total'] ?? 0, 2, ',', '.') }} €</td>
+                                                                    </tr>
+                                                                @empty
+                                                                    <tr>
+                                                                        <td colspan="5">Sem decomposicao disponivel.</td>
+                                                                    </tr>
+                                                                @endforelse
+                                                            </tbody>
+                                                            <tfoot>
+                                                                <tr>
+                                                                    <th colspan="4">Impostos totais</th>
+                                                                    <th>{{ number_format($r['total_taxes'] ?? 0, 2, ',', '.') }} €</th>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-4">
+                                                    <div class="panel panel-default" style="margin-bottom:10px;">
+                                                        <div class="panel-heading">Resumo</div>
+                                                        <div class="panel-body">
+                                                            <table class="table table-bordered table-sm" style="margin-bottom:0;">
+                                                                <tbody>
+                                                                    <tr>
+                                                                        <th>Tesouraria</th>
+                                                                        <td>{{ number_format($r['total_treasury'] ?? 0, 2, ',', '.') }} €</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th>Impostos</th>
+                                                                        <td>{{ number_format($r['total_taxes'] ?? 0, 2, ',', '.') }} €</td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th>Final</th>
+                                                                        <td><strong>{{ number_format($r['final_total'] ?? 0, 2, ',', '.') }} €</strong></td>
+                                                                    </tr>
+                                                                    <tr>
+                                                                        <th>Transferido</th>
+                                                                        <td>{{ number_format($r['receipt']->amount_transferred ?? 0, 2, ',', '.') }} €</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+                                                    </div>
+
+                                                    <div class="panel panel-default" style="margin-bottom:0;">
+                                                        <div class="panel-heading">Leitura funcional</div>
+                                                        <div class="panel-body">
+                                                            <p style="margin-bottom:8px;">
+                                                                A tesouraria nao corresponde apenas a despesas.
+                                                            </p>
+                                                            <p style="margin-bottom:8px;">
+                                                                O calculo junta receita liquida da semana, combustivel, Via Verde, transferido, RF e despesas da viatura.
+                                                            </p>
+                                                            <p style="margin-bottom:0;">
+                                                                O resultado final soma <strong>tesouraria + impostos</strong>.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 @empty
                                     <tr><td colspan="7">Sem dados.</td></tr>
                                 @endforelse

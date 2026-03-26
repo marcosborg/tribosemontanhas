@@ -85,6 +85,22 @@ class VehicleProfitabilityCalculator
 
         $finalTotal = $totalTreasury + $totalTaxes;
 
+        $treasuryBreakdown = $this->buildTreasuryBreakdown(
+            $results,
+            $adjustments,
+            $rf,
+            $receipt?->amount_transferred,
+            $vehicleExpenses,
+            $expenseReimbursementsValue
+        );
+
+        $taxesBreakdown = $this->buildTaxesBreakdown(
+            $results,
+            $iva,
+            $fuelTransactionsVat,
+            $vehicleExpenses
+        );
+
         return [
             'week'  => $tvdeWeek,
             'year'  => Carbon::parse($tvdeWeek->start_date)->year,
@@ -101,6 +117,8 @@ class VehicleProfitabilityCalculator
             'vehicle_expenses_vat' => $vehicleExpenses['vat'] ?? 0,
             'vehicle_expenses_items' => $vehicleExpenses['items'] ?? [],
             'expense_reimbursements_value' => $expenseReimbursementsValue,
+            'treasury_breakdown' => $treasuryBreakdown,
+            'taxes_breakdown' => $taxesBreakdown,
 
             'total_treasury' => $totalTreasury,
             'total_taxes'    => $totalTaxes,
@@ -322,6 +340,93 @@ class VehicleProfitabilityCalculator
         return $gross - $net;
     }
 
+    protected function buildTreasuryBreakdown(
+        array $results,
+        float $adjustments,
+        float $rf,
+        $amountTransferred,
+        array $vehicleExpenses,
+        float $expenseReimbursementsValue
+    ): array {
+        $running = 0.0;
+        $lines = [];
+
+        $push = function (string $label, string $source, float $amount, string $operator) use (&$lines, &$running) {
+            $applied = $operator === '-' ? -$amount : $amount;
+            $running += $applied;
+
+            $lines[] = [
+                'label' => $label,
+                'source' => $source,
+                'amount' => $amount,
+                'operator' => $operator,
+                'running_total' => $running,
+            ];
+        };
+
+        $push('Receita liquida', 'tvde_activities.total_net', (float) ($results['total_net'] ?? 0), '+');
+        $push('Via Verde', 'car_tracks', (float) ($results['car_track'] ?? 0), '-');
+        $push('Combustivel', 'combustion_transactions / electric_transactions / tesla_chargings', (float) ($results['fuel_transactions'] ?? 0), '-');
+        $push('Ajustes empresa', 'adjustments_array.company_expense', (float) $adjustments, '+');
+        $push('Retencao na fonte', 'contract_vats.rf', (float) $rf, '-');
+        $push('Transferido ao motorista', 'receipts.amount_transferred', (float) ($amountTransferred ?? 0), '-');
+
+        foreach (($vehicleExpenses['items'] ?? []) as $expense) {
+            if (!(bool) ($expense['included_in_profitability'] ?? false)) {
+                continue;
+            }
+
+            if ((bool) ($expense['as_tax_exception'] ?? false)) {
+                continue;
+            }
+
+            $expenseDate = $expense['date'] ? Carbon::parse($expense['date'])->format('d/m/Y') : 'Sem data';
+            $label = sprintf(
+                'Despesa #%d - %s (%s)',
+                $expense['id'],
+                $expense['expense_type'] ?? 'Sem tipo',
+                $expenseDate
+            );
+
+            $push($label, 'vehicle_expenses', (float) ($expense['treasury'] ?? 0), '-');
+        }
+
+        $push('Reembolso de despesas', 'expense_reimbursements', (float) $expenseReimbursementsValue, '+');
+
+        return $lines;
+    }
+
+    protected function buildTaxesBreakdown(
+        array $results,
+        float $iva,
+        float $fuelTransactionsVat,
+        array $vehicleExpenses
+    ): array {
+        $running = 0.0;
+        $lines = [];
+
+        $push = function (string $label, string $source, float $amount, string $operator) use (&$lines, &$running) {
+            $applied = $operator === '-' ? -$amount : $amount;
+            $running += $applied;
+
+            $lines[] = [
+                'label' => $label,
+                'source' => $source,
+                'amount' => $amount,
+                'operator' => $operator,
+                'running_total' => $running,
+            ];
+        };
+
+        $push('IVA plataformas', 'tvde_activities.vat_value', (float) ($results['vat_value'] ?? 0), '-');
+        $push('IVA motorista', 'contract_vats.iva', (float) $iva, '+');
+        $push('IVA combustivel', 'fuel_transactions', (float) $fuelTransactionsVat, '+');
+        $push('IVA despesas viatura', 'vehicle_expenses.vat', (float) ($vehicleExpenses['vat'] ?? 0), '+');
+        $push('Impostos de despesas especiais', 'vehicle_expenses.taxes', (float) ($vehicleExpenses['taxes'] ?? 0), '+');
+
+        return $lines;
+    }
+
     protected function emptyRow(TvdeWeek $tvdeWeek): array
     {
         return [
@@ -338,6 +443,8 @@ class VehicleProfitabilityCalculator
             'vehicle_expenses_value' => 0,
             'vehicle_expenses_vat' => 0,
             'expense_reimbursements_value' => 0,
+            'treasury_breakdown' => [],
+            'taxes_breakdown' => [],
             'total_treasury' => 0,
             'total_taxes' => 0,
             'final_total' => 0,
