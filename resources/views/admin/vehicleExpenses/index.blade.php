@@ -21,24 +21,17 @@
                     {{ trans('cruds.vehicleExpense.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    <div class="alert alert-warning" style="margin-bottom: 15px;">
+                        Despesas por pagar: <strong>{{ $unpaidCount ?? 0 }}</strong>
+                    </div>
                     <div class="row" style="margin-bottom: 15px;">
                         <div class="col-md-3">
                             <label for="date_from_filter">Data inicial</label>
-                            <input
-                                type="text"
-                                id="date_from_filter"
-                                class="form-control date"
-                                value=""
-                            >
+                            <input type="text" id="date_from_filter" class="form-control date" value="">
                         </div>
                         <div class="col-md-3">
                             <label for="date_to_filter">Data final</label>
-                            <input
-                                type="text"
-                                id="date_to_filter"
-                                class="form-control date"
-                                value=""
-                            >
+                            <input type="text" id="date_to_filter" class="form-control date" value="">
                         </div>
                         <div class="col-md-3" style="padding-top: 25px;">
                             <button type="button" id="apply_date_range_filter" class="btn btn-primary">
@@ -50,40 +43,24 @@
                         </div>
                     </div>
 
-                    <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleExpense">
+                    <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleExpense">
                         <thead>
                             <tr>
-                                <th width="10">
-
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.id') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.vehicle_item') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.expense_type') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.files') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.value') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.vehicleExpense.fields.vat') }}
-                                </th>
-                                <th>
-                                    &nbsp;
-                                </th>
+                                <th width="10"></th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.id') }}</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.expense_type') }}</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.date') }}</th>
+                                <th>Estado</th>
+                                <th>Pago em</th>
+                                <th>Referencia pagamento</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.files') }}</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.value') }}</th>
+                                <th>{{ trans('cruds.vehicleExpense.fields.vat') }}</th>
+                                <th>&nbsp;</th>
                             </tr>
                             <tr>
-                                <td>
-                                </td>
+                                <td></td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
@@ -103,32 +80,42 @@
                                         @endforeach
                                     </select>
                                 </td>
+                                <td></td>
                                 <td>
+                                    <select class="search" strict="true">
+                                        <option value>{{ trans('global.all') }}</option>
+                                        <option value="1">Pago</option>
+                                        <option value="0">Por pagar</option>
+                                    </select>
                                 </td>
+                                <td></td>
                                 <td>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
+                                <td></td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
-                                <td>
-                                </td>
+                                <td></td>
                             </tr>
                         </thead>
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
 @endsection
 @section('scripts')
 @parent
+<style>
+    .datatable-VehicleExpense tbody tr.is-clickable {
+        cursor: pointer;
+    }
+</style>
 <script>
     $(function () {
         let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
@@ -166,7 +153,7 @@
             processing: true,
             serverSide: true,
             retrieve: true,
-            stateSave: true, // Enable state saving
+            stateSave: true,
             stateSaveCallback: function (settings, data) {
                 data.date_from = $('#date_from_filter').val();
                 data.date_to = $('#date_to_filter').val();
@@ -189,11 +176,21 @@
                 { data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
                 { data: 'expense_type', name: 'expense_type' },
                 { data: 'date', name: 'date' },
+                { data: 'paid_status', name: 'is_paid' },
+                { data: 'paid_at', name: 'paid_at' },
+                { data: 'payment_reference', name: 'payment_reference' },
                 { data: 'files', name: 'files', sortable: false, searchable: false },
                 { data: 'value', name: 'value' },
                 { data: 'vat', name: 'vat' },
                 { data: 'actions', name: '{{ trans('global.actions') }}' }
             ],
+            createdRow: function (row, data) {
+                @can('vehicle_expense_edit')
+                $(row)
+                    .addClass('is-clickable')
+                    .attr('data-edit-url', "{{ route('admin.vehicle-expenses.edit', '__ID__') }}".replace('__ID__', data.id));
+                @endcan
+            },
             orderCellsTop: true,
             order: [[1, 'desc']],
             pageLength: 100,
@@ -208,9 +205,8 @@
             $('#date_to_filter').val(savedState.date_to);
         }
 
-        $('a[data-toggle="tab"]').on('shown.bs.tab click', function (e) {
-            $($.fn.dataTable.tables(true)).DataTable()
-                .columns.adjust();
+        $('a[data-toggle="tab"]').on('shown.bs.tab click', function () {
+            $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
         });
 
         $('#apply_date_range_filter').on('click', function () {
@@ -232,7 +228,7 @@
         });
 
         let visibleColumnsIndexes = null;
-        $('.datatable thead').on('input', '.search', function () {
+        $('.datatable thead').on('input change', '.search', function () {
             let strict = $(this).attr('strict') || false
             let value = strict && this.value ? "^" + this.value + "$" : this.value
 
@@ -246,11 +242,23 @@
                 .search(value, strict)
                 .draw()
         });
-        table.on('column-visibility.dt', function (e, settings, column, state) {
+
+        table.on('column-visibility.dt', function () {
             visibleColumnsIndexes = []
             table.columns(":visible").every(function (colIdx) {
                 visibleColumnsIndexes.push(colIdx);
             });
+        });
+
+        $('.datatable-VehicleExpense tbody').on('click', 'tr.is-clickable', function (event) {
+            if ($(event.target).closest('a, button, form, input, select, label, textarea').length) {
+                return;
+            }
+
+            const editUrl = $(this).attr('data-edit-url');
+            if (editUrl) {
+                window.location = editUrl;
+            }
         });
     });
 </script>

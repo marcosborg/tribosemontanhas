@@ -34,6 +34,14 @@ class UpdateVehicleExpenseRequest extends FormRequest
                 'numeric',
                 'required',
             ],
+            'is_paid' => [
+                'nullable',
+                'boolean',
+            ],
+            'payment_reference' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

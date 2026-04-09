@@ -25,6 +25,7 @@ class VehicleExpense extends Model implements HasMedia
 
     protected $dates = [
         'date',
+        'paid_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -78,10 +79,18 @@ class VehicleExpense extends Model implements HasMedia
         'description',
         'value',
         'invoice_value',
+        'is_paid',
+        'paid_at',
+        'payment_reference',
         'vat',
         'created_at',
         'updated_at',
         'deleted_at',
+    ];
+
+    protected $casts = [
+        'is_paid' => 'boolean',
+        'paid_at' => 'datetime',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

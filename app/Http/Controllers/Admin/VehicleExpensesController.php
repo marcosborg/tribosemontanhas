@@ -44,21 +44,6 @@ class VehicleExpensesController extends Controller
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
-            $table->editColumn('actions', function ($row) {
-                $viewGate = 'vehicle_expense_show';
-                $editGate = 'vehicle_expense_edit';
-                $deleteGate = 'vehicle_expense_delete';
-                $crudRoutePart = 'vehicle-expenses';
-
-                return view('partials.datatablesActions', compact(
-                    'viewGate',
-                    'editGate',
-                    'deleteGate',
-                    'crudRoutePart',
-                    'row'
-                ));
-            });
-
             $table->editColumn('id', function ($row) {
                 return $row->id ? $row->id : '';
             });
@@ -89,15 +74,55 @@ class VehicleExpensesController extends Controller
             $table->editColumn('vat', function ($row) {
                 return $row->vat ? $row->vat : '';
             });
+            $table->addColumn('paid_status', function ($row) {
+                return $row->is_paid ? 'Pago' : 'Por pagar';
+            });
+            $table->addColumn('paid_at', function ($row) {
+                return $row->paid_at ? $row->paid_at->format('Y-m-d H:i:s') : '';
+            });
+            $table->editColumn('payment_reference', function ($row) {
+                return $row->payment_reference ?: '';
+            });
+            $table->filterColumn('is_paid', function ($query, $keyword) {
+                if ($keyword === '1' || $keyword === '0') {
+                    $query->where('is_paid', (bool) $keyword);
+                }
+            });
+            $table->editColumn('actions', function ($row) {
+                $viewGate = 'vehicle_expense_show';
+                $editGate = 'vehicle_expense_edit';
+                $deleteGate = 'vehicle_expense_delete';
+                $crudRoutePart = 'vehicle-expenses';
 
-            $table->rawColumns(['actions', 'placeholder', 'vehicle_item', 'files']);
+                $actions = view('partials.datatablesActions', compact(
+                    'viewGate',
+                    'editGate',
+                    'deleteGate',
+                    'crudRoutePart',
+                    'row'
+                ))->render();
+
+                if (!$row->is_paid && Gate::allows('vehicle_expense_edit')) {
+                    $actions .= sprintf(
+                        ' <form action="%s" method="POST" onsubmit="return confirm(\'%s\');" style="display: inline-block;">%s<input type="submit" class="btn btn-xs btn-success" value="Marcar como pago"></form>',
+                        route('admin.vehicle-expenses.mark-paid', $row->id),
+                        e(trans('global.areYouSure')),
+                        csrf_field()
+                    );
+                }
+
+                return $actions;
+            });
+
+            $table->rawColumns(['actions', 'placeholder', 'files']);
 
             return $table->make(true);
         }
 
         $vehicle_items = VehicleItem::get();
+        $unpaidCount = VehicleExpense::where('is_paid', false)->count();
 
-        return view('admin.vehicleExpenses.index', compact('vehicle_items'));
+        return view('admin.vehicleExpenses.index', compact('vehicle_items', 'unpaidCount'));
     }
 
     public function create()
@@ -111,7 +136,11 @@ class VehicleExpensesController extends Controller
 
     public function store(StoreVehicleExpenseRequest $request)
     {
-        $vehicleExpense = VehicleExpense::create($request->all());
+        $payload = $request->all();
+        $payload['is_paid'] = $request->boolean('is_paid');
+        $payload['paid_at'] = $request->boolean('is_paid') ? now() : null;
+
+        $vehicleExpense = VehicleExpense::create($payload);
 
         foreach ($request->input('files', []) as $file) {
             $vehicleExpense->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('files');
@@ -137,7 +166,16 @@ class VehicleExpensesController extends Controller
 
     public function update(UpdateVehicleExpenseRequest $request, VehicleExpense $vehicleExpense)
     {
-        $vehicleExpense->update($request->all());
+        $payload = $request->all();
+        $wasPaid = (bool) $vehicleExpense->is_paid;
+        $isPaid = $request->boolean('is_paid');
+
+        $payload['is_paid'] = $isPaid;
+        $payload['paid_at'] = $isPaid
+            ? ($wasPaid ? $vehicleExpense->paid_at : now())
+            : null;
+
+        $vehicleExpense->update($payload);
 
         if (count($vehicleExpense->files) > 0) {
             foreach ($vehicleExpense->files as $media) {
@@ -163,6 +201,18 @@ class VehicleExpensesController extends Controller
         $vehicleExpense->load('vehicle_item');
 
         return view('admin.vehicleExpenses.show', compact('vehicleExpense'));
+    }
+
+    public function markPaid(VehicleExpense $vehicleExpense)
+    {
+        abort_if(Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $vehicleExpense->update([
+            'is_paid' => true,
+            'paid_at' => now(),
+        ]);
+
+        return redirect()->route('admin.vehicle-expenses.index');
     }
 
     public function destroy(VehicleExpense $vehicleExpense)

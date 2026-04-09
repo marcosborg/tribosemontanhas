@@ -1,7 +1,6 @@
 @extends('layouts.admin')
 @section('content')
 <div class="content">
-
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
@@ -9,7 +8,7 @@
                     {{ trans('global.create') }} {{ trans('cruds.vehicleExpense.title_singular') }}
                 </div>
                 <div class="panel-body">
-                    <form method="POST" action="{{ route("admin.vehicle-expenses.store") }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ route('admin.vehicle-expenses.store') }}" enctype="multipart/form-data">
                         @csrf
                         <div class="form-group {{ $errors->has('vehicle_item') ? 'has-error' : '' }}">
                             <label for="vehicle_item_id">{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</label>
@@ -53,13 +52,29 @@
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.description_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('files') ? 'has-error' : '' }}">
-                            <label for="files">{{ trans('cruds.vehicleExpense.fields.files') }}</label>
-                            <div class="needsclick dropzone" id="files-dropzone">
-                            </div>
+                            <label for="files">Fatura / documentos</label>
+                            <div class="needsclick dropzone" id="files-dropzone"></div>
                             @if($errors->has('files'))
                                 <span class="help-block" role="alert">{{ $errors->first('files') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.files_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('payment_reference') ? 'has-error' : '' }}">
+                            <label for="payment_reference">Referencia pagamento</label>
+                            <input class="form-control" type="text" name="payment_reference" id="payment_reference" value="{{ old('payment_reference', '') }}">
+                            @if($errors->has('payment_reference'))
+                                <span class="help-block" role="alert">{{ $errors->first('payment_reference') }}</span>
+                            @endif
+                        </div>
+                        <div class="form-group {{ $errors->has('is_paid') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="is_paid" value="0">
+                                <input type="checkbox" name="is_paid" id="is_paid" value="1" {{ old('is_paid', 0) == 1 ? 'checked' : '' }}>
+                                <label for="is_paid" style="font-weight: 400">Ja pago</label>
+                            </div>
+                            @if($errors->has('is_paid'))
+                                <span class="help-block" role="alert">{{ $errors->first('is_paid') }}</span>
+                            @endif
                         </div>
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                             <label class="required" for="value">{{ trans('cruds.vehicleExpense.fields.value') }}</label>
@@ -85,9 +100,6 @@
                     </form>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
@@ -96,122 +108,114 @@
 @section('scripts')
 <script>
     $(document).ready(function () {
-  function SimpleUploadAdapter(editor) {
-    editor.plugins.get('FileRepository').createUploadAdapter = function(loader) {
-      return {
-        upload: function() {
-          return loader.file
-            .then(function (file) {
-              return new Promise(function(resolve, reject) {
-                // Init request
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '{{ route('admin.vehicle-expenses.storeCKEditorImages') }}', true);
-                xhr.setRequestHeader('x-csrf-token', window._token);
-                xhr.setRequestHeader('Accept', 'application/json');
-                xhr.responseType = 'json';
+        function SimpleUploadAdapter(editor) {
+            editor.plugins.get('FileRepository').createUploadAdapter = function(loader) {
+                return {
+                    upload: function() {
+                        return loader.file.then(function (file) {
+                            return new Promise(function(resolve, reject) {
+                                var xhr = new XMLHttpRequest();
+                                xhr.open('POST', '{{ route('admin.vehicle-expenses.storeCKEditorImages') }}', true);
+                                xhr.setRequestHeader('x-csrf-token', window._token);
+                                xhr.setRequestHeader('Accept', 'application/json');
+                                xhr.responseType = 'json';
 
-                // Init listeners
-                var genericErrorText = `Couldn't upload file: ${ file.name }.`;
-                xhr.addEventListener('error', function() { reject(genericErrorText) });
-                xhr.addEventListener('abort', function() { reject() });
-                xhr.addEventListener('load', function() {
-                  var response = xhr.response;
+                                var genericErrorText = `Couldn't upload file: ${ file.name }.`;
+                                xhr.addEventListener('error', function() { reject(genericErrorText) });
+                                xhr.addEventListener('abort', function() { reject() });
+                                xhr.addEventListener('load', function() {
+                                    var response = xhr.response;
 
-                  if (!response || xhr.status !== 201) {
-                    return reject(response && response.message ? `${genericErrorText}\n${xhr.status} ${response.message}` : `${genericErrorText}\n ${xhr.status} ${xhr.statusText}`);
-                  }
+                                    if (!response || xhr.status !== 201) {
+                                        return reject(response && response.message ? `${genericErrorText}\n${xhr.status} ${response.message}` : `${genericErrorText}\n ${xhr.status} ${xhr.statusText}`);
+                                    }
 
-                  $('form').append('<input type="hidden" name="ck-media[]" value="' + response.id + '">');
+                                    $('form').append('<input type="hidden" name="ck-media[]" value="' + response.id + '">');
+                                    resolve({ default: response.url });
+                                });
 
-                  resolve({ default: response.url });
-                });
+                                if (xhr.upload) {
+                                    xhr.upload.addEventListener('progress', function(e) {
+                                        if (e.lengthComputable) {
+                                            loader.uploadTotal = e.total;
+                                            loader.uploaded = e.loaded;
+                                        }
+                                    });
+                                }
 
-                if (xhr.upload) {
-                  xhr.upload.addEventListener('progress', function(e) {
-                    if (e.lengthComputable) {
-                      loader.uploadTotal = e.total;
-                      loader.uploaded = e.loaded;
+                                var data = new FormData();
+                                data.append('upload', file);
+                                data.append('crud_id', '{{ $vehicleExpense->id ?? 0 }}');
+                                xhr.send(data);
+                            });
+                        })
                     }
-                  });
-                }
-
-                // Send request
-                var data = new FormData();
-                data.append('upload', file);
-                data.append('crud_id', '{{ $vehicleExpense->id ?? 0 }}');
-                xhr.send(data);
-              });
-            })
+                };
+            }
         }
-      };
-    }
-  }
 
-  var allEditors = document.querySelectorAll('.ckeditor');
-  for (var i = 0; i < allEditors.length; ++i) {
-    ClassicEditor.create(
-      allEditors[i], {
-        extraPlugins: [SimpleUploadAdapter]
-      }
-    );
-  }
-});
+        var allEditors = document.querySelectorAll('.ckeditor');
+        for (var i = 0; i < allEditors.length; ++i) {
+            ClassicEditor.create(allEditors[i], {
+                extraPlugins: [SimpleUploadAdapter]
+            });
+        }
+    });
 </script>
 
 <script>
     var uploadedFilesMap = {}
-Dropzone.options.filesDropzone = {
-    url: '{{ route('admin.vehicle-expenses.storeMedia') }}',
-    maxFilesize: 5, // MB
-    addRemoveLinks: true,
-    headers: {
-      'X-CSRF-TOKEN': "{{ csrf_token() }}"
-    },
-    params: {
-      size: 5
-    },
-    success: function (file, response) {
-      $('form').append('<input type="hidden" name="files[]" value="' + response.name + '">')
-      uploadedFilesMap[file.name] = response.name
-    },
-    removedfile: function (file) {
-      file.previewElement.remove()
-      var name = ''
-      if (typeof file.file_name !== 'undefined') {
-        name = file.file_name
-      } else {
-        name = uploadedFilesMap[file.name]
-      }
-      $('form').find('input[name="files[]"][value="' + name + '"]').remove()
-    },
-    init: function () {
+    Dropzone.options.filesDropzone = {
+        url: '{{ route('admin.vehicle-expenses.storeMedia') }}',
+        maxFilesize: 5,
+        addRemoveLinks: true,
+        headers: {
+            'X-CSRF-TOKEN': "{{ csrf_token() }}"
+        },
+        params: {
+            size: 5
+        },
+        success: function (file, response) {
+            $('form').append('<input type="hidden" name="files[]" value="' + response.name + '">')
+            uploadedFilesMap[file.name] = response.name
+        },
+        removedfile: function (file) {
+            file.previewElement.remove()
+            var name = ''
+            if (typeof file.file_name !== 'undefined') {
+                name = file.file_name
+            } else {
+                name = uploadedFilesMap[file.name]
+            }
+            $('form').find('input[name="files[]"][value="' + name + '"]').remove()
+        },
+        init: function () {
 @if(isset($vehicleExpense) && $vehicleExpense->files)
-          var files =
-            {!! json_encode($vehicleExpense->files) !!}
-              for (var i in files) {
-              var file = files[i]
-              this.options.addedfile.call(this, file)
-              file.previewElement.classList.add('dz-complete')
-              $('form').append('<input type="hidden" name="files[]" value="' + file.file_name + '">')
+            var files = {!! json_encode($vehicleExpense->files) !!}
+            for (var i in files) {
+                var file = files[i]
+                this.options.addedfile.call(this, file)
+                file.previewElement.classList.add('dz-complete')
+                $('form').append('<input type="hidden" name="files[]" value="' + file.file_name + '">')
             }
 @endif
-    },
-     error: function (file, response) {
-         if ($.type(response) === 'string') {
-             var message = response //dropzone sends it's own error messages in string
-         } else {
-             var message = response.errors.file
-         }
-         file.previewElement.classList.add('dz-error')
-         _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
-         _results = []
-         for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-             node = _ref[_i]
-             _results.push(node.textContent = message)
-         }
+        },
+        error: function (file, response) {
+            if ($.type(response) === 'string') {
+                var message = response
+            } else {
+                var message = response.errors.file
+            }
+            file.previewElement.classList.add('dz-error')
+            _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
+            _results = []
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                node = _ref[_i]
+                _results.push(node.textContent = message)
+            }
 
-         return _results
-     }
-}
+            return _results
+        }
+    }
 </script>
 @endsection

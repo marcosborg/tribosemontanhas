@@ -227,6 +227,7 @@ class VehicleProfitabilityCalculator
     protected function calculateVehicleExpenses(VehicleItem $vehicleItem, TvdeWeek $tvdeWeek, bool $includeItems = false): array
     {
         $baseQuery = VehicleExpense::where('vehicle_item_id', $vehicleItem->id)
+            ->where('is_paid', true)
             ->whereDate('date', '>=', $tvdeWeek->start_date)
             ->whereDate('date', '<=', $tvdeWeek->end_date);
 
