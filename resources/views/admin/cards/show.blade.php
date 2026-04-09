@@ -49,6 +49,14 @@
                                         {{ $card->company->name ?? '' }}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        {{ trans('cruds.card.fields.driver') }}
+                                    </th>
+                                    <td>
+                                        {{ $card->drivers->pluck('name')->merge($card->primaryDrivers->pluck('name'))->filter()->unique()->implode(', ') }}
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

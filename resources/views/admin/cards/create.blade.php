@@ -44,6 +44,18 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.card.fields.company_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('driver_id') ? 'has-error' : '' }}">
+                            <label for="driver_id">{{ trans('cruds.card.fields.driver') }}</label>
+                            <select class="form-control select2" name="driver_id" id="driver_id">
+                                @foreach($drivers as $id => $entry)
+                                    <option value="{{ $id }}" {{ old('driver_id') == $id ? 'selected' : '' }}>{{ $entry }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('driver_id'))
+                                <span class="help-block" role="alert">{{ $errors->first('driver_id') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.card.fields.driver_helper') }}</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

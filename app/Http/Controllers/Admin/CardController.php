@@ -8,6 +8,7 @@ use App\Http\Requests\StoreCardRequest;
 use App\Http\Requests\UpdateCardRequest;
 use App\Models\Card;
 use App\Models\Company;
+use App\Models\Driver;
 use Gate;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -131,13 +132,15 @@ class CardController extends Controller
         abort_if(Gate::denies('card_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = $this->activeDriversForForm();
 
-        return view('admin.cards.create', compact('companies'));
+        return view('admin.cards.create', compact('companies', 'drivers'));
     }
 
     public function store(StoreCardRequest $request)
     {
         $card = Card::create($request->all());
+        $this->syncAssignedDriver($card, $request->input('driver_id'));
 
         return redirect()->route('admin.cards.index');
     }
@@ -147,15 +150,17 @@ class CardController extends Controller
         abort_if(Gate::denies('card_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = $this->activeDriversForForm();
 
-        $card->load('company');
+        $card->load(['company', 'drivers', 'primaryDrivers']);
 
-        return view('admin.cards.edit', compact('card', 'companies'));
+        return view('admin.cards.edit', compact('card', 'companies', 'drivers'));
     }
 
     public function update(UpdateCardRequest $request, Card $card)
     {
         $card->update($request->all());
+        $this->syncAssignedDriver($card, $request->input('driver_id'));
 
         return redirect()->route('admin.cards.index');
     }
@@ -164,7 +169,7 @@ class CardController extends Controller
     {
         abort_if(Gate::denies('card_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $card->load('company');
+        $card->load(['company', 'drivers', 'primaryDrivers']);
 
         return view('admin.cards.show', compact('card'));
     }
@@ -240,5 +245,25 @@ class CardController extends Controller
                 $builder->orWhereIn('cards.type', $matchingTypes);
             }
         });
+    }
+
+    private function activeDriversForForm()
+    {
+        $query = Driver::query()
+            ->where('state_id', 1)
+            ->orderBy('name');
+
+        if (session()->has('company_id') && (string) session()->get('company_id') !== '0') {
+            $query->where('company_id', session()->get('company_id'));
+        }
+
+        return $query->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+    }
+
+    private function syncAssignedDriver(Card $card, $driverId): void
+    {
+        $driverId = $driverId ? (int) $driverId : null;
+
+        $card->drivers()->sync($driverId ? [$driverId] : []);
     }
 }
