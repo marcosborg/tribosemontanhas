@@ -147,12 +147,12 @@ class HomeController
                 ->where('tvde_week_id', $tvde_week_id)
                 ->whereIn('card', $cardCodes->all())
                 ->orderBy('id')
-                ->get(['total', 'created_at']);
+                ->get(['total', 'transaction_date', 'created_at']);
         }
 
         $prioItems = $prioTransactions
             ->map(function ($tx) {
-                $rawDate = $tx->transaction_date ?? $tx->date ?? $tx->created_at;
+                $rawDate = $tx->transaction_date ?? $tx->created_at;
 
                 return [
                     'date' => $rawDate ? Carbon::parse($rawDate)->format('Y-m-d H:i') : null,
