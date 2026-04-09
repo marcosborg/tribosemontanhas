@@ -77,14 +77,26 @@
                                 <th>{{ trans('cruds.teslaCharging.fields.value') }}</th>
                                 <th>{{ trans('cruds.teslaCharging.fields.license') }}</th>
                                 <th>{{ trans('cruds.teslaCharging.fields.datetime') }}</th>
+                                <th>Condutor</th>
+                                <th>Existe</th>
+                                <th>Validação</th>
                                 <th>&nbsp;</th>
                             </tr>
                             <tr>
                                 <td></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
-                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.id"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.value"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.license"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.datetime"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="Pesquisar condutor" data-col-name="resolved_driver_name"></td>
+                                <td>
+                                    <select class="search form-control input-sm" data-col-name="validation_status">
+                                        <option value="">Todos</option>
+                                        <option value="exists">Sim</option>
+                                        <option value="does_not_exist">Não</option>
+                                    </select>
+                                </td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="Pesquisar validação" data-col-name="validation_issue"></td>
                                 <td></td>
                             </tr>
                         </thead>
@@ -111,7 +123,7 @@ $(function () {
       }
     })
   }
-  // Botões (mass delete etc.)
+
   let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
 
   @can('tesla_charging_delete')
@@ -143,7 +155,6 @@ $(function () {
   dtButtons.push(deleteButton)
   @endcan
 
-  // Configuração DataTable
   let dtOverrideGlobals = {
     buttons: dtButtons,
     processing: true,
@@ -153,11 +164,14 @@ $(function () {
     ajax: "{{ route('admin.tesla-chargings.index') }}",
     columns: [
       { data: 'placeholder', name: 'placeholder', searchable: false, orderable: false },
-      { data: 'id',        name: 'tesla_chargings.id' },
-      { data: 'value',     name: 'tesla_chargings.value' },
-      { data: 'license',   name: 'tesla_chargings.license' },
-      { data: 'datetime',  name: 'tesla_chargings.datetime' },
-      { data: 'actions',   name: 'actions', searchable: false, orderable: false }
+      { data: 'id', name: 'tesla_chargings.id' },
+      { data: 'value', name: 'tesla_chargings.value' },
+      { data: 'license', name: 'tesla_chargings.license' },
+      { data: 'datetime', name: 'tesla_chargings.datetime' },
+      { data: 'resolved_driver_name', name: 'resolved_driver_name', orderable: false },
+      { data: 'validation_status', name: 'validation_status', orderable: false },
+      { data: 'validation_issue', name: 'validation_issue', orderable: false },
+      { data: 'actions', name: 'actions', searchable: false, orderable: false }
     ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
@@ -166,36 +180,23 @@ $(function () {
 
   let table = $('.datatable-TeslaCharging').DataTable(dtOverrideGlobals)
 
-  // Ajuste em tabs (se existirem)
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
       $($.fn.dataTable.tables(true)).DataTable().columns.adjust();
   });
 
-  // Pesquisa por coluna (com suporte a column-visibility)
-  let visibleColumnsIndexes = null
-
-  // Delegado para apanhar o cabeçalho correto mesmo com FixedHeader/clone
-  $(document).on('input', '.datatable-TeslaCharging thead .search', function () {
+  $(document).on('input change', '.datatable-TeslaCharging thead .search', function () {
       let strict = $(this).attr('strict') || false
       let value  = strict && this.value ? "^" + this.value + "$" : this.value
+      let colName = $(this).data('col-name')
 
-      // usar TH do header correspondente
-      let index = $(this).closest('th').index()
-      if (visibleColumnsIndexes !== null) {
-        index = visibleColumnsIndexes[index]
+      if (!colName) {
+        return
       }
 
       table
-        .column(index)
-        .search(value, strict)
+        .column(colName + ':name')
+        .search(value, !!strict)
         .draw()
-  })
-
-  table.on('column-visibility.dt', function(){
-      visibleColumnsIndexes = []
-      table.columns(":visible").every(function(colIdx){
-          visibleColumnsIndexes.push(colIdx)
-      })
   })
 })
 </script>

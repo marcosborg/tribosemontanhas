@@ -39,6 +39,9 @@
                                     </th>
                                     <td>
                                         {{ $teslaCharging->license ?? '' }}
+                                        @if(!empty($validation['resolved_vehicle_license_plate']))
+                                            / {{ $validation['resolved_vehicle_license_plate'] }}
+                                        @endif
                                     </td>
                                 </tr>
                                 <tr>
@@ -48,6 +51,18 @@
                                     <td>
                                         {{ $teslaCharging->tvde_week->start_date ?? '' }}
                                     </td>
+                                </tr>
+                                <tr>
+                                    <th>Condutor</th>
+                                    <td>{{ $validation['resolved_driver_name'] ?? 'Não resolvido' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Existe</th>
+                                    <td>{{ ($validation['validation_status'] ?? '') === 'exists' ? 'Sim' : 'Não' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Validação</th>
+                                    <td>{{ $validation['validation_issue'] ?? 'Válido' }}</td>
                                 </tr>
                             </tbody>
                         </table>

@@ -7,12 +7,12 @@ use App\Http\Controllers\Traits\CsvImportTrait;
 use App\Http\Requests\MassDestroyTeslaChargingRequest;
 use App\Http\Requests\StoreTeslaChargingRequest;
 use App\Http\Requests\UpdateTeslaChargingRequest;
-use App\Models\Driver;
 use App\Models\TeslaCharging;
 use App\Models\TvdeWeek;
 use App\Services\TeslaChargingImporter;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
@@ -26,7 +26,92 @@ class TeslaChargingController extends Controller
         abort_if(Gate::denies('tesla_charging_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         if ($request->ajax()) {
-            $query = TeslaCharging::select(sprintf('%s.*', (new TeslaCharging)->table));
+            $normalizedTeslaIdentifier = "REPLACE(REPLACE(UPPER(COALESCE(tesla_chargings.license, '')), ' ', ''), '-', '')";
+            $usageMatchCondition = "
+                (
+                    REPLACE(REPLACE(UPPER(COALESCE(vehicle_items.license_plate, '')), ' ', ''), '-', '') = {$normalizedTeslaIdentifier}
+                    OR REPLACE(REPLACE(UPPER(COALESCE(vehicle_items.vin, '')), ' ', ''), '-', '') = {$normalizedTeslaIdentifier}
+                )
+                AND vehicle_usages.start_date <= tesla_chargings.datetime
+                AND (vehicle_usages.end_date IS NULL OR vehicle_usages.end_date >= tesla_chargings.datetime)
+                AND vehicle_usages.deleted_at IS NULL
+                AND vehicle_items.deleted_at IS NULL
+            ";
+
+            $totalMatchesSubquery = "
+                SELECT COUNT(*)
+                FROM vehicle_usages
+                INNER JOIN vehicle_items ON vehicle_items.id = vehicle_usages.vehicle_item_id
+                WHERE {$usageMatchCondition}
+            ";
+
+            $nonNullDistinctDriversSubquery = "
+                SELECT COUNT(DISTINCT vehicle_usages.driver_id)
+                FROM vehicle_usages
+                INNER JOIN vehicle_items ON vehicle_items.id = vehicle_usages.vehicle_item_id
+                WHERE {$usageMatchCondition}
+                  AND vehicle_usages.driver_id IS NOT NULL
+            ";
+
+            $resolvedDriverIdSubquery = "
+                SELECT CASE
+                    WHEN COUNT(DISTINCT vehicle_usages.driver_id) = 1 THEN MIN(vehicle_usages.driver_id)
+                    ELSE NULL
+                END
+                FROM vehicle_usages
+                INNER JOIN vehicle_items ON vehicle_items.id = vehicle_usages.vehicle_item_id
+                WHERE {$usageMatchCondition}
+                  AND vehicle_usages.driver_id IS NOT NULL
+            ";
+
+            $resolvedVehiclePlateSubquery = "
+                SELECT CASE
+                    WHEN COUNT(DISTINCT vehicle_usages.vehicle_item_id) = 1 THEN MIN(vehicle_items.license_plate)
+                    ELSE NULL
+                END
+                FROM vehicle_usages
+                INNER JOIN vehicle_items ON vehicle_items.id = vehicle_usages.vehicle_item_id
+                WHERE {$usageMatchCondition}
+            ";
+
+            $validationIssueSql = "
+                CASE
+                    WHEN ({$resolvedDriverIdSubquery}) IS NOT NULL THEN 'Válido'
+                    WHEN ({$totalMatchesSubquery}) = 0 THEN 'Sem utilização nesse momento'
+                    WHEN ({$nonNullDistinctDriversSubquery}) = 0 THEN 'Viatura sem condutor atribuído nesse momento'
+                    ELSE 'Conflito de utilizações nesse momento'
+                END
+            ";
+
+            $query = TeslaCharging::query()
+                ->leftJoin('tvde_weeks', 'tvde_weeks.id', '=', 'tesla_chargings.tvde_week_id')
+                ->select([
+                    'tesla_chargings.id',
+                    'tesla_chargings.value',
+                    'tesla_chargings.license',
+                    'tesla_chargings.datetime',
+                    'tesla_chargings.tvde_week_id',
+                    'tesla_chargings.deleted_at',
+                    'tvde_weeks.start_date as tvde_week_start_date',
+                    DB::raw("({$resolvedDriverIdSubquery}) AS resolved_driver_id"),
+                    DB::raw("({$resolvedVehiclePlateSubquery}) AS resolved_vehicle_license_plate"),
+                    DB::raw("
+                        (
+                            SELECT drivers.name
+                            FROM drivers
+                            WHERE drivers.id = ({$resolvedDriverIdSubquery})
+                              AND drivers.deleted_at IS NULL
+                            LIMIT 1
+                        ) AS resolved_driver_name
+                    "),
+                    DB::raw("
+                        CASE
+                            WHEN ({$resolvedDriverIdSubquery}) IS NOT NULL THEN 'exists'
+                            ELSE 'does_not_exist'
+                        END AS validation_status
+                    "),
+                    DB::raw("{$validationIssueSql} AS validation_issue"),
+                ]);
             $table = Datatables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
@@ -54,11 +139,66 @@ class TeslaChargingController extends Controller
                 return $row->value ? $row->value : '';
             });
             $table->addColumn('license', function ($row) {
-                return $row->license ? $row->license : '';
+                if (!$row->license) {
+                    return '';
+                }
+
+                return $row->resolved_vehicle_license_plate
+                    ? $row->license . ' / ' . $row->resolved_vehicle_license_plate
+                    : $row->license;
             });
 
             $table->addColumn('datetime', function ($row) {
                 return $row->datetime ? $row->datetime : '';
+            });
+            $table->addColumn('resolved_driver_name', function ($row) {
+                return $row->resolved_driver_name ?: 'Não resolvido';
+            });
+            $table->addColumn('validation_status', function ($row) {
+                return $row->validation_status === 'exists' ? 'Sim' : 'Não';
+            });
+            $table->addColumn('validation_issue', function ($row) {
+                return $row->validation_issue ?: '';
+            });
+
+            $table->filterColumn('resolved_driver_name', function ($query, $keyword) use ($resolvedDriverIdSubquery) {
+                $keyword = trim($keyword);
+                if ($keyword === '') {
+                    return;
+                }
+
+                $query->whereExists(function ($subquery) use ($resolvedDriverIdSubquery, $keyword) {
+                    $subquery->select(DB::raw(1))
+                        ->from('drivers')
+                        ->whereRaw("drivers.id = ({$resolvedDriverIdSubquery})")
+                        ->whereNull('drivers.deleted_at')
+                        ->where('drivers.name', 'like', "%{$keyword}%");
+                });
+            });
+
+            $table->filterColumn('validation_status', function ($query, $keyword) use ($resolvedDriverIdSubquery) {
+                $keyword = mb_strtolower(trim(str_replace(['^', '$'], '', $keyword)));
+
+                if ($keyword === '') {
+                    return;
+                }
+
+                if (in_array($keyword, ['sim', 's', '1', 'yes', 'exists', 'existe'], true)) {
+                    $query->whereRaw("({$resolvedDriverIdSubquery}) IS NOT NULL");
+                }
+
+                if (in_array($keyword, ['nao', 'não', 'n', '0', 'no', 'does_not_exist'], true)) {
+                    $query->whereRaw("({$resolvedDriverIdSubquery}) IS NULL");
+                }
+            });
+
+            $table->filterColumn('validation_issue', function ($query, $keyword) use ($validationIssueSql) {
+                $keyword = trim($keyword);
+                if ($keyword === '') {
+                    return;
+                }
+
+                $query->whereRaw("{$validationIssueSql} LIKE ?", ["%{$keyword}%"]);
             });
 
             $table->rawColumns(['actions', 'placeholder']);
@@ -105,8 +245,9 @@ class TeslaChargingController extends Controller
         abort_if(Gate::denies('tesla_charging_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $teslaCharging->load('tvde_week');
+        $validation = $teslaCharging->resolveUsageValidation();
 
-        return view('admin.teslaChargings.show', compact('teslaCharging'));
+        return view('admin.teslaChargings.show', compact('teslaCharging', 'validation'));
     }
 
     public function destroy(TeslaCharging $teslaCharging)
