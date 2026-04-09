@@ -74,6 +74,7 @@
                             <tr>
                                 <th width="10"></th>
                                 <th>{{ trans('cruds.teslaCharging.fields.id') }}</th>
+                                <th>{{ trans('cruds.teslaCharging.fields.tvde_week') }}</th>
                                 <th>{{ trans('cruds.teslaCharging.fields.value') }}</th>
                                 <th>{{ trans('cruds.teslaCharging.fields.license') }}</th>
                                 <th>{{ trans('cruds.teslaCharging.fields.datetime') }}</th>
@@ -85,6 +86,7 @@
                             <tr>
                                 <td></td>
                                 <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.id"></td>
+                                <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_week_start_date"></td>
                                 <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.value"></td>
                                 <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.license"></td>
                                 <td><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tesla_chargings.datetime"></td>
@@ -165,6 +167,7 @@ $(function () {
     columns: [
       { data: 'placeholder', name: 'placeholder', searchable: false, orderable: false },
       { data: 'id', name: 'tesla_chargings.id' },
+      { data: 'tvde_week_start_date', name: 'tvde_week_start_date' },
       { data: 'value', name: 'tesla_chargings.value' },
       { data: 'license', name: 'tesla_chargings.license' },
       { data: 'datetime', name: 'tesla_chargings.datetime' },

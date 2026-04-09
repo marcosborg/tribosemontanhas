@@ -76,10 +76,10 @@ class TeslaChargingController extends Controller
 
             $validationIssueSql = "
                 CASE
-                    WHEN ({$resolvedDriverIdSubquery}) IS NOT NULL THEN 'Válido'
-                    WHEN ({$totalMatchesSubquery}) = 0 THEN 'Sem utilização nesse momento'
-                    WHEN ({$nonNullDistinctDriversSubquery}) = 0 THEN 'Viatura sem condutor atribuído nesse momento'
-                    ELSE 'Conflito de utilizações nesse momento'
+                    WHEN ({$resolvedDriverIdSubquery}) IS NOT NULL THEN 'Valido'
+                    WHEN ({$totalMatchesSubquery}) = 0 THEN 'Sem utilizacao nesse momento'
+                    WHEN ({$nonNullDistinctDriversSubquery}) = 0 THEN 'Viatura sem condutor atribuido nesse momento'
+                    ELSE 'Conflito de utilizacoes nesse momento'
                 END
             ";
 
@@ -112,15 +112,16 @@ class TeslaChargingController extends Controller
                     "),
                     DB::raw("{$validationIssueSql} AS validation_issue"),
                 ]);
-            $table = Datatables::of($query);
+
+            $table = DataTables::of($query);
 
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
             $table->editColumn('actions', function ($row) {
-                $viewGate      = 'tesla_charging_show';
-                $editGate      = 'tesla_charging_edit';
-                $deleteGate    = 'tesla_charging_delete';
+                $viewGate = 'tesla_charging_show';
+                $editGate = 'tesla_charging_edit';
+                $deleteGate = 'tesla_charging_delete';
                 $crudRoutePart = 'tesla-chargings';
 
                 return view('partials.datatablesActions', compact(
@@ -132,12 +133,9 @@ class TeslaChargingController extends Controller
                 ));
             });
 
-            $table->editColumn('id', function ($row) {
-                return $row->id ? $row->id : '';
-            });
-            $table->editColumn('value', function ($row) {
-                return $row->value ? $row->value : '';
-            });
+            $table->editColumn('id', fn ($row) => $row->id ?: '');
+            $table->addColumn('tvde_week_start_date', fn ($row) => $row->tvde_week_start_date ?: '');
+            $table->editColumn('value', fn ($row) => $row->value ?: '');
             $table->addColumn('license', function ($row) {
                 if (!$row->license) {
                     return '';
@@ -147,18 +145,18 @@ class TeslaChargingController extends Controller
                     ? $row->license . ' / ' . $row->resolved_vehicle_license_plate
                     : $row->license;
             });
+            $table->addColumn('datetime', fn ($row) => $row->datetime ?: '');
+            $table->addColumn('resolved_driver_name', fn ($row) => $row->resolved_driver_name ?: 'Nao resolvido');
+            $table->addColumn('validation_status', fn ($row) => $row->validation_status === 'exists' ? 'Sim' : 'Nao');
+            $table->addColumn('validation_issue', fn ($row) => $row->validation_issue ?: '');
 
-            $table->addColumn('datetime', function ($row) {
-                return $row->datetime ? $row->datetime : '';
-            });
-            $table->addColumn('resolved_driver_name', function ($row) {
-                return $row->resolved_driver_name ?: 'Não resolvido';
-            });
-            $table->addColumn('validation_status', function ($row) {
-                return $row->validation_status === 'exists' ? 'Sim' : 'Não';
-            });
-            $table->addColumn('validation_issue', function ($row) {
-                return $row->validation_issue ?: '';
+            $table->filterColumn('tvde_week_start_date', function ($query, $keyword) {
+                $keyword = trim($keyword);
+                if ($keyword === '') {
+                    return;
+                }
+
+                $query->where('tvde_weeks.start_date', 'like', "%{$keyword}%");
             });
 
             $table->filterColumn('resolved_driver_name', function ($query, $keyword) use ($resolvedDriverIdSubquery) {
@@ -221,7 +219,7 @@ class TeslaChargingController extends Controller
 
     public function store(StoreTeslaChargingRequest $request)
     {
-        $teslaCharging = TeslaCharging::create($request->all());
+        TeslaCharging::create($request->all());
 
         return redirect()->route('admin.tesla-chargings.index');
     }
@@ -298,6 +296,6 @@ class TeslaChargingController extends Controller
         return redirect()
             ->route('admin.tesla-chargings.index')
             ->with('open_import_panel', 'tesla')
-            ->with('message', "Import Tesla Charging concluído com {$rows} linhas.");
+            ->with('message', "Import Tesla Charging concluido com {$rows} linhas.");
     }
 }
