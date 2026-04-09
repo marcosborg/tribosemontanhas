@@ -136,6 +136,27 @@ class HomeController
             ->values()
             ->all();
 
+        $vehicleIdentifiers = VehicleUsage::query()
+            ->with('vehicle_item')
+            ->where('driver_id', $driver_id)
+            ->activeBetween($weekStart, $weekEnd)
+            ->where(function ($q) {
+                $q->whereNull('usage_exceptions')
+                    ->orWhere('usage_exceptions', 'usage')
+                    ->orWhereRaw("JSON_VALID(usage_exceptions) AND JSON_CONTAINS(COALESCE(usage_exceptions,'[]'), '\"usage\"')");
+            })
+            ->get()
+            ->flatMap(function ($usage) use ($normalizePlate) {
+                return [
+                    $normalizePlate(optional($usage->vehicle_item)->license_plate),
+                    $normalizePlate(optional($usage->vehicle_item)->vin),
+                ];
+            })
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $cardCodes = collect($driver->cards ?? [])->pluck('code')->filter()->values();
         if ($cardCodes->isEmpty() && $driver->card) {
             $cardCodes = collect([$driver->card->code]);
@@ -164,14 +185,14 @@ class HomeController
 
         $teslaItems = [];
         $teslaTotal = 0.0;
-        if (!empty($vehiclePlates)) {
+        if (!empty($vehicleIdentifiers)) {
             $teslaChargings = TeslaCharging::query()
                 ->where('datetime', '>=', $weekStart)
                 ->where('datetime', '<=', $weekEnd)
                 ->get(['license', 'value', 'datetime']);
 
-            $teslaFiltered = $teslaChargings->filter(function ($charging) use ($vehiclePlates, $normalizePlate) {
-                return in_array($normalizePlate($charging->license), $vehiclePlates, true);
+            $teslaFiltered = $teslaChargings->filter(function ($charging) use ($vehicleIdentifiers, $normalizePlate) {
+                return in_array($normalizePlate($charging->license), $vehicleIdentifiers, true);
             });
 
             $teslaTotal = $teslaFiltered->sum('value');
