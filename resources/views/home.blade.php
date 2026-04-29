@@ -107,12 +107,12 @@
             </div>
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    IVA das atividades por operador
+                    Taxa 6% das atividades por operador
                 </div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>IVA</th>
+                            <th>Taxa 6%</th>
                             <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
                         </tr>
                     </table>
@@ -320,7 +320,7 @@
                                 @endforeach
                             @endif
                             <tr>
-                                <th>IVA</th>
+                                <th>Taxa 6%</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
@@ -402,7 +402,7 @@
                                 <td>{{ number_format($driver_balance->final ?? 0, 2) }}€</td>
                             </tr>
                             <tr>
-                                <th>IVA a devolver:</th>
+                                <th>Taxa 6% a devolver:</th>
                                 <td>{{ number_format($driver_balance->iva ?? 0, 2) }}€</td>
                             </tr>
                             <tr>
@@ -872,14 +872,3 @@
 </script>
 
 @endsection
-
-
-
-
-
-
-
-
-
-
-

@@ -71,11 +71,11 @@
             </div>
 
             <div class="panel panel-default">
-                <div class="panel-heading">IVA</div>
+                <div class="panel-heading">Taxa 6%</div>
                 <div class="panel-body">
                     <table class="table table-striped">
                         <tr>
-                            <th>IVA</th>
+                            <th>Taxa 6%</th>
                             <td style="color: red;">- {{ number_format($vat_value, 2) }}€</td>
                         </tr>
                     </table>
@@ -263,7 +263,7 @@
                             {{-- =============================================================== --}}
 
                             <tr class="section-title-row">
-                                <th>IVA</th>
+                                <th>Taxa 6%</th>
                                 <td></td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
                                 <td>- {{ number_format($vat_value, 2) }}€</td>
