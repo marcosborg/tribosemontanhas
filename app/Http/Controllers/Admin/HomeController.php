@@ -317,6 +317,8 @@ class HomeController
             'total_net' => isset($results) ? $results->total_net : 0,
             'adjustments' => isset($results) ? $results->adjustments : 0,
             'adjustments_array' => $adjustments_array,
+            'deposit_movements' => isset($results) ? ($results->deposit_movements ?? []) : [],
+            'deposit_total' => isset($results) ? ($results->deposit_total ?? 0) : 0,
             'total' => isset($results) ? $results->total : 0,
             'vat_value' => isset($results) ? $results->vat_value : 0,
             'car_track' => isset($results) ? $results->car_track : 0,
@@ -422,5 +424,4 @@ class HomeController
         return redirect()->back();
     }
 }
-
 

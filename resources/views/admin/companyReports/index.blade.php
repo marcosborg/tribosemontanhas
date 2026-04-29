@@ -262,6 +262,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right;">IVA</th>
                         <th style="text-align:right;">Abastecimento</th>
                         <th style="text-align:right;">Ajustes</th>
+                        <th style="text-align:right;">Cauções</th>
                         <th style="text-align:right;">Via verde</th>
                         <th style="text-align:right;">Aluguer</th>
                         <th style="text-align:right;">Valor transitado</th>
@@ -273,7 +274,7 @@ $(document).on('click', '.flag-toggle', function(e){
                 </thead>
 
                 <tbody>
-                @php $ajustesTotalSemAluguer = 0; @endphp
+                @php $ajustesTotalSemAluguer = 0; $depositTotalGeral = 0; @endphp
                 @foreach ($drivers as $driver)
                     @if ($driver->earnings)
                         @php
@@ -357,6 +358,15 @@ $(document).on('click', '.flag-toggle', function(e){
 
                             $ajustesValor = (float) ($driver->adjustments ?? 0) - (float) $ajustesCarHireValor;
                             $ajustesTotalSemAluguer += $ajustesValor;
+                            $depositMovements = collect(data_get($driver->earnings, 'deposit_movements', []));
+                            $depositTotal = (float) ($driver->deposit_total ?? data_get($driver->earnings, 'deposit_total', 0));
+                            $depositTotalGeral += $depositTotal;
+                            $depositList = $depositMovements->map(function($item){
+                                $label = e(data_get($item, 'label', 'Caução'));
+                                $value = (float) data_get($item, 'statement_value', 0);
+                                $sign = $value >= 0 ? '+' : '-';
+                                return "<div style='margin-bottom:6px;'><strong>{$label}</strong><br>{$sign}" . number_format(abs($value), 2) . "€</div>";
+                            })->implode('');
 
                             $carHireBase = (float) ($driver->earnings['car_hire'] ?? 0) - (float) $ajustesCarHireValor;
                             $baseLine = "<div style='display:flex; justify-content:space-between; gap:10px; margin-bottom:6px;'><span><strong>Base</strong></span><span>" . number_format($carHireBase, 2) . " €</span></div>";
@@ -473,6 +483,20 @@ $(document).on('click', '.flag-toggle', function(e){
                             </td>
                             {{-- ============================================================ --}}
 
+                            <td style="text-align:right;">
+                                {{ number_format($depositTotal, 2) }} <small>€</small>
+                                @if($depositMovements->count() > 0)
+                                    <a tabindex="0"
+                                       class="flag-red"
+                                       role="button"
+                                       data-toggle="popover"
+                                       data-trigger="focus"
+                                       data-html="true"
+                                       title="Cauções"
+                                       data-content="{!! $depositList !!}"><span class="glyphicon glyphicon-eye-open"></span></a>
+                                @endif
+                            </td>
+
                             <td style="text-align:right;">-{{ number_format($driver->earnings['car_track'] ?? 0, 2) }} <small>€</small></td>
                             <td style="text-align:right;">
                                 -{{ number_format($driver->earnings['car_hire'] ?? 0, 2) }} <small>€</small>
@@ -532,6 +556,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             $cur_vat       = (float) ($driver->earnings['vat_value']        ?? 0);
                             $cur_fuel      = (float) ($driver->fuel                         ?? 0);
                             $cur_adj       = (float) ($ajustesValor ?? ($driver->adjustments ?? 0));
+                            $cur_deposit   = (float) ($depositTotal ?? 0);
                             $cur_cartrack  = (float) ($driver->earnings['car_track']        ?? 0);
                             $cur_carhire   = (float) ($driver->earnings['car_hire']         ?? 0);
                             $cur_total     = (float) ($valorSemanaAtual);
@@ -542,6 +567,7 @@ $(document).on('click', '.flag-toggle', function(e){
                             $val_vat       = (float) data_get($cca, 'vat_value', 0);
                             $val_fuel      = (float) data_get($cca, 'fuel_transactions', 0);
                             $val_adj       = (float) data_get($cca, 'adjustments_excluding_car_hire', data_get($cca, 'adjustments', 0));
+                            $val_deposit   = (float) data_get($cca, 'deposit_total', 0);
                             $val_cartrack  = (float) data_get($cca, 'car_track', 0);
                             $val_carhire   = (float) data_get($cca, 'car_hire', 0);
                             $val_total     = (float) data_get($cca, 'total', 0);
@@ -550,7 +576,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         @endphp
 
                         <tr id="diff-{{ $driver->id }}" class="diff-row" style="display:none; background:#fff7f7;">
-                            <td colspan="16" style="padding:12px 16px;">
+                            <td colspan="17" style="padding:12px 16px;">
                                 <div class="row">
                                     <div class="col-sm-6">
                                         <h5><strong>Atual</strong></h5>
@@ -560,6 +586,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                             <tr><td>IVA</td>             <td style="text-align:right;">{{ $fmt($cur_vat) }}</td></tr>
                                             <tr><td>Abastecimento</td>   <td style="text-align:right;">{{ $fmt($cur_fuel) }}</td></tr>
                                             <tr><td>Ajustes</td>         <td style="text-align:right;">{{ $fmt($cur_adj) }}</td></tr>
+                                            <tr><td>Cauções</td>         <td style="text-align:right;">{{ $fmt($cur_deposit) }}</td></tr>
                                             <tr><td>Via Verde</td>       <td style="text-align:right;">{{ $fmt($cur_cartrack) }}</td></tr>
                                             <tr><td>Aluguer</td>         <td style="text-align:right;">{{ $fmt($cur_carhire) }}</td></tr>
                                             <tr><td><strong>Total semana</strong></td>
@@ -574,6 +601,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                             <tr><td>IVA</td>             <td style="text-align:right;">{{ $fmt($val_vat) }}</td></tr>
                                             <tr><td>Abastecimento</td>   <td style="text-align:right;">{{ $fmt($val_fuel) }}</td></tr>
                                             <tr><td>Ajustes</td>         <td style="text-align:right;">{{ $fmt($val_adj) }}</td></tr>
+                                            <tr><td>Cauções</td>         <td style="text-align:right;">{{ $fmt($val_deposit) }}</td></tr>
                                             <tr><td>Via Verde</td>       <td style="text-align:right;">{{ $fmt($val_cartrack) }}</td></tr>
                                             <tr><td>Aluguer</td>         <td style="text-align:right;">{{ $fmt($val_carhire) }}</td></tr>
                                             <tr><td><strong>Total semana</strong></td>
@@ -592,6 +620,7 @@ $(document).on('click', '.flag-toggle', function(e){
                                             <li>IVA: {{ $fmt($cur_vat - $val_vat) }}</li>
                                             <li>Abastecimento: {{ $fmt($cur_fuel - $val_fuel) }}</li>
                                             <li>Ajustes: {{ $fmt($cur_adj - $val_adj) }}</li>
+                                            <li>Cauções: {{ $fmt($cur_deposit - $val_deposit) }}</li>
                                             <li>Via Verde: {{ $fmt($cur_cartrack - $val_cartrack) }}</li>
                                             <li>Aluguer: {{ $fmt($cur_carhire - $val_carhire) }}</li>
                                             <li><strong>Total semana:</strong> {{ $fmt($cur_total - $val_total) }}</li>
@@ -612,6 +641,7 @@ $(document).on('click', '.flag-toggle', function(e){
                         <th style="text-align:right; color:red;">- {{ number_format($totals['total_vat_value'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">-{{ number_format($totals['total_fuel_transactions'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">{{ number_format($ajustesTotalSemAluguer ?? ($totals['total_adjustments'] ?? 0), 2) }} <small>€</small></th>
+                        <th style="text-align:right;">{{ number_format($depositTotalGeral ?? ($totals['total_deposits'] ?? 0), 2) }} <small>€</small></th>
                         <th style="text-align:right;">{{ number_format($totals['total_car_track'] ?? 0, 2) }} <small>€</small></th>
                         <th style="text-align:right;">-{{ number_format($totals['total_car_hire'] ?? 0, 2) }} <small>€</small></th>
                         <th></th>

@@ -68,14 +68,15 @@ class CompanyReportController extends Controller
             };
 
             // 🔹 Normaliza o total do motorista
-            $total = $normalize($data['driver']['total']);
-
-            $earnings = $data['driver']['earnings'] ?? [];
+            $serverDriver = $driversById->get($data['driver']['id']);
+            $total = $serverDriver ? (float) $serverDriver->total : $normalize($data['driver']['total']);
+            $earnings = $serverDriver && $serverDriver->earnings
+                ? $serverDriver->earnings->toArray()
+                : ($data['driver']['earnings'] ?? []);
             if (!is_array($earnings)) {
                 $earnings = (array) $earnings;
             }
 
-            $serverDriver = $driversById->get($data['driver']['id']);
             $detailsPayload = $this->buildFuelDetailsPayload($serverDriver);
             if (!empty($detailsPayload)) {
                 $earnings = array_merge($earnings, $detailsPayload);
@@ -142,7 +143,9 @@ class CompanyReportController extends Controller
         $serverDriver = $driversById->get($driver_id);
         $detailsPayload = $this->buildFuelDetailsPayload($serverDriver);
 
-        $payload = is_array($data) ? $data : (array) $data;
+        $payload = $serverDriver && $serverDriver->earnings
+            ? $serverDriver->earnings->toArray()
+            : (is_array($data) ? $data : (array) $data);
         if (!empty($detailsPayload)) {
             $payload = array_merge($payload, $detailsPayload);
         }
@@ -150,26 +153,28 @@ class CompanyReportController extends Controller
         $current_account->data = json_encode($payload);
         $current_account->save();
 
-        $last_balance = DriversBalance::where('driver_id', $data['driver']['id'])
+        $last_balance = DriversBalance::where('driver_id', $driver_id)
             ->where('tvde_week_id', '<', $tvde_week_id)
             ->orderBy('tvde_week_id', 'desc')
             ->value('balance');
 
         $last_balance = (float) ($last_balance ?? 0);
 
+        $total = $serverDriver ? (float) $serverDriver->total : (float) $data['driver']['total'];
+
         DriversBalance::updateOrCreate(
             [
-                'driver_id'    => $data['driver']['id'],
-                'tvde_week_id' => $data['tvde_week_id'],
+                'driver_id'    => $driver_id,
+                'tvde_week_id' => $tvde_week_id,
             ],
             [
-                'value'           => $data['driver']['total'],
+                'value'           => $total,
                 'drivers_balance' => $last_balance,
-                'balance'         => $last_balance + $data['driver']['total'],
+                'balance'         => $last_balance + $total,
             ]
         );
 
-        DriversBalance::applyAdjustmentFromWeek($data['driver']['id'], $data['tvde_week_id'], 0);
+        DriversBalance::applyAdjustmentFromWeek($driver_id, $tvde_week_id, 0);
     }
 
     public function deleteData($tvde_week_id, $driver_id)
@@ -358,4 +363,3 @@ class CompanyReportController extends Controller
         ]);
     }
 }
-

@@ -380,6 +380,17 @@
                         </a>
                     </li>
                     @endcan
+                    @can('driver_deposit_access')
+                    <li class="{{ request()->is("admin/driver-deposits") || request()->is("admin/driver-deposits/*") ? "active" : "" }}">
+                        <a href="{{ route("admin.driver-deposits.index") }}">
+                            <i class="fa-fw fas fa-piggy-bank">
+
+                            </i>
+                            <span>Cauções</span>
+
+                        </a>
+                    </li>
+                    @endcan
                     @can('weekly_vehicle_expense_access')
                             <li class="{{ request()->is("admin/weekly-vehicle-expenses") || request()->is("admin/weekly-vehicle-expenses/*") ? "active" : "" }}">
                                 <a href="{{ route("admin.weekly-vehicle-expenses.index") }}">

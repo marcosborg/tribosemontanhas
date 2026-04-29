@@ -397,6 +397,13 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('adjustments/process-csv-import', 'AdjustmentController@processCsvImport')->name('adjustments.processCsvImport');
     Route::resource('adjustments', 'AdjustmentController');
 
+    // Driver Deposits
+    Route::post('driver-deposits/{driverDeposit}/internal-debit', 'DriverDepositController@internalDebit')->name('driver-deposits.internal-debit');
+    Route::post('driver-deposits/{driverDeposit}/refund', 'DriverDepositController@refund')->name('driver-deposits.refund');
+    Route::resource('driver-deposits', 'DriverDepositController')->parameters([
+        'driver-deposits' => 'driverDeposit',
+    ]);
+
     // Company Expense
     Route::delete('company-expenses/destroy', 'CompanyExpenseController@massDestroy')->name('company-expenses.massDestroy');
     Route::post('company-expenses/parse-csv-import', 'CompanyExpenseController@parseCsvImport')->name('company-expenses.parseCsvImport');

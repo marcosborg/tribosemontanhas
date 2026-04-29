@@ -26,6 +26,7 @@ use App\Models\CompanyData;
 use App\Models\CarTrack;
 use App\Models\TeslaCharging;
 use App\Models\VehicleUsage;
+use App\Services\DriverDepositService;
 use Carbon\Carbon;
 use App\Services\FilterResolver;
 
@@ -446,6 +447,23 @@ trait Reports
                 ];
             }
 
+            $depositService = app(DriverDepositService::class);
+            $depositMovements = $depositService->statementMovementsForWeek((int) $driver->id, (int) $company_id, (int) $tvde_week_id);
+            $depositTotal = $depositService->statementImpact($depositMovements);
+            $depositMovementItems = $depositMovements->map(function ($movement) {
+                return [
+                    'id' => $movement->id,
+                    'type' => $movement->type,
+                    'label' => \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type,
+                    'description' => $movement->description,
+                    'amount' => (float) $movement->amount,
+                    'statement_value' => $movement->type === \App\Models\DriverDepositMovement::TYPE_REFUND
+                        ? (float) $movement->amount
+                        : -(float) $movement->amount,
+                    'balance_after' => (float) $movement->balance_after,
+                ];
+            })->values();
+
             $earnings = collect([
                 'uber' => $uber,
                 'bolt' => $bolt,
@@ -461,6 +479,8 @@ trait Reports
                 'car_hire' => $sum_car_hire ? $sum_car_hire : 0,
                 'company_expense' => $total_company_adjustments,
                 'adjustments_array' => $adjustments_array,
+                'deposit_movements' => $depositMovementItems,
+                'deposit_total' => $depositTotal,
                 'details' => [
                     'fuel' => $fuel_detail_items,
                     'tesla' => $tesla_detail_items,
@@ -485,7 +505,9 @@ trait Reports
 
             $driver->drivers_balance = $last_balance; // usado na tabela como "Ultimo saldo"
 
-            $driver->total = $total_after_vat - $driver->fuel + $adjustments_without_car_hire - $fleet_management - $driver->earnings['car_track'] - $sum_car_hire;
+            $driver->deposit_movements = $depositMovementItems;
+            $driver->deposit_total = $depositTotal;
+            $driver->total = $total_after_vat - $driver->fuel + $adjustments_without_car_hire - $fleet_management - $driver->earnings['car_track'] - $sum_car_hire + $depositTotal;
 
             $driver->final_total = $driver->total;
 
@@ -539,6 +561,7 @@ trait Reports
             'total_earnings_after_vat' => array_sum($total_earnings_after_vat),
             'total_car_track' => array_sum($total_car_track),
             'total_car_hire' => array_sum($total_car_hire),
+            'total_deposits' => $drivers->sum(fn ($driver) => (float) ($driver->deposit_total ?? 0)),
         ]);
 
         return [
@@ -727,6 +750,30 @@ trait Reports
             $txt_admin = 0;
         }
 
+        $depositService = app(DriverDepositService::class);
+        $depositMovements = $depositService->statementMovementsForWeek((int) $driver_id, (int) $company_id, (int) $tvde_week_id);
+        $deposit_total = $depositService->statementImpact($depositMovements);
+        $deposit_movements = $depositMovements->map(function ($movement) {
+            return [
+                'id' => $movement->id,
+                'type' => $movement->type,
+                'label' => \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type,
+                'description' => $movement->description,
+                'amount' => (float) $movement->amount,
+                'statement_value' => $movement->type === \App\Models\DriverDepositMovement::TYPE_REFUND
+                    ? (float) $movement->amount
+                    : -(float) $movement->amount,
+                'balance_after' => (float) $movement->balance_after,
+            ];
+        })->values();
+
+        $final_total += $deposit_total;
+        if ($deposit_total >= 0) {
+            $gross_credits += $deposit_total;
+        } else {
+            $gross_debts += abs($deposit_total);
+        }
+
         $team_results = [];
         $team_gross_credits = [];
         $team_liquid_credits = [];
@@ -793,7 +840,9 @@ trait Reports
             'team_liquid_credits',
             'team_final_total',
             'team_final_result',
-            'team_results'
+            'team_results',
+            'deposit_movements',
+            'deposit_total'
         ]);
     }
 

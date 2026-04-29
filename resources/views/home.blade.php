@@ -302,6 +302,23 @@
                                 </tr>
                                 @endforeach
                             @endif
+                            @php
+                                $depositMovements = collect($deposit_movements ?? []);
+                                $depositTotal = (float) ($deposit_total ?? 0);
+                            @endphp
+                            @if ($depositMovements->count() > 0)
+                                @foreach ($depositMovements as $movement)
+                                    @php
+                                        $statementValue = (float) data_get($movement, 'statement_value', 0);
+                                    @endphp
+                                    <tr>
+                                        <th>{{ data_get($movement, 'label', 'Caução') }}</th>
+                                        <td>{{ $statementValue > 0 ? number_format($statementValue, 2) . '€' : '' }}</td>
+                                        <td>{{ $statementValue < 0 ? '-' . number_format(abs($statementValue), 2) . '€' : '' }}</td>
+                                        <td>{{ $statementValue >= 0 ? number_format($statementValue, 2) . '€' : '-' . number_format(abs($statementValue), 2) . '€' }}</td>
+                                    </tr>
+                                @endforeach
+                            @endif
                             <tr>
                                 <th>IVA</th>
                                 <td></td>
@@ -312,13 +329,15 @@
                                 $ganhosCredito = (float) ($total_net ?? 0);
                                 $ajustesCredito = max((float) ($ajustesValor ?? 0), 0);
                                 $ajustesDebito = max(-(float) ($ajustesValor ?? 0), 0);
+                                $caucaoCredito = max($depositTotal, 0);
+                                $caucaoDebito = max(-$depositTotal, 0);
                                 $debitoBase = (float) ($car_hire ?? 0)
                                     + (float) ($car_track ?? 0)
                                     + (float) ($fuel_transactions ?? 0)
                                     + (float) ($vat_value ?? 0);
 
-                                $totaisCreditos = $ganhosCredito + $ajustesCredito;
-                                $totaisDebitos = $debitoBase + $ajustesDebito;
+                                $totaisCreditos = $ganhosCredito + $ajustesCredito + $caucaoCredito;
+                                $totaisDebitos = $debitoBase + $ajustesDebito + $caucaoDebito;
                                 $totaisFinal = $totaisCreditos - $totaisDebitos;
                             @endphp
                             <tr>
@@ -853,7 +872,6 @@
 </script>
 
 @endsection
-
 
 
 

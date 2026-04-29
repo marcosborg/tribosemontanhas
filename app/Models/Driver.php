@@ -169,6 +169,11 @@ class Driver extends Model
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
     }
 
+    public function deposits()
+    {
+        return $this->hasMany(DriverDeposit::class, 'driver_id', 'id');
+    }
+
     public static function documentTypeOptions(): array
     {
         return [
