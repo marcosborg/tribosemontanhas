@@ -67,6 +67,13 @@
                                 <span class="help-block" role="alert">{{ $errors->first('payment_reference') }}</span>
                             @endif
                         </div>
+                        <div class="form-group {{ $errors->has('pay_to') ? 'has-error' : '' }}">
+                            <label for="pay_to">Pagar a</label>
+                            <input class="form-control" type="text" name="pay_to" id="pay_to" value="{{ old('pay_to', $vehicleExpense->pay_to) }}">
+                            @if($errors->has('pay_to'))
+                                <span class="help-block" role="alert">{{ $errors->first('pay_to') }}</span>
+                            @endif
+                        </div>
                         <div class="form-group {{ $errors->has('is_paid') ? 'has-error' : '' }}">
                             <div>
                                 <input type="hidden" name="is_paid" value="0">

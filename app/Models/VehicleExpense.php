@@ -82,6 +82,7 @@ class VehicleExpense extends Model implements HasMedia
         'is_paid',
         'paid_at',
         'payment_reference',
+        'pay_to',
         'vat',
         'created_at',
         'updated_at',

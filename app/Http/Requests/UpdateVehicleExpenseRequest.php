@@ -42,6 +42,10 @@ class UpdateVehicleExpenseRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'pay_to' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

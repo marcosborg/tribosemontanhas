@@ -42,6 +42,10 @@ class StoreVehicleExpenseRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'pay_to' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

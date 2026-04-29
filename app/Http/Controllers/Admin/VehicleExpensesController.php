@@ -74,14 +74,20 @@ class VehicleExpensesController extends Controller
             $table->editColumn('vat', function ($row) {
                 return $row->vat ? $row->vat : '';
             });
+            $table->addColumn('final_value', function ($row) {
+                $value = (float) ($row->value ?? 0);
+                $vat = (float) ($row->vat ?? 0);
+
+                return number_format($value + ($value * ($vat / 100)), 2, '.', '');
+            });
             $table->addColumn('paid_status', function ($row) {
                 return $row->is_paid ? 'Pago' : 'Por pagar';
             });
             $table->addColumn('paid_at', function ($row) {
                 return $row->paid_at ? $row->paid_at->format('Y-m-d H:i:s') : '';
             });
-            $table->editColumn('payment_reference', function ($row) {
-                return $row->payment_reference ?: '';
+            $table->editColumn('pay_to', function ($row) {
+                return $row->pay_to ?: '';
             });
             $table->filterColumn('is_paid', function ($query, $keyword) {
                 if ($keyword === '1' || $keyword === '0') {
