@@ -10,6 +10,13 @@
                     @can('driver_deposit_edit')
                         <a class="btn btn-info" href="{{ route('admin.driver-deposits.edit', $driverDeposit) }}">Editar</a>
                     @endcan
+                    @can('driver_deposit_delete')
+                        <form action="{{ route('admin.driver-deposits.destroy', $driverDeposit) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
+                            @method('DELETE')
+                            @csrf
+                            <button class="btn btn-danger" type="submit">{{ trans('global.delete') }}</button>
+                        </form>
+                    @endcan
 
                     <table class="table table-bordered table-striped" style="margin-top: 15px;">
                         <tbody>

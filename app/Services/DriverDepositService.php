@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\CurrentAccount;
 use App\Models\DriverDeposit;
 use App\Models\DriverDepositMovement;
 use App\Models\TvdeWeek;
@@ -25,33 +24,14 @@ class DriverDepositService
         DB::transaction(function () use ($deposit, $tvdeWeekIds) {
             $deposit->refresh();
 
-            $lockedWeekIds = CurrentAccount::where('driver_id', $deposit->driver_id)
-                ->pluck('tvde_week_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-
             DriverDepositMovement::where('driver_deposit_id', $deposit->id)
                 ->whereIn('type', [
                     DriverDepositMovement::TYPE_INITIAL_CHARGE,
                     DriverDepositMovement::TYPE_WEEKLY_CHARGE,
                 ])
-                ->when($lockedWeekIds !== [], fn ($query) => $query->whereNotIn('tvde_week_id', $lockedWeekIds))
                 ->delete();
 
-            $lockedChargeTotal = DriverDepositMovement::where('driver_deposit_id', $deposit->id)
-                ->whereIn('type', [
-                    DriverDepositMovement::TYPE_INITIAL_CHARGE,
-                    DriverDepositMovement::TYPE_WEEKLY_CHARGE,
-                ])
-                ->sum('amount');
-
-            $remaining = round((float) $deposit->total_amount - (float) $lockedChargeTotal, 2);
-
-            if ($remaining < 0) {
-                throw ValidationException::withMessages([
-                    'total_amount' => 'O valor total nao pode ser inferior ao valor ja validado em extratos.',
-                ]);
-            }
+            $remaining = round((float) $deposit->total_amount, 2);
 
             if ($remaining > 0 && (float) $deposit->weekly_amount <= 0 && (float) $deposit->initial_payment <= 0) {
                 throw ValidationException::withMessages([
@@ -63,11 +43,7 @@ class DriverDepositService
                 ->orderBy('start_date')
                 ->get();
 
-            $availableWeeks = $weeks
-                ->reject(fn ($week) => in_array((int) $week->id, $lockedWeekIds, true))
-                ->values();
-
-            $this->createPlannedMovements($deposit, $availableWeeks, $remaining);
+            $this->createPlannedMovements($deposit, $weeks, $remaining);
             $this->recalculateBalances($deposit);
             $this->updateStatus($deposit);
         });
@@ -192,7 +168,7 @@ class DriverDepositService
         $initial = $hasInitialCharge ? 0 : min((float) $deposit->initial_payment, $remaining);
 
         if ($initial > 0) {
-            $this->createMovement($deposit, (int) $firstWeek->id, DriverDepositMovement::TYPE_INITIAL_CHARGE, $initial, 'Caucao - pagamento inicial', true);
+            $this->createMovement($deposit, (int) $firstWeek->id, DriverDepositMovement::TYPE_INITIAL_CHARGE, $initial, 'Caucao - pagamento inicial', false);
             $remaining = round($remaining - $initial, 2);
         }
 

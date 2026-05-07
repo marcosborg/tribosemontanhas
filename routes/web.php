@@ -272,6 +272,9 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('my-documents/media', 'MyDocumentController@storeMedia')->name('my-documents.storeMedia');
     Route::post('my-documents/update/{id}', 'MyDocumentController@update')->name('my-documents.update');
 
+    // My Driver Deposit
+    Route::get('my-driver-deposit', 'MyDriverDepositController@index')->name('my-driver-deposit.index');
+
     // Financial Statement
     Route::prefix('financial-statements')->group(function () {
         Route::get('/', 'FinancialStatementController@index')->name('financial-statements.index');
@@ -404,6 +407,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     // Driver Deposits
     Route::post('driver-deposits/{driverDeposit}/internal-debit', 'DriverDepositController@internalDebit')->name('driver-deposits.internal-debit');
     Route::post('driver-deposits/{driverDeposit}/refund', 'DriverDepositController@refund')->name('driver-deposits.refund');
+    Route::delete('driver-deposit-movements/destroy', 'DriverDepositController@massDestroyMovements')->name('driver-deposit-movements.massDestroy');
+    Route::delete('driver-deposit-movements/{movement}', 'DriverDepositController@destroyMovement')->name('driver-deposit-movements.destroy');
     Route::resource('driver-deposits', 'DriverDepositController')->parameters([
         'driver-deposits' => 'driverDeposit',
     ]);

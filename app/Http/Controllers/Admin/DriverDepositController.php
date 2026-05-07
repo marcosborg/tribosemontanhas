@@ -140,6 +140,61 @@ class DriverDepositController extends Controller
         return redirect()->route('admin.driver-deposits.index')->with('message', 'Caucao apagada com sucesso.');
     }
 
+    public function destroyMovement(DriverDepositMovement $movement, DriverDepositService $service)
+    {
+        abort_if(Gate::denies('driver_deposit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($this->movementHasValidatedWeek($movement)) {
+            return back()->withErrors('Nao e possivel apagar um movimento de uma semana ja validada.');
+        }
+
+        $deposit = $movement->deposit;
+
+        DB::transaction(function () use ($movement, $deposit, $service) {
+            $movement->delete();
+
+            if ($deposit) {
+                $service->recalculateBalances($deposit);
+            }
+        });
+
+        return back()->with('message', 'Movimento apagado com sucesso.');
+    }
+
+    public function massDestroyMovements(Request $request, DriverDepositService $service)
+    {
+        abort_if(Gate::denies('driver_deposit_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $data = $request->validate([
+            'ids' => ['required', 'array'],
+            'ids.*' => ['integer', 'exists:driver_deposit_movements,id'],
+        ]);
+
+        $movements = DriverDepositMovement::with('deposit')
+            ->whereIn('id', $data['ids'])
+            ->get();
+
+        foreach ($movements as $movement) {
+            if ($this->movementHasValidatedWeek($movement)) {
+                return response('Nao e possivel apagar movimentos de semanas ja validadas.', Response::HTTP_UNPROCESSABLE_ENTITY);
+            }
+        }
+
+        DB::transaction(function () use ($movements, $service) {
+            $deposits = $movements->pluck('deposit')->filter()->unique('id');
+
+            foreach ($movements as $movement) {
+                $movement->delete();
+            }
+
+            foreach ($deposits as $deposit) {
+                $service->recalculateBalances($deposit);
+            }
+        });
+
+        return response(null, Response::HTTP_NO_CONTENT);
+    }
+
     public function internalDebit(Request $request, DriverDeposit $driverDeposit, DriverDepositService $service)
     {
         abort_if(Gate::denies('driver_deposit_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
@@ -197,5 +252,16 @@ class DriverDepositController extends Controller
         $data['initial_payment'] = $data['initial_payment'] ?? 0;
 
         return $data;
+    }
+
+    private function movementHasValidatedWeek(DriverDepositMovement $movement): bool
+    {
+        if (!$movement->tvde_week_id) {
+            return false;
+        }
+
+        return CurrentAccount::where('driver_id', $movement->driver_id)
+            ->where('tvde_week_id', $movement->tvde_week_id)
+            ->exists();
     }
 }

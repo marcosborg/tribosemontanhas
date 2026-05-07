@@ -605,6 +605,18 @@
                 </a>
             </li>
             @endcan
+            @canany(['my_receipt_access', 'my_document_access'])
+            <li class="{{ request()->is("admin/my-driver-deposit") || request()->is("admin/my-driver-deposit/*") ? "active" : ""
+                }}">
+                <a href="{{ route("admin.my-driver-deposit.index") }}">
+                    <i class="fa-fw fas fa-shield-alt">
+
+                    </i>
+                    <span>Caucao</span>
+
+                </a>
+            </li>
+            @endcanany
             @can('user_alert_access')
             <li class="{{ request()->is("admin/user-alerts") || request()->is("admin/user-alerts/*") ? "active" : ""
                 }}">
