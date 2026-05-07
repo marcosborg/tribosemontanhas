@@ -206,6 +206,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     // Driver
     Route::delete('drivers/destroy', 'DriverController@massDestroy')->name('drivers.massDestroy');
+    Route::post('drivers/media', 'DriverController@storeMedia')->name('drivers.storeMedia');
     Route::post('drivers/parse-csv-import', 'DriverController@parseCsvImport')->name('drivers.parseCsvImport');
     Route::post('drivers/process-csv-import', 'DriverController@processCsvImport')->name('drivers.processCsvImport');
     Route::get('drivers-export', 'DriverController@export')->name('drivers.export');

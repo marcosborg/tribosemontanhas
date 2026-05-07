@@ -7,10 +7,12 @@ use DateTimeInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Driver extends Model
+class Driver extends Model implements HasMedia
 {
-    use SoftDeletes, HasFactory;
+    use SoftDeletes, InteractsWithMedia, HasFactory;
 
     public const DOCUMENT_TYPE_CC = 'cc';
     public const DOCUMENT_TYPE_PASSPORT = 'passport';
@@ -187,6 +189,11 @@ class Driver extends Model
     public function getDocumentTypeLabelAttribute(): string
     {
         return self::documentTypeOptions()[$this->document_type] ?? '';
+    }
+
+    public function getContractAttribute()
+    {
+        return $this->getMedia('contract');
     }
 
 }

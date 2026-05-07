@@ -1011,6 +1011,8 @@ return [
             'contract_type_helper'  => ' ',
             'contract_vat'              => 'IVA do contrato',
             'contract_vat_helper'       => ' ',
+            'contract'              => 'Contrato',
+            'contract_helper'       => ' ',
             'tool_card'             => 'Cartão de portagens',
             'tool_card_helper'      => ' ',
             'cards'                                => 'Cartões',

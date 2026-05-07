@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\CsvImportTrait;
+use App\Http\Controllers\Traits\MediaUploadingTrait;
 use App\Http\Requests\MassDestroyDriverRequest;
 use App\Http\Requests\StoreDriverRequest;
 use App\Http\Requests\UpdateDriverRequest;
@@ -26,7 +27,7 @@ use Yajra\DataTables\Facades\DataTables;
 
 class DriverController extends Controller
 {
-    use CsvImportTrait;
+    use CsvImportTrait, MediaUploadingTrait;
 
     public function index(Request $request)
     {
@@ -217,6 +218,10 @@ class DriverController extends Controller
         $driver = Driver::create($request->all());
         $driver->cards()->sync($request->input('cards', []));
 
+        foreach ($request->input('contract', []) as $file) {
+            $driver->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('contract');
+        }
+
         return redirect()->route('admin.drivers.index');
     }
 
@@ -241,7 +246,7 @@ class DriverController extends Controller
         $companies = Company::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
         $document_types = Driver::documentTypeOptions();
 
-        $driver->load('user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company');
+        $driver->load('user', 'card', 'electric', 'local', 'contract_vat', 'state', 'company', 'media');
 
         return view('admin.drivers.edit', compact('cards', 'companies', 'contract_vats', 'document_types', 'driver', 'electrics', 'tool_cards', 'locals', 'states', 'users'));
     }
@@ -251,6 +256,20 @@ class DriverController extends Controller
         $driver->update($request->all());
         $driver->cards()->sync($request->input('cards', []));
 
+        if (count($driver->contract) > 0) {
+            foreach ($driver->contract as $media) {
+                if (! in_array($media->file_name, $request->input('contract', []))) {
+                    $media->delete();
+                }
+            }
+        }
+        $media = $driver->contract->pluck('file_name')->toArray();
+        foreach ($request->input('contract', []) as $file) {
+            if (count($media) === 0 || ! in_array($file, $media)) {
+                $driver->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('contract');
+            }
+        }
+
         return redirect()->route('admin.drivers.index');
     }
 
@@ -258,7 +277,7 @@ class DriverController extends Controller
     {
         abort_if(Gate::denies('driver_show'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts');
+        $driver->load('user', 'card', 'electric', 'tool_card', 'local', 'contract_vat', 'state', 'company', 'driverDocuments', 'driverReceipts', 'media');
 
         return view('admin.drivers.show', compact('driver'));
     }

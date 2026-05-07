@@ -31,6 +31,13 @@ class UpdateDriverRequest extends FormRequest
             'cards' => [
                 'array',
             ],
+            'contract' => [
+                'array',
+                'nullable',
+            ],
+            'contract.*' => [
+                'string',
+            ],
             'contract_vat_id' => [
                 'required',
                 'integer',

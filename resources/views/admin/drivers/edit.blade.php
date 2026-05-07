@@ -127,6 +127,15 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.contract_vat_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('contract') ? 'has-error' : '' }}">
+                            <label for="contract">{{ trans('cruds.driver.fields.contract') }}</label>
+                            <div class="needsclick dropzone" id="contract-dropzone">
+                            </div>
+                            @if($errors->has('contract'))
+                            <span class="help-block" role="alert">{{ $errors->first('contract') }}</span>
+                            @endif
+                            <span class="help-block">{{ trans('cruds.driver.fields.contract_helper') }}</span>
+                        </div>
                         <div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
                             <label for="start_date">{{ trans('cruds.driver.fields.start_date') }}</label>
                             <input class="form-control date" type="text" name="start_date" id="start_date"
@@ -368,4 +377,62 @@
         </div>
     </div>
 </div>
+@endsection
+
+@section('scripts')
+<script>
+    var uploadedContractMap = {}
+    Dropzone.options.contractDropzone = {
+        url: '{{ route('admin.drivers.storeMedia') }}',
+        maxFilesize: 10, // MB
+        addRemoveLinks: true,
+        headers: {
+            'X-CSRF-TOKEN': "{{ csrf_token() }}"
+        },
+        params: {
+            size: 10
+        },
+        success: function (file, response) {
+            $('form').append('<input type="hidden" name="contract[]" value="' + response.name + '">')
+            uploadedContractMap[file.name] = response.name
+        },
+        removedfile: function (file) {
+            file.previewElement.remove()
+            var name = ''
+            if (typeof file.file_name !== 'undefined') {
+                name = file.file_name
+            } else {
+                name = uploadedContractMap[file.name]
+            }
+            $('form').find('input[name="contract[]"][value="' + name + '"]').remove()
+        },
+        init: function () {
+@if(isset($driver) && $driver->contract)
+            var files = {!! json_encode($driver->contract) !!}
+            for (var i in files) {
+                var file = files[i]
+                this.options.addedfile.call(this, file)
+                file.previewElement.classList.add('dz-complete')
+                $('form').append('<input type="hidden" name="contract[]" value="' + file.file_name + '">')
+            }
+@endif
+        },
+        error: function (file, response) {
+            if ($.type(response) === 'string') {
+                var message = response
+            } else {
+                var message = response.errors.file
+            }
+            file.previewElement.classList.add('dz-error')
+            _ref = file.previewElement.querySelectorAll('[data-dz-errormessage]')
+            _results = []
+            for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+                node = _ref[_i]
+                _results.push(node.textContent = message)
+            }
+
+            return _results
+        }
+    }
+</script>
 @endsection

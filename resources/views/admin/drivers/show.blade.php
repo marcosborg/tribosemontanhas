@@ -91,6 +91,19 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        {{ trans('cruds.driver.fields.contract') }}
+                                    </th>
+                                    <td>
+                                        @foreach($driver->contract as $key => $media)
+                                            <a href="{{ $media->getUrl() }}" target="_blank">
+                                                {{ $media->file_name }}
+                                            </a>
+                                            @if(!$loop->last)<br>@endif
+                                        @endforeach
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.driver.fields.start_date') }}
                                     </th>
                                     <td>
