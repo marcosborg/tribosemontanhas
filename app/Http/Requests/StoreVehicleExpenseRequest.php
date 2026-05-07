@@ -27,8 +27,40 @@ class StoreVehicleExpenseRequest extends FormRequest
             'files' => [
                 'array',
             ],
+            'is_group_expense' => [
+                'nullable',
+                'boolean',
+            ],
+            'vehicle_item_ids' => [
+                'required_if:is_group_expense,1',
+                'array',
+                'nullable',
+                'min:2',
+            ],
+            'vehicle_item_ids.*' => [
+                'integer',
+                'exists:vehicle_items,id',
+                'distinct',
+            ],
+            'vehicle_values' => [
+                'required_if:is_group_expense,1',
+                'array',
+                'nullable',
+            ],
+            'vehicle_values.*' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+            'group_label' => [
+                'string',
+                'nullable',
+            ],
             'value' => [
-                'required',
+                'required_unless:is_group_expense,1',
+                'nullable',
+                'numeric',
+                'min:0',
             ],
             'vat' => [
                 'numeric',

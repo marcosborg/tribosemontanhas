@@ -57,6 +57,7 @@
                                 <th>{{ trans('cruds.vehicleExpense.fields.value') }}</th>
                                 <th>{{ trans('cruds.vehicleExpense.fields.vat') }}</th>
                                 <th>Valor final</th>
+                                <th>Grupo</th>
                                 <th>Pagar a</th>
                                 <th>&nbsp;</th>
                             </tr>
@@ -98,6 +99,9 @@
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
                                 <td></td>
+                                <td>
+                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
@@ -159,10 +163,10 @@
             stateSaveCallback: function (settings, data) {
                 data.date_from = $('#date_from_filter').val();
                 data.date_to = $('#date_to_filter').val();
-                localStorage.setItem('datatable-vehicle-expenses-v4', JSON.stringify(data));
+                localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(data));
             },
             stateLoadCallback: function (settings) {
-                return JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v4'));
+                return JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5'));
             },
             aaSorting: [],
             ajax: {
@@ -184,6 +188,7 @@
                 { data: 'value', name: 'value' },
                 { data: 'vat', name: 'vat' },
                 { data: 'final_value', name: 'final_value', sortable: false, searchable: false },
+                { data: 'group_info', name: 'group_label' },
                 { data: 'pay_to', name: 'pay_to' },
                 { data: 'actions', name: '{{ trans('global.actions') }}' }
             ],
@@ -200,7 +205,7 @@
         };
         let table = $('.datatable-VehicleExpense').DataTable(dtOverrideGlobals);
 
-        const savedState = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v4') || 'null');
+        const savedState = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || 'null');
         if (savedState && savedState.date_from) {
             $('#date_from_filter').val(savedState.date_from);
         }
@@ -213,20 +218,20 @@
         });
 
         $('#apply_date_range_filter').on('click', function () {
-            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v4') || '{}');
+            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || '{}');
             state.date_from = $('#date_from_filter').val();
             state.date_to = $('#date_to_filter').val();
-            localStorage.setItem('datatable-vehicle-expenses-v4', JSON.stringify(state));
+            localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(state));
             table.draw();
         });
 
         $('#reset_date_range_filter').on('click', function () {
             $('#date_from_filter').val('');
             $('#date_to_filter').val('');
-            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v4') || '{}');
+            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || '{}');
             delete state.date_from;
             delete state.date_to;
-            localStorage.setItem('datatable-vehicle-expenses-v4', JSON.stringify(state));
+            localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(state));
             table.draw();
         });
 

@@ -13,6 +13,7 @@ use App\Models\VehicleItem;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
@@ -80,6 +81,13 @@ class VehicleExpensesController extends Controller
 
                 return number_format($value + ($value * ($vat / 100)), 2, '.', '');
             });
+            $table->addColumn('group_info', function ($row) {
+                if (!$row->group_uuid) {
+                    return '';
+                }
+
+                return $row->group_label ?: 'Grupo';
+            });
             $table->addColumn('paid_status', function ($row) {
                 return $row->is_paid ? 'Pago' : 'Por pagar';
             });
@@ -142,6 +150,10 @@ class VehicleExpensesController extends Controller
 
     public function store(StoreVehicleExpenseRequest $request)
     {
+        if ($request->boolean('is_group_expense')) {
+            return $this->storeGroup($request);
+        }
+
         $payload = $request->all();
         $payload['is_paid'] = $request->boolean('is_paid');
         $payload['paid_at'] = $request->boolean('is_paid') ? now() : null;
@@ -206,7 +218,16 @@ class VehicleExpensesController extends Controller
 
         $vehicleExpense->load('vehicle_item');
 
-        return view('admin.vehicleExpenses.show', compact('vehicleExpense'));
+        $groupExpenses = collect();
+        if ($vehicleExpense->group_uuid) {
+            $groupExpenses = VehicleExpense::with('vehicle_item')
+                ->where('group_uuid', $vehicleExpense->group_uuid)
+                ->where('id', '<>', $vehicleExpense->id)
+                ->orderBy('id')
+                ->get();
+        }
+
+        return view('admin.vehicleExpenses.show', compact('vehicleExpense', 'groupExpenses'));
     }
 
     public function markPaid(VehicleExpense $vehicleExpense)
@@ -327,5 +348,85 @@ class VehicleExpensesController extends Controller
 
         return VehicleItem::whereRaw("REPLACE(REPLACE(UPPER(license_plate), ' ', ''), '-', '') = ?", [$normalized])
             ->value('id');
+    }
+
+    protected function storeGroup(StoreVehicleExpenseRequest $request)
+    {
+        $vehicleIds = array_values(array_unique(array_map('intval', $request->input('vehicle_item_ids', []))));
+        $vehicleValues = $request->input('vehicle_values', []);
+
+        $validator = Validator::make([
+            'vehicle_item_ids' => $vehicleIds,
+            'vehicle_values' => $vehicleValues,
+        ], [
+            'vehicle_item_ids' => ['required', 'array', 'min:2'],
+            'vehicle_item_ids.*' => ['integer', 'exists:vehicle_items,id', 'distinct'],
+        ]);
+
+        $validator->after(function ($validator) use ($vehicleIds, $vehicleValues) {
+            foreach ($vehicleIds as $vehicleId) {
+                $value = $vehicleValues[$vehicleId] ?? null;
+
+                if ($value === null || $value === '') {
+                    $validator->errors()->add("vehicle_values.$vehicleId", 'Indique o valor para cada viatura selecionada.');
+                    continue;
+                }
+
+                if (!is_numeric($value) || (float) $value < 0) {
+                    $validator->errors()->add("vehicle_values.$vehicleId", 'O valor de cada viatura deve ser numerico e maior ou igual a zero.');
+                }
+            }
+        });
+
+        $validator->validate();
+
+        $commonPayload = $request->except([
+            'vehicle_item_id',
+            'vehicle_item_ids',
+            'vehicle_values',
+            'is_group_expense',
+            'files',
+            'ck-media',
+        ]);
+        $commonPayload['is_paid'] = $request->boolean('is_paid');
+        $commonPayload['paid_at'] = $request->boolean('is_paid') ? now() : null;
+        $commonPayload['group_uuid'] = (string) Str::uuid();
+
+        $createdExpenses = collect();
+
+        foreach ($vehicleIds as $vehicleId) {
+            $payload = $commonPayload;
+            $payload['vehicle_item_id'] = $vehicleId;
+            $payload['value'] = $vehicleValues[$vehicleId];
+
+            $vehicleExpense = VehicleExpense::create($payload);
+            $this->attachFilesToExpense($vehicleExpense, $request->input('files', []));
+            $createdExpenses->push($vehicleExpense);
+        }
+
+        if ($media = $request->input('ck-media', false)) {
+            Media::whereIn('id', $media)->update(['model_id' => $createdExpenses->first()->id]);
+        }
+
+        return redirect()->route('admin.vehicle-expenses.index')
+            ->with('message', 'Despesa em grupo criada com ' . $createdExpenses->count() . ' despesas.');
+    }
+
+    protected function attachFilesToExpense(VehicleExpense $vehicleExpense, array $files): void
+    {
+        foreach ($files as $file) {
+            $source = storage_path('tmp/uploads/' . basename($file));
+            if (!File::exists($source)) {
+                continue;
+            }
+
+            $copyName = uniqid() . '_' . basename($file);
+            $copyPath = storage_path('tmp/uploads/' . $copyName);
+            File::copy($source, $copyPath);
+
+            $vehicleExpense->addMedia($copyPath)
+                ->usingFileName(basename($file))
+                ->toMediaCollection('files');
+        }
     }
 }

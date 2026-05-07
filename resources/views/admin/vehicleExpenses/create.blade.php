@@ -10,7 +10,24 @@
                 <div class="panel-body">
                     <form method="POST" action="{{ route('admin.vehicle-expenses.store') }}" enctype="multipart/form-data">
                         @csrf
-                        <div class="form-group {{ $errors->has('vehicle_item') ? 'has-error' : '' }}">
+                        <div class="form-group {{ $errors->has('is_group_expense') ? 'has-error' : '' }}">
+                            <div>
+                                <input type="hidden" name="is_group_expense" value="0">
+                                <input type="checkbox" name="is_group_expense" id="is_group_expense" value="1" {{ old('is_group_expense', 0) == 1 ? 'checked' : '' }}>
+                                <label for="is_group_expense" style="font-weight: 400">Despesa em grupo</label>
+                            </div>
+                            @if($errors->has('is_group_expense'))
+                                <span class="help-block" role="alert">{{ $errors->first('is_group_expense') }}</span>
+                            @endif
+                        </div>
+                        <div class="form-group {{ $errors->has('group_label') ? 'has-error' : '' }}" id="group_label_wrapper">
+                            <label for="group_label">Referencia do grupo</label>
+                            <input class="form-control" type="text" name="group_label" id="group_label" value="{{ old('group_label', '') }}">
+                            @if($errors->has('group_label'))
+                                <span class="help-block" role="alert">{{ $errors->first('group_label') }}</span>
+                            @endif
+                        </div>
+                        <div class="form-group {{ $errors->has('vehicle_item') ? 'has-error' : '' }}" id="single_vehicle_wrapper">
                             <label for="vehicle_item_id">{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</label>
                             <select class="form-control select2" name="vehicle_item_id" id="vehicle_item_id">
                                 @foreach($vehicle_items as $id => $entry)
@@ -21,6 +38,20 @@
                                 <span class="help-block" role="alert">{{ $errors->first('vehicle_item') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.vehicle_item_helper') }}</span>
+                        </div>
+                        <div class="form-group {{ $errors->has('vehicle_item_ids') ? 'has-error' : '' }}" id="group_vehicles_wrapper">
+                            <label for="vehicle_item_ids">Viaturas</label>
+                            <select class="form-control select2" name="vehicle_item_ids[]" id="vehicle_item_ids" multiple>
+                                @foreach($vehicle_items as $id => $entry)
+                                    @if($id !== '')
+                                        <option value="{{ $id }}" {{ in_array($id, old('vehicle_item_ids', [])) ? 'selected' : '' }}>{{ $entry }}</option>
+                                    @endif
+                                @endforeach
+                            </select>
+                            @if($errors->has('vehicle_item_ids'))
+                                <span class="help-block" role="alert">{{ $errors->first('vehicle_item_ids') }}</span>
+                            @endif
+                            <span class="help-block">Selecione pelo menos duas viaturas.</span>
                         </div>
                         <div class="form-group {{ $errors->has('expense_type') ? 'has-error' : '' }}">
                             <label class="required">{{ trans('cruds.vehicleExpense.fields.expense_type') }}</label>
@@ -83,13 +114,31 @@
                                 <span class="help-block" role="alert">{{ $errors->first('is_paid') }}</span>
                             @endif
                         </div>
-                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
+                        <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}" id="single_value_wrapper">
                             <label class="required" for="value">{{ trans('cruds.vehicleExpense.fields.value') }}</label>
                             <input class="form-control" type="number" name="value" id="value" value="{{ old('value', '0') }}" step="0.01" required>
                             @if($errors->has('value'))
                                 <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.value_helper') }}</span>
+                        </div>
+                        <div class="form-group" id="group_values_wrapper">
+                            <label>Valores por viatura</label>
+                            <table class="table table-bordered table-striped" id="group_values_table">
+                                <thead>
+                                    <tr>
+                                        <th>Viatura</th>
+                                        <th style="width: 220px;">Valor</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                            @foreach($errors->get('vehicle_values.*') as $messages)
+                                @foreach($messages as $message)
+                                    <span class="help-block text-danger" role="alert">{{ $message }}</span>
+                                @endforeach
+                            @endforeach
+                            <span class="help-block">Indique manualmente o valor de cada viatura selecionada.</span>
                         </div>
                         <div class="form-group {{ $errors->has('vat') ? 'has-error' : '' }}">
                             <label class="required" for="vat">{{ trans('cruds.vehicleExpense.fields.vat') }}</label>
@@ -113,6 +162,74 @@
 @endsection
 
 @section('scripts')
+<script>
+    $(function () {
+        var oldVehicleValues = @json(old('vehicle_values', []));
+        var $groupToggle = $('#is_group_expense');
+        var $singleVehicleWrapper = $('#single_vehicle_wrapper');
+        var $groupVehiclesWrapper = $('#group_vehicles_wrapper');
+        var $groupLabelWrapper = $('#group_label_wrapper');
+        var $singleValueWrapper = $('#single_value_wrapper');
+        var $groupValuesWrapper = $('#group_values_wrapper');
+        var $singleValue = $('#value');
+        var $groupVehicles = $('#vehicle_item_ids');
+        var $groupTableBody = $('#group_values_table tbody');
+
+        function syncMode() {
+            var isGroup = $groupToggle.is(':checked');
+
+            $singleVehicleWrapper.toggle(!isGroup);
+            $singleValueWrapper.toggle(!isGroup);
+            $groupVehiclesWrapper.toggle(isGroup);
+            $groupLabelWrapper.toggle(isGroup);
+            $groupValuesWrapper.toggle(isGroup);
+
+            $singleValue.prop('required', !isGroup);
+            renderGroupValueRows();
+        }
+
+        function renderGroupValueRows() {
+            $groupTableBody.empty();
+
+            if (!$groupToggle.is(':checked')) {
+                return;
+            }
+
+            $groupVehicles.find('option:selected').each(function () {
+                var id = $(this).val();
+                var label = $(this).text();
+                var value = oldVehicleValues[id] || '';
+
+                $groupTableBody.append(
+                    '<tr data-vehicle-id="' + id + '">' +
+                        '<td>' + $('<div>').text(label).html() + '</td>' +
+                        '<td>' +
+                            '<input class="form-control" type="number" name="vehicle_values[' + id + ']" value="' + value + '" step="0.01" min="0" required>' +
+                        '</td>' +
+                    '</tr>'
+                );
+            });
+
+            if ($groupTableBody.children().length === 0) {
+                $groupTableBody.append('<tr><td colspan="2">Selecione viaturas para definir os valores.</td></tr>');
+            }
+        }
+
+        $groupToggle.on('change', syncMode);
+        $groupVehicles.on('change', function () {
+            $(this).find('option:selected').each(function () {
+                var id = $(this).val();
+                var currentInput = $groupTableBody.find('tr[data-vehicle-id="' + id + '"] input');
+                if (currentInput.length) {
+                    oldVehicleValues[id] = currentInput.val();
+                }
+            });
+            renderGroupValueRows();
+        });
+
+        syncMode();
+    });
+</script>
 <script>
     $(document).ready(function () {
         function SimpleUploadAdapter(editor) {

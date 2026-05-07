@@ -83,6 +83,8 @@ class VehicleExpense extends Model implements HasMedia
         'paid_at',
         'payment_reference',
         'pay_to',
+        'group_uuid',
+        'group_label',
         'vat',
         'created_at',
         'updated_at',
@@ -138,5 +140,11 @@ class VehicleExpense extends Model implements HasMedia
     public function vehicle_item()
     {
         return $this->belongsTo(VehicleItem::class, 'vehicle_item_id');
+    }
+
+    public function group_expenses()
+    {
+        return $this->hasMany(self::class, 'group_uuid', 'group_uuid')
+            ->whereNotNull('group_uuid');
     }
 }

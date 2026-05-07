@@ -58,6 +58,29 @@
                                     <th>Referencia pagamento</th>
                                     <td>{{ $vehicleExpense->payment_reference ?? '' }}</td>
                                 </tr>
+                                @if($vehicleExpense->group_uuid)
+                                <tr>
+                                    <th>Grupo</th>
+                                    <td>
+                                        {{ $vehicleExpense->group_label ?: 'Despesa em grupo' }}
+                                        <br>
+                                        <small>{{ $vehicleExpense->group_uuid }}</small>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Outras despesas do grupo</th>
+                                    <td>
+                                        @forelse($groupExpenses as $groupExpense)
+                                            <a href="{{ route('admin.vehicle-expenses.show', $groupExpense->id) }}">
+                                                #{{ $groupExpense->id }} - {{ $groupExpense->vehicle_item->license_plate ?? '' }} - {{ number_format((float) $groupExpense->value, 2, ',', '.') }} €
+                                            </a>
+                                            @if(!$loop->last)<br>@endif
+                                        @empty
+                                            -
+                                        @endforelse
+                                    </td>
+                                </tr>
+                                @endif
                                 <tr>
                                     <th>{{ trans('cruds.vehicleExpense.fields.value') }}</th>
                                     <td>{{ $vehicleExpense->value }}</td>
