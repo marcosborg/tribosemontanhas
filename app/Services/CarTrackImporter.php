@@ -24,18 +24,28 @@ class CarTrackImporter
             throw new RuntimeException('O ficheiro não contém linhas para importar.');
         }
 
+        $header = $rows[0];
+        $licensePlateColumn = $this->findHeaderIndex($header, ['license plate']);
+        $descriptionColumn = $this->findHeaderIndex($header, ['service description']);
+        $dateColumn = $this->findHeaderIndex($header, ['entry date']);
+        $valueColumn = $this->findHeaderIndex($header, ['liquid value', 'value']);
+
+        if ($licensePlateColumn === null || $dateColumn === null || $valueColumn === null) {
+            throw new RuntimeException('O ficheiro Via Verde não tem as colunas obrigatórias: License Plate, Entry Date e Value/Liquid Value.');
+        }
+
         $entries = [];
 
         foreach (array_slice($rows, 1) as $row) {
-            $description = $this->normalizeText($row[4] ?? null);
+            $description = $this->normalizeText($descriptionColumn !== null ? ($row[$descriptionColumn] ?? null) : null);
 
             if ($description !== null && $this->shouldSkipDescription($description)) {
                 continue;
             }
 
-            $licensePlate = $this->normalizeLicensePlate($row[0] ?? null);
-            $date = $this->normalizeDateTime($row[7] ?? null);
-            $value = $this->normalizeNumber($row[18] ?? null);
+            $licensePlate = $this->normalizeLicensePlate($row[$licensePlateColumn] ?? null);
+            $date = $this->normalizeDateTime($row[$dateColumn] ?? null);
+            $value = $this->normalizeNumber($row[$valueColumn] ?? null);
 
             if ($licensePlate === null || $date === null) {
                 continue;
@@ -75,6 +85,30 @@ class CarTrackImporter
         $value = strtoupper(trim((string) $value));
 
         return $value === '' ? null : $value;
+    }
+
+    protected function findHeaderIndex(array $header, array $candidates): ?int
+    {
+        $normalizedHeader = [];
+
+        foreach ($header as $index => $label) {
+            $normalizedHeader[$this->normalizeHeader((string) $label)] = $index;
+        }
+
+        foreach ($candidates as $candidate) {
+            $key = $this->normalizeHeader($candidate);
+
+            if (array_key_exists($key, $normalizedHeader)) {
+                return $normalizedHeader[$key];
+            }
+        }
+
+        return null;
+    }
+
+    protected function normalizeHeader(string $value): string
+    {
+        return trim(mb_strtolower($value));
     }
 
     protected function normalizeText($value): ?string
@@ -185,6 +219,8 @@ class CarTrackImporter
 
                 if ((string) $cell['t'] === 's') {
                     $value = $sharedStrings[(int) $value] ?? $value;
+                } elseif ((string) $cell['t'] === 'inlineStr' && isset($cell->is->t)) {
+                    $value = (string) $cell->is->t;
                 }
 
                 $currentRow[$columnIndex] = $value;
@@ -192,7 +228,7 @@ class CarTrackImporter
 
             if ($currentRow !== []) {
                 ksort($currentRow);
-                $rows[] = array_values($currentRow);
+                $rows[] = array_replace(array_fill(0, max(array_keys($currentRow)) + 1, ''), $currentRow);
             }
         }
 
