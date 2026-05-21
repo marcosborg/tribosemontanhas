@@ -138,7 +138,7 @@ class DriverDepositPlanningService
             ->map(function (Collection $driverPlans, string $key) use ($movementTotals) {
                 $first = $driverPlans->first();
                 $movements = $movementTotals->get($key, collect());
-                $received = (float) $movements->whereIn('type', [
+                $realReceived = (float) $movements->whereIn('type', [
                     DriverDepositMovement::TYPE_PAYMENT,
                     DriverDepositMovement::TYPE_ADJUSTMENT,
                 ])->sum('total');
@@ -148,6 +148,7 @@ class DriverDepositPlanningService
                 ])->sum('total');
                 $planned = (float) $driverPlans->flatMap->items->where('status', '!=', DriverDepositPlanItem::STATUS_CANCELLED)->sum('amount');
                 $paid = (float) $driverPlans->flatMap->items->sum('paid_amount');
+                $received = max($realReceived, $paid);
 
                 return [
                     'driver' => $first->driver,
