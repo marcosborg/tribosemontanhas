@@ -405,6 +405,15 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::resource('adjustments', 'AdjustmentController');
 
     // Driver Deposits
+    Route::post('driver-deposit-plans/{driverDepositPlan}/pause', 'DriverDepositPlanController@pause')->name('driver-deposit-plans.pause');
+    Route::post('driver-deposit-plans/{driverDepositPlan}/reactivate', 'DriverDepositPlanController@reactivate')->name('driver-deposit-plans.reactivate');
+    Route::post('driver-deposit-plans/{driverDepositPlan}/recalculate', 'DriverDepositPlanController@recalculate')->name('driver-deposit-plans.recalculate');
+    Route::resource('driver-deposit-plans', 'DriverDepositPlanController')->parameters([
+        'driver-deposit-plans' => 'driverDepositPlan',
+    ]);
+    Route::resource('driver-deposit-real-movements', 'DriverDepositMovementController')->only(['index', 'create', 'store']);
+    Route::get('driver-deposit-reconciliation', 'DriverDepositReconciliationController@index')->name('driver-deposit-reconciliation.index');
+    Route::get('driver-deposit-reconciliation/{driver}', 'DriverDepositReconciliationController@show')->name('driver-deposit-reconciliation.show');
     Route::post('driver-deposits/{driverDeposit}/internal-debit', 'DriverDepositController@internalDebit')->name('driver-deposits.internal-debit');
     Route::post('driver-deposits/{driverDeposit}/refund', 'DriverDepositController@refund')->name('driver-deposits.refund');
     Route::delete('driver-deposit-movements/destroy', 'DriverDepositController@massDestroyMovements')->name('driver-deposit-movements.massDestroy');

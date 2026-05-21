@@ -176,6 +176,11 @@ class Driver extends Model implements HasMedia
         return $this->hasMany(DriverDeposit::class, 'driver_id', 'id');
     }
 
+    public function depositPlans()
+    {
+        return $this->hasMany(DriverDepositPlan::class, 'driver_id', 'id');
+    }
+
     public static function documentTypeOptions(): array
     {
         return [

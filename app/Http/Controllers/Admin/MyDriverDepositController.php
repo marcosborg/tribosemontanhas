@@ -21,7 +21,15 @@ class MyDriverDepositController extends Controller
         );
 
         $driver = Driver::where('user_id', auth()->id())->first();
-        abort_if(!$driver, Response::HTTP_NOT_FOUND, 'Motorista nao encontrado.');
+
+        if (!$driver) {
+            if (Gate::allows('driver_deposit_reconciliation_access')) {
+                return redirect()->route('admin.driver-deposit-reconciliation.index')
+                    ->withErrors('Esta pagina e a area pessoal do motorista. Para administracao, use a reconciliacao de caucoes.');
+            }
+
+            abort(Response::HTTP_NOT_FOUND, 'Motorista nao encontrado.');
+        }
 
         $deposits = DriverDeposit::with(['company', 'movements.tvde_week'])
             ->where('driver_id', $driver->id)

@@ -388,6 +388,32 @@
                         </a>
                     </li>
                     @endcan
+                    @if(Gate::allows('driver_deposit_plan_access') || Gate::allows('driver_deposit_movement_access') || Gate::allows('driver_deposit_reconciliation_access'))
+                    <li class="treeview {{ request()->is("admin/driver-deposit-*") ? "active" : "" }}">
+                        <a href="#">
+                            <i class="fa-fw fas fa-piggy-bank"></i>
+                            <span>Caucoes</span>
+                            <span class="pull-right-container"><i class="fa fa-fw fa-angle-left pull-right"></i></span>
+                        </a>
+                        <ul class="treeview-menu">
+                            @can('driver_deposit_plan_access')
+                            <li class="{{ request()->is("admin/driver-deposit-plans") || request()->is("admin/driver-deposit-plans/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.driver-deposit-plans.index") }}"><i class="fa-fw fas fa-calendar-alt"></i><span>Planeamento</span></a>
+                            </li>
+                            @endcan
+                            @can('driver_deposit_movement_access')
+                            <li class="{{ request()->is("admin/driver-deposit-real-movements") || request()->is("admin/driver-deposit-real-movements/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.driver-deposit-real-movements.index") }}"><i class="fa-fw fas fa-exchange-alt"></i><span>Movimentos</span></a>
+                            </li>
+                            @endcan
+                            @can('driver_deposit_reconciliation_access')
+                            <li class="{{ request()->is("admin/driver-deposit-reconciliation") || request()->is("admin/driver-deposit-reconciliation/*") ? "active" : "" }}">
+                                <a href="{{ route("admin.driver-deposit-reconciliation.index") }}"><i class="fa-fw fas fa-balance-scale"></i><span>Reconciliacao</span></a>
+                            </li>
+                            @endcan
+                        </ul>
+                    </li>
+                    @endif
                     @can('driver_deposit_access')
                     <li class="{{ request()->is("admin/driver-deposits") || request()->is("admin/driver-deposits/*") ? "active" : "" }}">
                         <a href="{{ route("admin.driver-deposits.index") }}">
