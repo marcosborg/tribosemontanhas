@@ -44,10 +44,6 @@ class BackfillDriverDepositPlanning extends Command
 
                     $firstMovement = $plannedMovements->first();
                     $weeklyCount = $plannedMovements->where('type', DriverDepositMovement::TYPE_WEEKLY_CHARGE)->count();
-                    $status = $deposit->status === DriverDeposit::STATUS_ACTIVE
-                        ? DriverDepositPlan::STATUS_ACTIVE
-                        : DriverDepositPlan::STATUS_COMPLETED;
-
                     $plan = DriverDepositPlan::create([
                         'driver_id' => $deposit->driver_id,
                         'company_id' => $deposit->company_id,
@@ -55,21 +51,30 @@ class BackfillDriverDepositPlanning extends Command
                         'weekly_amount' => (float) $deposit->weekly_amount,
                         'total_weeks' => $weeklyCount,
                         'start_week_id' => $firstMovement->tvde_week_id ?? null,
-                        'status' => $status,
+                        'status' => DriverDepositPlan::STATUS_ACTIVE,
                         'notes' => trim(($deposit->notes ? $deposit->notes . PHP_EOL : '') . 'Migrado de legacy driver_deposits #' . $deposit->id),
                     ]);
 
                     foreach ($plannedMovements as $movement) {
                         $rawDueDate = $movement->tvde_week ? $movement->tvde_week->getRawOriginal('start_date') : null;
+                        $isPaid = $movement->type === DriverDepositMovement::TYPE_INITIAL_CHARGE;
+
                         DriverDepositPlanItem::create([
                             'plan_id' => $plan->id,
                             'tvde_week_id' => $movement->tvde_week_id,
                             'due_date' => $rawDueDate ?: optional($movement->created_at)->toDateString(),
                             'amount' => $movement->amount,
-                            'paid_amount' => $movement->affects_statement ? $movement->amount : 0,
-                            'status' => $movement->affects_statement ? DriverDepositPlanItem::STATUS_PAID : DriverDepositPlanItem::STATUS_PENDING,
-                            'paid_at' => $movement->affects_statement ? $movement->created_at : null,
+                            'paid_amount' => $isPaid ? $movement->amount : 0,
+                            'status' => $isPaid ? DriverDepositPlanItem::STATUS_PAID : DriverDepositPlanItem::STATUS_PENDING,
+                            'paid_at' => $isPaid ? $movement->created_at : null,
                         ]);
+                    }
+
+                    $totalPlanned = (float) $plan->items()->sum('amount');
+                    $totalPaid = (float) $plan->items()->sum('paid_amount');
+
+                    if ($totalPlanned > 0 && $totalPaid >= $totalPlanned) {
+                        $plan->update(['status' => DriverDepositPlan::STATUS_COMPLETED]);
                     }
 
                     $created++;
