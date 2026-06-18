@@ -17,6 +17,16 @@
                     {{ trans('global.dashboard') }}
                 </a>
             </li>
+            @can('pending_access')
+                <li class="{{ request()->is("admin/pendentes") || request()->is("admin/pendentes/*") ? "active" : "" }}">
+                    <a href="{{ route("admin.pendentes.index") }}">
+                        <i class="fa-fw fas fa-tasks">
+
+                        </i>
+                        <span>Pendentes</span>
+                    </a>
+                </li>
+            @endcan
             @can('user_management_access')
             <li class="treeview">
                 <a href="#">

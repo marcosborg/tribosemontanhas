@@ -18,6 +18,11 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
 
     Route::get('/select-company/{company_id}', 'HomeController@selectCompany');
 
+    // Pending
+    Route::get('pendentes', 'PendingController@index')->name('pendentes.index');
+    Route::post('pendentes/tasks', 'PendingController@storeTask')->name('pendentes.tasks.store');
+    Route::post('pendentes/tasks/{pendingTask}/complete', 'PendingController@completeTask')->name('pendentes.tasks.complete');
+
     // Permissions
     Route::delete('permissions/destroy', 'PermissionsController@massDestroy')->name('permissions.massDestroy');
     Route::resource('permissions', 'PermissionsController');

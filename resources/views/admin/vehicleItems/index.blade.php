@@ -52,6 +52,9 @@
                                         {{ trans('cruds.vehicleItem.fields.documents') }}
                                     </th>
                                     <th>
+                                        Validade documentos
+                                    </th>
+                                    <th>
                                         &nbsp;
                                     </th>
                                 </tr>
@@ -93,6 +96,9 @@
                                                     {{ trans('global.view_file') }}
                                                 </a>
                                             @endforeach
+                                        </td>
+                                        <td>
+                                            @include('admin.vehicleItems.partials.document-expiration-summary', ['vehicleItem' => $vehicleItem])
                                         </td>
                                         <td>
                                             @can('vehicle_item_show')

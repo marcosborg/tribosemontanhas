@@ -93,6 +93,14 @@
                                         @endforeach
                                     </td>
                                 </tr>
+                                <tr>
+                                    <th>
+                                        Validade dos documentos
+                                    </th>
+                                    <td>
+                                        @include('admin.vehicleItems.partials.document-expiration-summary', ['vehicleItem' => $vehicleItem])
+                                    </td>
+                                </tr>
                             </tbody>
                         </table>
                         <div class="form-group">

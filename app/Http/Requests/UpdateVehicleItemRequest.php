@@ -40,6 +40,34 @@ class UpdateVehicleItemRequest extends FormRequest
             'documents' => [
                 'array',
             ],
+            'green_card_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'private_conditions_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'inspection_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'dua_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'fire_extinguisher_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'emel_expires_at' => [
+                'date',
+                'nullable',
+            ],
+            'cartrack_expires_at' => [
+                'date',
+                'nullable',
+            ],
         ];
     }
 }

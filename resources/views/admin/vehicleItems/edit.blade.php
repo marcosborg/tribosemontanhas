@@ -72,6 +72,7 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.vin_helper') }}</span>
                         </div>
+                        @include('admin.vehicleItems.partials.document-expiration-fields')
                         <div class="form-group {{ $errors->has('documents') ? 'has-error' : '' }}">
                             <label for="documents">{{ trans('cruds.vehicleItem.fields.documents') }}</label>
                             <div class="needsclick dropzone" id="documents-dropzone">

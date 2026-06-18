@@ -202,6 +202,54 @@
                                 {{ trans('global.logout') }}
                             </a>
                         </li>
+                        @can('pending_access')
+                        @php($pendingNav = app(\App\Services\PendingItemsService::class)->summary(10))
+                        <li class="dropdown pending-menu">
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false" title="Pendentes">
+                                <i class="fa fa-exclamation-triangle"></i>
+                                @if($pendingNav['count'] > 0)
+                                    <span class="label label-danger">
+                                        {{ $pendingNav['count'] }}
+                                    </span>
+                                @endif
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li class="header" style="padding: 8px 10px;">
+                                    {{ $pendingNav['count'] }} pendentes
+                                </li>
+                                <li>
+                                    <div class="slimScrollDiv" style="position: relative;">
+                                        <ul class="menu">
+                                            @forelse($pendingNav['items'] as $pendingItem)
+                                                <li>
+                                                    @if($pendingItem['type'] === 'document')
+                                                        <a href="{{ route('admin.vehicle-items.edit', $pendingItem['vehicle_id']) }}">
+                                                            <i class="fa {{ $pendingItem['status'] === 'expired' ? 'fa-times-circle text-red' : ($pendingItem['status'] === 'urgent' ? 'fa-exclamation-circle text-yellow' : 'fa-file-text-o text-aqua') }}"></i>
+                                                            {{ $pendingItem['license_plate'] }} - {{ $pendingItem['label'] }}
+                                                            <small class="pull-right">{{ $pendingItem['date']->format('Y-m-d') }}</small>
+                                                        </a>
+                                                    @else
+                                                        <a href="{{ route('admin.pendentes.index') }}">
+                                                            <i class="fa {{ $pendingItem['status'] === 'expired' ? 'fa-times-circle text-red' : ($pendingItem['status'] === 'urgent' ? 'fa-exclamation-circle text-yellow' : 'fa-check-square-o text-aqua') }}"></i>
+                                                            {{ $pendingItem['label'] }}
+                                                            <small class="pull-right">{{ $pendingItem['date'] ? $pendingItem['date']->format('Y-m-d') : '' }}</small>
+                                                        </a>
+                                                    @endif
+                                                </li>
+                                            @empty
+                                                <li style="text-align:center; padding: 10px;">
+                                                    Sem pendentes
+                                                </li>
+                                            @endforelse
+                                        </ul>
+                                    </div>
+                                </li>
+                                <li class="footer">
+                                    <a href="{{ route('admin.pendentes.index') }}">Ver todos</a>
+                                </li>
+                            </ul>
+                        </li>
+                        @endcan
                         <li class="dropdown notifications-menu">
                             <a href="#" class="dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                                 <i class="fa fa-bell-o"></i>

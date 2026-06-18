@@ -21,6 +21,13 @@ class VehicleItem extends Model implements HasMedia
     ];
 
     protected $dates = [
+        'green_card_expires_at',
+        'private_conditions_expires_at',
+        'inspection_expires_at',
+        'dua_expires_at',
+        'fire_extinguisher_expires_at',
+        'emel_expires_at',
+        'cartrack_expires_at',
         'created_at',
         'updated_at',
         'deleted_at',
@@ -35,6 +42,13 @@ class VehicleItem extends Model implements HasMedia
         'license_plate',
         'vin',
         'suspended',
+        'green_card_expires_at',
+        'private_conditions_expires_at',
+        'inspection_expires_at',
+        'dua_expires_at',
+        'fire_extinguisher_expires_at',
+        'emel_expires_at',
+        'cartrack_expires_at',
         'created_at',
         'updated_at',
         'deleted_at',
