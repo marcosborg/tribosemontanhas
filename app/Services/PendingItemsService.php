@@ -57,7 +57,8 @@ class PendingItemsService
                             'status' => $this->statusForDays($days),
                         ];
                     })
-                    ->filter();
+                    ->filter()
+                    ->values();
             })
             ->sortBy([
                 ['date', 'asc'],
