@@ -354,6 +354,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('vehicle-items/destroy', 'VehicleItemController@massDestroy')->name('vehicle-items.massDestroy');
     Route::post('vehicle-items/media', 'VehicleItemController@storeMedia')->name('vehicle-items.storeMedia');
     Route::post('vehicle-items/ckmedia', 'VehicleItemController@storeCKEditorImages')->name('vehicle-items.storeCKEditorImages');
+    Route::get('vehicle-items/document-expirations', 'VehicleItemController@documentExpirations')->name('vehicle-items.document-expirations');
+    Route::post('vehicle-items/document-expirations', 'VehicleItemController@updateDocumentExpirations')->name('vehicle-items.document-expirations.update');
     Route::resource('vehicle-items', 'VehicleItemController');
 
     // Company

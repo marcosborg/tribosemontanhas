@@ -1434,6 +1434,15 @@
 
                         </a>
                     </li>
+                    <li class="{{ request()->is("admin/vehicle-items/document-expirations") ? "active" : "" }}">
+                        <a href="{{ route("admin.vehicle-items.document-expirations") }}">
+                            <i class="fa-fw fas fa-calendar-check">
+
+                            </i>
+                            <span>Validade documentos</span>
+
+                        </a>
+                    </li>
                     @endcan
                     @can('vehicle_expense_access')
                             <li class="{{ request()->is("admin/vehicle-expenses") || request()->is("admin/vehicle-expenses/*") ? "active" : "" }}">

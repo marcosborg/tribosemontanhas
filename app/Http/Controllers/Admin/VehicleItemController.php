@@ -11,8 +11,10 @@ use App\Models\Company;
 use App\Models\VehicleBrand;
 use App\Models\VehicleItem;
 use App\Models\VehicleModel;
+use App\Services\PendingItemsService;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
 use App\Models\Driver;
@@ -28,6 +30,54 @@ class VehicleItemController extends Controller
         $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model', 'media', 'driver'])->get();
 
         return view('admin.vehicleItems.index', compact('vehicleItems'));
+    }
+
+    public function documentExpirations()
+    {
+        abort_if(Gate::denies('vehicle_item_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $documentExpirationFields = PendingItemsService::DOCUMENT_FIELDS;
+        $vehicleItems = VehicleItem::with(['company', 'vehicle_brand', 'vehicle_model'])
+            ->orderBy('license_plate')
+            ->get();
+
+        return view('admin.vehicleItems.document-expirations', compact('documentExpirationFields', 'vehicleItems'));
+    }
+
+    public function updateDocumentExpirations(Request $request)
+    {
+        abort_if(Gate::denies('vehicle_item_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $documentExpirationFields = PendingItemsService::DOCUMENT_FIELDS;
+        $rules = ['vehicles' => ['array']];
+
+        foreach (array_keys($documentExpirationFields) as $field) {
+            $rules["vehicles.*.{$field}"] = ['nullable', 'date'];
+        }
+
+        $validated = $request->validate($rules);
+        $rows = $validated['vehicles'] ?? [];
+        $vehicleItems = VehicleItem::whereIn('id', array_keys($rows))->get()->keyBy('id');
+
+        DB::transaction(function () use ($rows, $vehicleItems, $documentExpirationFields) {
+            foreach ($rows as $vehicleItemId => $values) {
+                $vehicleItem = $vehicleItems->get((int) $vehicleItemId);
+
+                if (! $vehicleItem) {
+                    continue;
+                }
+
+                $updates = [];
+
+                foreach (array_keys($documentExpirationFields) as $field) {
+                    $updates[$field] = $values[$field] ?? null;
+                }
+
+                $vehicleItem->update($updates);
+            }
+        });
+
+        return redirect()->route('admin.vehicle-items.document-expirations')->with('message', 'Datas de expiracao atualizadas com sucesso.');
     }
 
     public function create()

@@ -68,6 +68,10 @@ class UpdateVehicleItemRequest extends FormRequest
                 'date',
                 'nullable',
             ],
+            'tesla_videos_expires_at' => [
+                'date',
+                'nullable',
+            ],
         ];
     }
 }

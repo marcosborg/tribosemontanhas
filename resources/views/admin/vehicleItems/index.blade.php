@@ -1,15 +1,18 @@
 @extends('layouts.admin')
 @section('content')
 <div class="content">
-    @can('vehicle_item_create')
-        <div style="margin-bottom: 10px;" class="row">
-            <div class="col-lg-12">
+    <div style="margin-bottom: 10px;" class="row">
+        <div class="col-lg-12">
+            @can('vehicle_item_create')
                 <a class="btn btn-success" href="{{ route('admin.vehicle-items.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.vehicleItem.title_singular') }}
                 </a>
-            </div>
+            @endcan
+            <a class="btn btn-primary" href="{{ route('admin.vehicle-items.document-expirations') }}">
+                Validade documentos
+            </a>
         </div>
-    @endcan
+    </div>
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
