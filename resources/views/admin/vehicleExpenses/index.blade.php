@@ -125,6 +125,24 @@
 <script>
     $(function () {
         let dtButtons = $.extend(true, [], $.fn.dataTable.defaults.buttons)
+        dtButtons = dtButtons.map(function (button) {
+            if (button.extend !== 'csv') {
+                return button;
+            }
+
+            button.action = function (e, dt) {
+                e.preventDefault();
+
+                const params = dt.ajax.params();
+                params.export = 'csv';
+                params.date_from = $('#date_from_filter').val();
+                params.date_to = $('#date_to_filter').val();
+
+                window.location = "{{ route('admin.vehicle-expenses.index') }}?" + $.param(params);
+            };
+
+            return button;
+        });
         @can('vehicle_expense_delete')
         let deleteButtonTrans = '{{ trans('global.datatables.delete') }}';
         let deleteButton = {
@@ -202,6 +220,7 @@
             orderCellsTop: true,
             order: [[1, 'desc']],
             pageLength: 100,
+            lengthMenu: [[10, 25, 50, 100, 10000], [10, 25, 50, 100, 10000]],
         };
         let table = $('.datatable-VehicleExpense').DataTable(dtOverrideGlobals);
 

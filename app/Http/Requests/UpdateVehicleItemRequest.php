@@ -72,6 +72,10 @@ class UpdateVehicleItemRequest extends FormRequest
                 'date',
                 'nullable',
             ],
+            'quarterly_checkup_expires_at' => [
+                'date',
+                'nullable',
+            ],
         ];
     }
 }

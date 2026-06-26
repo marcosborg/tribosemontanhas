@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Yajra\DataTables\Facades\DataTables;
 
 class VehicleExpensesController extends Controller
@@ -29,16 +30,12 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        if ($request->input('export') === 'csv') {
+            return $this->exportCsv($request);
+        }
+
         if ($request->ajax()) {
-            $query = VehicleExpense::with(['vehicle_item'])->select(sprintf('%s.*', (new VehicleExpense)->table));
-
-            if ($request->filled('date_from')) {
-                $query->whereDate('date', '>=', $request->input('date_from'));
-            }
-
-            if ($request->filled('date_to')) {
-                $query->whereDate('date', '<=', $request->input('date_to'));
-            }
+            $query = $this->baseIndexQuery($request);
 
             $table = Datatables::of($query);
 
@@ -137,6 +134,169 @@ class VehicleExpensesController extends Controller
         $unpaidCount = VehicleExpense::where('is_paid', false)->count();
 
         return view('admin.vehicleExpenses.index', compact('vehicle_items', 'unpaidCount'));
+    }
+
+    protected function baseIndexQuery(Request $request)
+    {
+        $query = VehicleExpense::with(['vehicle_item'])->select(sprintf('%s.*', (new VehicleExpense)->table));
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->input('date_from'));
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->input('date_to'));
+        }
+
+        return $query;
+    }
+
+    protected function exportCsv(Request $request): StreamedResponse
+    {
+        $query = $this->baseIndexQuery($request);
+        $this->applyExportFilters($query, $request);
+        $this->applyExportOrder($query, $request);
+
+        $filename = 'despesas-viaturas-' . now()->format('Ymd-His') . '.csv';
+
+        return response()->streamDownload(function () use ($query) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, [
+                'ID',
+                'Viatura',
+                'Tipo de despesa',
+                'Data',
+                'Estado',
+                'Pago em',
+                'Ficheiros',
+                'Valor',
+                'IVA',
+                'Valor final',
+                'Grupo',
+                'Pagar a',
+            ]);
+
+            $query->chunk(500, function ($expenses) use ($handle) {
+                foreach ($expenses as $expense) {
+                    $value = (float) ($expense->value ?? 0);
+                    $vat = (float) ($expense->vat ?? 0);
+
+                    fputcsv($handle, [
+                        $expense->id,
+                        optional($expense->vehicle_item)->license_plate,
+                        VehicleExpense::EXPENSE_TYPE_RADIO[$expense->expense_type] ?? $expense->expense_type,
+                        $expense->getRawOriginal('date'),
+                        $expense->is_paid ? 'Pago' : 'Por pagar',
+                        $expense->paid_at ? $expense->paid_at->format('Y-m-d H:i:s') : '',
+                        $expense->files->map(fn ($media) => $media->getUrl())->implode(' | '),
+                        $expense->value,
+                        $expense->vat,
+                        number_format($value + ($value * ($vat / 100)), 2, '.', ''),
+                        $expense->group_label ?: ($expense->group_uuid ? 'Grupo' : ''),
+                        $expense->pay_to,
+                    ]);
+                }
+            });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
+    }
+
+    protected function applyExportFilters($query, Request $request): void
+    {
+        $columns = $request->input('columns', []);
+
+        $this->applyTextFilter($query, $columns, 1, 'id');
+        $this->applyVehicleFilter($query, $columns);
+        $this->applyExactFilter($query, $columns, 3, 'expense_type');
+        $this->applyPaidFilter($query, $columns);
+        $this->applyTextFilter($query, $columns, 8, 'value');
+        $this->applyTextFilter($query, $columns, 9, 'vat');
+        $this->applyTextFilter($query, $columns, 11, 'group_label');
+        $this->applyTextFilter($query, $columns, 12, 'pay_to');
+
+        $global = trim((string) data_get($request->input('search', []), 'value', ''));
+        if ($global === '') {
+            return;
+        }
+
+        $query->where(function ($query) use ($global) {
+            $query->where('id', 'like', "%{$global}%")
+                ->orWhere('expense_type', 'like', "%{$global}%")
+                ->orWhereDate('date', $global)
+                ->orWhere('value', 'like', "%{$global}%")
+                ->orWhere('vat', 'like', "%{$global}%")
+                ->orWhere('group_label', 'like', "%{$global}%")
+                ->orWhere('pay_to', 'like', "%{$global}%")
+                ->orWhereHas('vehicle_item', function ($query) use ($global) {
+                    $query->where('license_plate', 'like', "%{$global}%");
+                });
+        });
+    }
+
+    protected function applyExportOrder($query, Request $request): void
+    {
+        $order = $request->input('order.0');
+        $column = (int) data_get($order, 'column', 1);
+        $direction = data_get($order, 'dir') === 'asc' ? 'asc' : 'desc';
+
+        $map = [
+            1 => 'id',
+            3 => 'expense_type',
+            4 => 'date',
+            5 => 'is_paid',
+            6 => 'paid_at',
+            8 => 'value',
+            9 => 'vat',
+            11 => 'group_label',
+            12 => 'pay_to',
+        ];
+
+        $query->orderBy($map[$column] ?? 'id', $direction);
+    }
+
+    protected function applyTextFilter($query, array $columns, int $index, string $field): void
+    {
+        $value = $this->columnSearchValue($columns, $index);
+        if ($value !== '') {
+            $query->where($field, 'like', "%{$value}%");
+        }
+    }
+
+    protected function applyExactFilter($query, array $columns, int $index, string $field): void
+    {
+        $value = $this->columnSearchValue($columns, $index);
+        if ($value !== '') {
+            $query->where($field, $value);
+        }
+    }
+
+    protected function applyVehicleFilter($query, array $columns): void
+    {
+        $value = $this->columnSearchValue($columns, 2);
+        if ($value !== '') {
+            $query->whereHas('vehicle_item', function ($query) use ($value) {
+                $query->where('license_plate', 'like', "%{$value}%");
+            });
+        }
+    }
+
+    protected function applyPaidFilter($query, array $columns): void
+    {
+        $value = $this->columnSearchValue($columns, 5);
+        if ($value === '1' || $value === '0') {
+            $query->where('is_paid', (bool) $value);
+        }
+    }
+
+    protected function columnSearchValue(array $columns, int $index): string
+    {
+        $value = trim((string) data_get($columns, "{$index}.search.value", ''));
+
+        return preg_replace('/^\^(.+)\$$/', '$1', $value);
     }
 
     public function create()

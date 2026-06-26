@@ -17,7 +17,8 @@ class PendingItemsService
         'fire_extinguisher_expires_at' => 'Extintor',
         'emel_expires_at' => 'EMEL',
         'cartrack_expires_at' => 'Cartrack',
-        'tesla_videos_expires_at' => 'Vídeos Tesla',
+        'tesla_videos_expires_at' => 'Video Tesla',
+        'quarterly_checkup_expires_at' => 'Check-up Trimestral',
     ];
 
     public function documents(): Collection
