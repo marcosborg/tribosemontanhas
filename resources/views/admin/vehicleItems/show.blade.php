@@ -83,6 +83,14 @@
                                 </tr>
                                 <tr>
                                     <th>
+                                        Tipo de viatura
+                                    </th>
+                                    <td>
+                                        {{ App\Models\VehicleItem::VEHICLE_TYPE_SELECT[$vehicleItem->vehicle_type ?? App\Models\VehicleItem::VEHICLE_TYPE_FLEET] ?? $vehicleItem->vehicle_type }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>
                                         {{ trans('cruds.vehicleItem.fields.documents') }}
                                     </th>
                                     <td>

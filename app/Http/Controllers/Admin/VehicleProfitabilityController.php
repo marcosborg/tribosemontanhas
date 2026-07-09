@@ -423,6 +423,7 @@ class VehicleProfitabilityController extends Controller
                     $sub->select(DB::raw(1))
                         ->from('car_tracks as ct')
                         ->whereNull('ct.deleted_at')
+                        ->where('ct.classification_status', 'driver')
                         ->whereBetween('ct.date', [$periodStart->toDateTimeString(), $periodEnd->toDateTimeString()])
                         ->whereRaw("REPLACE(REPLACE(UPPER(vehicle_items.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(ct.license_plate), ' ', ''), '-', '')")
                         ->whereExists(function ($usageSub) {

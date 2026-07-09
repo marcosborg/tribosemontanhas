@@ -37,6 +37,10 @@ class UpdateVehicleItemRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'vehicle_type' => [
+                'nullable',
+                'in:fleet,management',
+            ],
             'documents' => [
                 'array',
             ],

@@ -352,6 +352,7 @@ trait Reports
                 $car_track = \DB::table('car_tracks as ct')
                     ->where('ct.tvde_week_id', $tvde_week->id)
                     ->whereNull('ct.deleted_at')
+                    ->where('ct.classification_status', 'driver')
                     ->whereExists(function ($q) use ($driver) {
                         $q->select(\DB::raw(1))
                             ->from('vehicle_items as vi')
@@ -412,6 +413,7 @@ trait Reports
 
             $carTracks = \App\Models\CarTrack::query()
                 ->where('tvde_week_id', $tvde_week_id)
+                ->where('classification_status', 'driver')
                 ->get();
 
             foreach ($carTracks as $track) {

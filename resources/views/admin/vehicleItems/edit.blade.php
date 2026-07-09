@@ -72,6 +72,17 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleItem.fields.vin_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('vehicle_type') ? 'has-error' : '' }}">
+                            <label class="required" for="vehicle_type">Tipo de viatura</label>
+                            <select class="form-control" name="vehicle_type" id="vehicle_type" required>
+                                @foreach(App\Models\VehicleItem::VEHICLE_TYPE_SELECT as $key => $label)
+                                    <option value="{{ $key }}" {{ old('vehicle_type', $vehicleItem->vehicle_type ?: App\Models\VehicleItem::VEHICLE_TYPE_FLEET) === $key ? 'selected' : '' }}>{{ $label }}</option>
+                                @endforeach
+                            </select>
+                            @if($errors->has('vehicle_type'))
+                                <span class="help-block" role="alert">{{ $errors->first('vehicle_type') }}</span>
+                            @endif
+                        </div>
                         @include('admin.vehicleItems.partials.document-expiration-fields')
                         <div class="form-group {{ $errors->has('documents') ? 'has-error' : '' }}">
                             <label for="documents">{{ trans('cruds.vehicleItem.fields.documents') }}</label>

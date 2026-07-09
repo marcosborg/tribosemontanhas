@@ -24,6 +24,7 @@ class CompanyPark extends Model
         'company_id',
         'value',
         'fleet_management',
+        'source_type',
         'created_at',
         'updated_at',
         'deleted_at',

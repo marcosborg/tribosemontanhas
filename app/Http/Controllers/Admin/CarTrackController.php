@@ -9,13 +9,14 @@ use App\Http\Requests\StoreCarTrackRequest;
 use App\Http\Requests\UpdateCarTrackRequest;
 use App\Models\CarTrack;
 use App\Models\TvdeWeek;
+use App\Services\CarTrackClassificationService;
 use App\Services\CarTrackImporter;
 use Gate;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use RuntimeException;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Http\Request;
-use RuntimeException;
 
 class CarTrackController extends Controller
 {
@@ -28,47 +29,37 @@ class CarTrackController extends Controller
         if ($request->ajax()) {
             $query = CarTrack::query()
                 ->leftJoin('tvde_weeks', 'tvde_weeks.id', '=', 'car_tracks.tvde_week_id')
+                ->leftJoin('drivers', 'drivers.id', '=', 'car_tracks.driver_id')
+                ->leftJoin('companies', 'companies.id', '=', 'car_tracks.company_id')
                 ->select([
                     'car_tracks.id',
                     'car_tracks.date',
                     'car_tracks.license_plate',
                     'car_tracks.value',
+                    'car_tracks.classification_status',
+                    'car_tracks.classification_reason',
                     'tvde_weeks.start_date as tvde_week_start_date',
-                    'car_tracks.deleted_at',
-
-                    // Nome do motorista no momento do registo
                     DB::raw("
-                        (
-                            SELECT d.name
-                            FROM vehicle_usages vu
-                            INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
-                            INNER JOIN drivers d        ON d.id = vu.driver_id
-                            WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
-                              AND vu.deleted_at IS NULL
-                              AND vi.deleted_at IS NULL
-                              AND d.deleted_at  IS NULL
-                              AND vu.start_date <= car_tracks.date
-                              AND (vu.end_date IS NULL OR vu.end_date >= car_tracks.date)
-                            ORDER BY vu.start_date DESC
-                            LIMIT 1
+                        COALESCE(
+                            drivers.name,
+                            (
+                                SELECT d.name
+                                FROM vehicle_usages vu
+                                INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
+                                INNER JOIN drivers d ON d.id = vu.driver_id
+                                WHERE REPLACE(REPLACE(UPPER(vi.license_plate), ' ', ''), '-', '') = REPLACE(REPLACE(UPPER(car_tracks.license_plate), ' ', ''), '-', '')
+                                  AND vu.deleted_at IS NULL
+                                  AND vi.deleted_at IS NULL
+                                  AND d.deleted_at IS NULL
+                                  AND vu.start_date <= car_tracks.date
+                                  AND (vu.end_date IS NULL OR vu.end_date >= car_tracks.date)
+                                ORDER BY vu.start_date DESC
+                                LIMIT 1
+                            )
                         ) AS driver_name
                     "),
-
-                    // Flag Existe (1/0) — tal como em Combustion (apenas para exibição)
-                    DB::raw("
-                        EXISTS(
-                            SELECT 1
-                            FROM vehicle_usages vu
-                            INNER JOIN vehicle_items vi ON vi.id = vu.vehicle_item_id
-                            INNER JOIN drivers d        ON d.id = vu.driver_id
-                            WHERE REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')
-                              AND vu.deleted_at IS NULL
-                              AND vi.deleted_at IS NULL
-                              AND d.deleted_at  IS NULL
-                              AND vu.start_date <= car_tracks.date
-                              AND (vu.end_date IS NULL OR vu.end_date >= car_tracks.date)
-                        ) AS exist
-                    "),
+                    'companies.name as company_name',
+                    'car_tracks.deleted_at',
                 ]);
 
             $table = DataTables::of($query);
@@ -91,101 +82,75 @@ class CarTrackController extends Controller
                 ));
             });
 
-            $table->editColumn('id', fn($row) => $row->id ?: '');
-            $table->editColumn('date', fn($row) => $row->date ?: '');
-            $table->editColumn('license_plate', fn($row) => $row->license_plate ?: '');
-            $table->editColumn('value', fn($row) => $row->value ?: '');
-            $table->editColumn('tvde_week_start_date', fn($row) => $row->tvde_week_start_date ?: '');
+            $table->editColumn('id', fn ($row) => $row->id ?: '');
+            $table->editColumn('date', fn ($row) => $row->date ?: '');
+            $table->editColumn('license_plate', fn ($row) => $row->license_plate ?: '');
+            $table->editColumn('value', fn ($row) => $row->value ?: '');
+            $table->editColumn('tvde_week_start_date', fn ($row) => $row->tvde_week_start_date ?: '');
+            $table->addColumn('driver_name', fn ($row) => $row->driver_name ?: '');
+            $table->addColumn('company_name', fn ($row) => $row->company_name ?: '');
+            $table->addColumn('classification_destination', fn ($row) => $this->classificationDestinationLabel($row->classification_status));
+            $table->addColumn('classification_reason_label', fn ($row) => $this->classificationReasonLabel($row->classification_reason));
 
-            $table->addColumn('driver_name', fn($row) => $row->driver_name ?: 'Não existe');
-            $table->addColumn('exist', fn($row) => $row->exist ? 'Sim' : 'Não'); // exibição simples, sem badge
-
-            // Filtros server-side (mantidos)
             $table->filterColumn('driver_name', function ($query, $keyword) {
                 $keyword = trim($keyword);
-                if ($keyword === '')
-                    return;
+                if ($keyword !== '') {
+                    $query->where('drivers.name', 'like', "%{$keyword}%");
+                }
+            });
 
-                $query->whereExists(function ($q) use ($keyword) {
-                    $q->select(DB::raw(1))
-                        ->from('vehicle_usages as vu')
-                        ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
-                        ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
-                        ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
-                        ->whereNull('vu.deleted_at')
-                        ->whereNull('vi.deleted_at')
-                        ->whereNull('d.deleted_at')
-                        ->whereRaw('vu.start_date <= car_tracks.date')
-                        ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)')
-                        ->where('d.name', 'like', "%{$keyword}%");
-                });
+            $table->filterColumn('company_name', function ($query, $keyword) {
+                $keyword = trim($keyword);
+                if ($keyword !== '') {
+                    $query->where('companies.name', 'like', "%{$keyword}%");
+                }
+            });
+
+            $table->filterColumn('classification_destination', function ($query, $keyword) {
+                $kw = mb_strtolower(trim(str_replace(['^', '$'], '', $keyword)));
+
+                if (in_array($kw, ['motorista', CarTrackClassificationService::STATUS_DRIVER], true)) {
+                    $query->where('car_tracks.classification_status', CarTrackClassificationService::STATUS_DRIVER);
+                } elseif (in_array($kw, ['empresa', CarTrackClassificationService::STATUS_COMPANY], true)) {
+                    $query->where('car_tracks.classification_status', CarTrackClassificationService::STATUS_COMPANY);
+                } elseif (in_array($kw, ['validacao manual', 'validação manual', 'manual', CarTrackClassificationService::STATUS_MANUAL], true)) {
+                    $query->where('car_tracks.classification_status', CarTrackClassificationService::STATUS_MANUAL);
+                }
+            });
+
+            $table->filterColumn('classification_reason_label', function ($query, $keyword) {
+                $keyword = trim($keyword);
+                if ($keyword !== '') {
+                    $query->where('car_tracks.classification_reason', 'like', "%{$keyword}%");
+                }
             });
 
             $table->filterColumn('car_tracks.date', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '')
-                    return;
-                $query->whereRaw('DATE(car_tracks.date) LIKE ?', ["%{$kw}%"]);
+                if ($kw !== '') {
+                    $query->whereRaw('DATE(car_tracks.date) LIKE ?', ["%{$kw}%"]);
+                }
             });
 
             $table->filterColumn('tvde_weeks.start_date', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '')
-                    return;
-                $query->where('tvde_weeks.start_date', 'like', "%{$kw}%");
+                if ($kw !== '') {
+                    $query->where('tvde_weeks.start_date', 'like', "%{$kw}%");
+                }
             });
 
             $table->filterColumn('car_tracks.license_plate', function ($query, $keyword) {
                 $kw = trim($keyword);
-                if ($kw === '')
+                if ($kw === '') {
                     return;
+                }
+
                 $kw = strtoupper(str_replace([' ', '-'], '', $kw));
                 $query->whereRaw(
                     "REPLACE(REPLACE(UPPER(car_tracks.license_plate), ' ', ''), '-', '') LIKE ?",
                     ["%{$kw}%"]
                 );
             });
-
-            $table->filterColumn('exist', function ($query, $keyword) {
-                $kw = mb_strtolower(trim(str_replace(['^', '$'], '', $keyword)));
-
-                if ($kw === '') {
-                    return;
-                }
-
-                // Se o utilizador escolher "Sim" queremos linhas onde o EXISTS seja verdadeiro
-                if (in_array($kw, ['sim', 's', '1', 'yes'])) {
-                    $query->whereExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('vehicle_usages as vu')
-                            ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
-                            ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
-                            ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
-                            ->whereNull('vu.deleted_at')
-                            ->whereNull('vi.deleted_at')
-                            ->whereNull('d.deleted_at')
-                            ->whereRaw('vu.start_date <= car_tracks.date')
-                            ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)');
-                    });
-                }
-
-                // Se o utilizador escolher "Não" queremos linhas onde NÃO existe nenhum registo compatível
-                if (in_array($kw, ['nao', 'não', 'n', '0', 'no'])) {
-                    $query->whereNotExists(function ($q) {
-                        $q->select(DB::raw(1))
-                            ->from('vehicle_usages as vu')
-                            ->join('vehicle_items as vi', 'vi.id', '=', 'vu.vehicle_item_id')
-                            ->join('drivers as d', 'd.id', '=', 'vu.driver_id')
-                            ->whereRaw("REPLACE(UPPER(vi.license_plate), ' ', '') = REPLACE(UPPER(car_tracks.license_plate), ' ', '')")
-                            ->whereNull('vu.deleted_at')
-                            ->whereNull('vi.deleted_at')
-                            ->whereNull('d.deleted_at')
-                            ->whereRaw('vu.start_date <= car_tracks.date')
-                            ->whereRaw('(vu.end_date IS NULL OR vu.end_date >= car_tracks.date)');
-                    });
-                }
-            });
-
 
             $table->rawColumns(['actions', 'placeholder']);
 
@@ -209,7 +174,7 @@ class CarTrackController extends Controller
 
     public function store(StoreCarTrackRequest $request)
     {
-        $carTrack = CarTrack::create($request->all());
+        CarTrack::create($request->all());
 
         return redirect()->route('admin.car-tracks.index');
     }
@@ -272,7 +237,7 @@ class CarTrackController extends Controller
         ]);
 
         try {
-            $rows = $importer->import(
+            $summary = $importer->import(
                 $data['report_file']->getRealPath(),
                 $data['report_file']->getClientOriginalName(),
                 (int) $data['tvde_week_id']
@@ -287,6 +252,34 @@ class CarTrackController extends Controller
         return redirect()
             ->route('admin.car-tracks.index')
             ->with('open_import_panel', 'via_verde')
-            ->with('message', "Import Via Verde concluído com {$rows} linhas.");
+            ->with('message', sprintf(
+                'Import Via Verde concluido com %d linhas: %d motorista, %d empresa, %d validacao manual.',
+                $summary['total'],
+                $summary['driver'],
+                $summary['company'],
+                $summary['manual']
+            ));
+    }
+
+    private function classificationDestinationLabel(?string $status): string
+    {
+        return match ($status) {
+            CarTrackClassificationService::STATUS_COMPANY => 'Empresa',
+            CarTrackClassificationService::STATUS_MANUAL => 'Validacao manual',
+            default => 'Motorista',
+        };
+    }
+
+    private function classificationReasonLabel(?string $reason): string
+    {
+        return [
+            'normal_driver' => 'Motorista responsavel',
+            'management_vehicle' => 'Viatura de gestao',
+            'personal_usage' => 'Utilizacao pessoal',
+            'missing_vehicle' => 'Matricula/viatura nao encontrada',
+            'missing_usage' => 'Sem utilizacao ativa',
+            'missing_driver' => 'Sem motorista imputavel',
+            'missing_company' => 'Sem empresa na viatura',
+        ][$reason] ?? '';
     }
 }

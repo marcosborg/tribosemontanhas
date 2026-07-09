@@ -49,6 +49,9 @@
                                         {{ trans('cruds.vehicleItem.fields.vin') }}
                                     </th>
                                     <th>
+                                        Tipo de viatura
+                                    </th>
+                                    <th>
                                         Suspended
                                     </th>
                                     <th>
@@ -88,6 +91,9 @@
                                         </td>
                                         <td>
                                             {{ $vehicleItem->vin ?? '' }}
+                                        </td>
+                                        <td>
+                                            {{ App\Models\VehicleItem::VEHICLE_TYPE_SELECT[$vehicleItem->vehicle_type ?? App\Models\VehicleItem::VEHICLE_TYPE_FLEET] ?? $vehicleItem->vehicle_type }}
                                         </td>
                                         <td>
                                             <span style="display:none">{{ $vehicleItem->suspended ?? '' }}</span>

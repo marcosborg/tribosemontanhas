@@ -28,6 +28,10 @@ class StoreCompanyParkRequest extends FormRequest
             'value' => [
                 'required',
             ],
+            'source_type' => [
+                'string',
+                'nullable',
+            ],
         ];
     }
 }

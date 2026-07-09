@@ -14,6 +14,14 @@ class VehicleItem extends Model implements HasMedia
 {
     use SoftDeletes, InteractsWithMedia, HasFactory;
 
+    public const VEHICLE_TYPE_FLEET = 'fleet';
+    public const VEHICLE_TYPE_MANAGEMENT = 'management';
+
+    public const VEHICLE_TYPE_SELECT = [
+        self::VEHICLE_TYPE_FLEET => 'Frota',
+        self::VEHICLE_TYPE_MANAGEMENT => 'Gestão',
+    ];
+
     public $table = 'vehicle_items';
 
     protected $appends = [
@@ -44,6 +52,7 @@ class VehicleItem extends Model implements HasMedia
         'license_plate',
         'vin',
         'suspended',
+        'vehicle_type',
         'green_card_expires_at',
         'private_conditions_expires_at',
         'inspection_expires_at',

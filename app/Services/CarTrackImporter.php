@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CarTrack;
+use App\Models\CompanyPark;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
@@ -10,7 +11,9 @@ use ZipArchive;
 
 class CarTrackImporter
 {
-    public function import(string $filePath, string $originalName, int $tvdeWeekId): int
+    public const COMPANY_PARK_SOURCE_TYPE = 'via_verde';
+
+    public function import(string $filePath, string $originalName, int $tvdeWeekId): array
     {
         $extension = strtolower((string) pathinfo($originalName, PATHINFO_EXTENSION));
 
@@ -35,6 +38,7 @@ class CarTrackImporter
         }
 
         $entries = [];
+        $classifier = app(CarTrackClassificationService::class);
 
         foreach (array_slice($rows, 1) as $row) {
             $description = $this->normalizeText($descriptionColumn !== null ? ($row[$descriptionColumn] ?? null) : null);
@@ -51,14 +55,16 @@ class CarTrackImporter
                 continue;
             }
 
-            $entries[] = [
+            $classification = $classifier->classify($licensePlate, $date);
+
+            $entries[] = array_merge([
                 'tvde_week_id' => $tvdeWeekId,
                 'license_plate' => $licensePlate,
                 'date' => $date,
                 'value' => $value,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
+            ], $classification);
         }
 
         if ($entries === []) {
@@ -67,10 +73,49 @@ class CarTrackImporter
 
         DB::transaction(function () use ($entries, $tvdeWeekId) {
             CarTrack::query()->where('tvde_week_id', $tvdeWeekId)->delete();
+            CompanyPark::withTrashed()
+                ->where('tvde_week_id', $tvdeWeekId)
+                ->where('source_type', self::COMPANY_PARK_SOURCE_TYPE)
+                ->forceDelete();
+
             CarTrack::query()->insert($entries);
+            $this->createCompanyParkAggregates($entries, $tvdeWeekId);
         });
 
-        return count($entries);
+        return [
+            'total' => count($entries),
+            'driver' => count(array_filter($entries, fn ($entry) => $entry['classification_status'] === CarTrackClassificationService::STATUS_DRIVER)),
+            'company' => count(array_filter($entries, fn ($entry) => $entry['classification_status'] === CarTrackClassificationService::STATUS_COMPANY)),
+            'manual' => count(array_filter($entries, fn ($entry) => $entry['classification_status'] === CarTrackClassificationService::STATUS_MANUAL)),
+        ];
+    }
+
+    private function createCompanyParkAggregates(array $entries, int $tvdeWeekId): void
+    {
+        $totals = [];
+
+        foreach ($entries as $entry) {
+            if (($entry['classification_status'] ?? null) !== CarTrackClassificationService::STATUS_COMPANY) {
+                continue;
+            }
+
+            $companyId = $entry['company_id'] ?? null;
+            if (! $companyId) {
+                continue;
+            }
+
+            $totals[$companyId] = ($totals[$companyId] ?? 0) + (float) ($entry['value'] ?? 0);
+        }
+
+        foreach ($totals as $companyId => $value) {
+            CompanyPark::create([
+                'tvde_week_id' => $tvdeWeekId,
+                'company_id' => $companyId,
+                'value' => round($value, 2),
+                'fleet_management' => false,
+                'source_type' => self::COMPANY_PARK_SOURCE_TYPE,
+            ]);
+        }
     }
 
     protected function shouldSkipDescription(string $description): bool

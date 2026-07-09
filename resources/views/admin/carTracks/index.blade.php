@@ -31,7 +31,7 @@
             <div class="col-lg-12">
                 <div id="viaVerdeImportPanel" class="panel panel-default collapse {{ session('open_import_panel') === 'via_verde' || $errors->has('report_file') || $errors->has('tvde_week_id') ? 'in' : '' }}" style="margin-top: 10px;">
                     <div class="panel-heading">
-                        Importar relatório Via Verde
+                        Importar relatorio Via Verde
                     </div>
                     <div class="panel-body">
                         <form method="POST" action="{{ route('admin.car-tracks.importViaVerde') }}" enctype="multipart/form-data">
@@ -45,7 +45,7 @@
                                         @if(session('open_import_panel') === 'via_verde' && $errors->has('report_file'))
                                             <span class="help-block" role="alert">{{ $errors->first('report_file') }}</span>
                                         @endif
-                                        <span class="help-block">Semana escolhida no topo. Mapeamento: matrícula=A, data de entrada=H, valor=S. Ignora linhas de Mobilidade e Acessórios.</span>
+                                        <span class="help-block">Semana escolhida no topo. O import classifica automaticamente motorista, empresa ou validacao manual.</span>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
@@ -76,8 +76,10 @@
                                 <th>{{ trans('cruds.carTrack.fields.tvde_week') }}</th>
                                 <th>{{ trans('cruds.carTrack.fields.date') }}</th>
                                 <th>{{ trans('cruds.carTrack.fields.license_plate') }}</th>
+                                <th>Destino</th>
+                                <th>Motivo</th>
                                 <th>Motorista</th>
-                                <th>Existe</th>
+                                <th>Empresa</th>
                                 <th>{{ trans('cruds.carTrack.fields.value') }}</th>
                                 <th>&nbsp;</th>
                             </tr>
@@ -87,14 +89,17 @@
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="tvde_weeks.start_date"></th>
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.date"></th>
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.license_plate"></th>
-                                <th><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista" data-col-name="driver_name"></th>
                                 <th>
-                                    <select class="form-control input-sm" data-col-name="exist">
+                                    <select class="form-control input-sm" data-col-name="classification_destination">
                                         <option value="">Todos</option>
-                                        <option value="Sim">Sim</option>
-                                        <option value="Não">Não</option>
+                                        <option value="Motorista">Motorista</option>
+                                        <option value="Empresa">Empresa</option>
+                                        <option value="manual">Validacao manual</option>
                                     </select>
                                 </th>
+                                <th><input class="form-control input-sm" type="text" placeholder="Pesquisar motivo" data-col-name="classification_reason_label"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="Pesquisar motorista" data-col-name="driver_name"></th>
+                                <th><input class="form-control input-sm" type="text" placeholder="Pesquisar empresa" data-col-name="company_name"></th>
                                 <th><input class="form-control input-sm" type="text" placeholder="{{ trans('global.search') }}" data-col-name="car_tracks.value"></th>
                                 <th></th>
                             </tr>
@@ -102,9 +107,6 @@
                     </table>
                 </div>
             </div>
-
-
-
         </div>
     </div>
 </div>
@@ -162,24 +164,26 @@ $(function () {
     searchDelay: 250,
     ajax: "{{ route('admin.car-tracks.index') }}",
     columns: [
-      { data: 'placeholder',           name: 'placeholder', searchable:false, orderable:false },
-      { data: 'id',                     name: 'car_tracks.id' },
-      { data: 'tvde_week_start_date',   name: 'tvde_weeks.start_date' },
-      { data: 'date',                   name: 'car_tracks.date' },
-      { data: 'license_plate',          name: 'car_tracks.license_plate' },
-      { data: 'driver_name',            name: 'driver_name', orderable:false },
-      { data: 'exist',                  name: 'exist', searchable:true, orderable:true }, // NOVA COLUNA
-      { data: 'value',                  name: 'car_tracks.value' },
-      { data: 'actions',                name: 'actions', searchable:false, orderable:false }
+      { data: 'placeholder', name: 'placeholder', searchable:false, orderable:false },
+      { data: 'id', name: 'car_tracks.id' },
+      { data: 'tvde_week_start_date', name: 'tvde_weeks.start_date' },
+      { data: 'date', name: 'car_tracks.date' },
+      { data: 'license_plate', name: 'car_tracks.license_plate' },
+      { data: 'classification_destination', name: 'classification_destination', orderable:false },
+      { data: 'classification_reason_label', name: 'classification_reason_label', orderable:false },
+      { data: 'driver_name', name: 'driver_name', orderable:false },
+      { data: 'company_name', name: 'company_name', orderable:false },
+      { data: 'value', name: 'car_tracks.value' },
+      { data: 'actions', name: 'actions', searchable:false, orderable:false }
     ],
     orderCellsTop: true,
     order: [[ 1, 'desc' ]],
     pageLength: 100,
 
     initComplete: function () {
-      const api        = this.api();
+      const api = this.api();
       const $theadLive = $(api.table().header());
-      const $filters   = $('#cartrackTable thead tr.filters');
+      const $filters = $('#cartrackTable thead tr.filters');
 
       if ($filters.length) $filters.appendTo($theadLive);
       $theadLive.find('tr.filters th').off('click.DT');
@@ -187,9 +191,9 @@ $(function () {
       $theadLive.off('input.colFilter change.colFilter')
         .on('input.colFilter change.colFilter', 'tr.filters input, tr.filters select', function (e) {
           const colName = $(this).data('col-name');
-          const strict  = $(this).attr('strict') || false;
-          const rawVal  = this.value;
-          const value   = (strict && rawVal) ? '^' + rawVal + '$' : rawVal;
+          const strict = $(this).attr('strict') || false;
+          const rawVal = this.value;
+          const value = (strict && rawVal) ? '^' + rawVal + '$' : rawVal;
 
           let colIdx = null;
           if (colName) {
@@ -205,15 +209,6 @@ $(function () {
           e.stopPropagation();
         });
     }
-  });
-
-  table.on('preXhr.dt', function (e, settings, data) {
-      try {
-        console.log('[preXhr] columns.search:', data.columns.map(c => ({name:c.name, search:c.search.value})));
-      } catch (_) {}
-  });
-  table.on('draw.dt', function () {
-      console.log('[draw] linhas na página:', table.rows({page:'current'}).count());
   });
 
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(){
