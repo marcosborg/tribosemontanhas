@@ -40,7 +40,7 @@
                                             <strong>{{ $errors->first('accounting_file') }}</strong>
                                         </span>
                                     @endif
-                                    <span class="help-block">Colunas esperadas: Data, Descrição Banco, Valor, nt e Matrícula.</span>
+                                    <span class="help-block">Colunas obrigatorias: Data, Descrição Banco, Valor, nt e Matrícula. Opcionais: IVA e Valor final.</span>
                                 </div>
                             </div>
 

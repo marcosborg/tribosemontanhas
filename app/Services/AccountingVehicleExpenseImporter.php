@@ -19,6 +19,11 @@ class AccountingVehicleExpenseImporter
         'license_plate' => ['matricula', 'matrícula'],
     ];
 
+    private const OPTIONAL_HEADERS = [
+        'vat' => ['iva', 'vat'],
+        'final_value' => ['valor final', 'valor total', 'total'],
+    ];
+
     public function import(string $path, string $originalName): array
     {
         $rows = $this->readRows($path, $originalName);
@@ -44,11 +49,16 @@ class AccountingVehicleExpenseImporter
                 $licensePlate = $this->normalizeText($row[$columns['license_plate']] ?? null);
                 $expenseType = $this->normalizeText($row[$columns['expense_type']] ?? null);
                 $rawValue = $row[$columns['value']] ?? null;
+                $rawFinalValue = $columns['final_value'] !== null ? ($row[$columns['final_value']] ?? null) : null;
+                $rawVat = $columns['vat'] !== null ? ($row[$columns['vat']] ?? null) : null;
                 $rawDate = $row[$columns['date']] ?? null;
 
                 $vehicleId = $this->resolveVehicleItemId($licensePlate);
                 $date = $this->normalizeDate($rawDate);
-                $value = $this->normalizeAmount($rawValue);
+                $baseValue = $this->normalizeAmount($rawValue);
+                $finalValue = $this->normalizeAmount($rawFinalValue);
+                $value = $baseValue;
+                $vat = $this->normalizeVatRate($rawVat);
                 $resolvedExpenseType = $expenseTypes[$expenseType] ?? null;
 
                 $errors = [];
@@ -67,6 +77,10 @@ class AccountingVehicleExpenseImporter
 
                 if ($value === null || $value <= 0) {
                     $errors[] = 'Valor invalido';
+                }
+
+                if ($vat === null) {
+                    $errors[] = 'IVA invalido';
                 }
 
                 if ($errors === [] && $this->expenseAlreadyExists($vehicleId, $resolvedExpenseType, $date, $value)) {
@@ -92,8 +106,8 @@ class AccountingVehicleExpenseImporter
                     'date' => $date,
                     'description' => $description,
                     'value' => $value,
-                    'invoice_value' => $value,
-                    'vat' => 0,
+                    'invoice_value' => $finalValue,
+                    'vat' => $vat,
                     'is_paid' => true,
                     'paid_at' => Carbon::createFromFormat(config('panel.date_format'), $date)->startOfDay(),
                     'payment_reference' => $this->normalizeText($row[$columns['description']] ?? null),
@@ -288,6 +302,19 @@ class AccountingVehicleExpenseImporter
 
         $columns['detail'] = $normalizedHeader[$this->normalizeHeader('Detalhe')] ?? null;
 
+        foreach (self::OPTIONAL_HEADERS as $field => $candidates) {
+            $columns[$field] = null;
+
+            foreach ($candidates as $candidate) {
+                $key = $this->normalizeHeader($candidate);
+
+                if (array_key_exists($key, $normalizedHeader)) {
+                    $columns[$field] = $normalizedHeader[$key];
+                    break;
+                }
+            }
+        }
+
         return $columns;
     }
 
@@ -406,6 +433,39 @@ class AccountingVehicleExpenseImporter
         }
 
         return is_numeric($value) ? abs((float) $value) : null;
+    }
+
+    private function normalizeVatRate($value): ?float
+    {
+        if ($value === null || $value === '') {
+            return 0.0;
+        }
+
+        if (is_numeric($value)) {
+            $rate = (float) $value;
+
+            return $rate >= 0 && $rate <= 100 ? $rate : null;
+        }
+
+        $value = str_replace('%', '', (string) $value);
+        $normalized = preg_replace('/[^0-9,\.\-]/', '', str_replace(["\xc2\xa0", ' '], '', $value)) ?? '';
+
+        if ($normalized === '') {
+            return 0.0;
+        }
+
+        if (str_contains($normalized, ',')) {
+            $normalized = str_replace('.', '', $normalized);
+            $normalized = str_replace(',', '.', $normalized);
+        }
+
+        if (!is_numeric($normalized)) {
+            return null;
+        }
+
+        $rate = (float) $normalized;
+
+        return $rate >= 0 && $rate <= 100 ? $rate : null;
     }
 
     private function normalizeText($value): ?string
