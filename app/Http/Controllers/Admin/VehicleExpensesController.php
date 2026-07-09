@@ -10,6 +10,7 @@ use App\Http\Requests\StoreVehicleExpenseRequest;
 use App\Http\Requests\UpdateVehicleExpenseRequest;
 use App\Models\VehicleExpense;
 use App\Models\VehicleItem;
+use App\Services\AccountingVehicleExpenseImporter;
 use Gate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -400,6 +401,37 @@ class VehicleExpensesController extends Controller
         ]);
 
         return redirect()->route('admin.vehicle-expenses.index');
+    }
+
+    public function importAccounting(Request $request, AccountingVehicleExpenseImporter $importer)
+    {
+        abort_if(Gate::denies('vehicle_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        $request->validate([
+            'accounting_file' => [
+                'required',
+                'file',
+                function ($attribute, $value, $fail) {
+                    $extension = strtolower((string) $value->getClientOriginalExtension());
+
+                    if (!in_array($extension, ['csv', 'txt', 'xls', 'xlsx'], true)) {
+                        $fail('O ficheiro deve ser CSV, TXT, XLS ou XLSX.');
+                    }
+                },
+            ],
+        ]);
+
+        try {
+            $file = $request->file('accounting_file');
+            $result = $importer->import($file->getRealPath(), $file->getClientOriginalName());
+
+            return redirect()->route('admin.vehicle-expenses.index')
+                ->with('message', 'Importacao concluida: ' . $result['imported'] . ' despesas importadas.')
+                ->with('vehicleExpenseImportReport', $result);
+        } catch (\Throwable $exception) {
+            return redirect()->route('admin.vehicle-expenses.index')
+                ->withErrors(['accounting_file' => $exception->getMessage()]);
+        }
     }
 
     public function destroy(VehicleExpense $vehicleExpense)

@@ -10,7 +10,50 @@
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">
                     {{ trans('global.app_csvImport') }}
                 </button>
+                <button class="btn btn-info" data-toggle="modal" data-target="#accountingImportModal">
+                    Importar contabilidade
+                </button>
                 @include('csvImport.modal', ['model' => 'VehicleExpense', 'route' => 'admin.vehicle-expenses.parseCsvImport'])
+            </div>
+        </div>
+    @endcan
+    @can('vehicle_expense_create')
+        <div class="modal fade" id="accountingImportModal" tabindex="-1" role="dialog" aria-labelledby="accountingImportModalLabel">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                        <h4 class="modal-title" id="accountingImportModalLabel">Importar despesas da contabilidade</h4>
+                    </div>
+                    <div class="modal-body">
+                        <form class="form-horizontal" method="POST" action="{{ route('admin.vehicle-expenses.importAccounting') }}" enctype="multipart/form-data">
+                            {{ csrf_field() }}
+
+                            <div class="form-group{{ $errors->has('accounting_file') ? ' has-error' : '' }}">
+                                <label for="accounting_file" class="col-md-4 control-label">Ficheiro</label>
+
+                                <div class="col-md-6">
+                                    <input id="accounting_file" type="file" class="form-control" name="accounting_file" accept=".csv,.txt,.xls,.xlsx" required>
+
+                                    @if($errors->has('accounting_file'))
+                                        <span class="help-block">
+                                            <strong>{{ $errors->first('accounting_file') }}</strong>
+                                        </span>
+                                    @endif
+                                    <span class="help-block">Colunas esperadas: Data, Descrição Banco, Valor, nt e Matrícula.</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <div class="col-md-8 col-md-offset-4">
+                                    <button type="submit" class="btn btn-primary">
+                                        Importar
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     @endcan
@@ -21,6 +64,43 @@
                     {{ trans('cruds.vehicleExpense.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    @if(session('vehicleExpenseImportReport'))
+                        @php($vehicleExpenseImportReport = session('vehicleExpenseImportReport'))
+                        <div class="alert alert-info">
+                            <p>
+                                <strong>Relatorio de importacao:</strong>
+                                {{ $vehicleExpenseImportReport['imported'] ?? 0 }} despesas importadas,
+                                {{ count($vehicleExpenseImportReport['failed'] ?? []) }} linhas falhadas.
+                            </p>
+
+                            @if(!empty($vehicleExpenseImportReport['failed']))
+                                <div class="table-responsive" style="margin-top: 10px;">
+                                    <table class="table table-bordered table-condensed">
+                                        <thead>
+                                            <tr>
+                                                <th>Linha</th>
+                                                <th>Matricula</th>
+                                                <th>Tipo</th>
+                                                <th>Valor</th>
+                                                <th>Motivo</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($vehicleExpenseImportReport['failed'] as $failedRow)
+                                                <tr>
+                                                    <td>{{ $failedRow['line'] }}</td>
+                                                    <td>{{ $failedRow['license_plate'] }}</td>
+                                                    <td>{{ $failedRow['expense_type'] }}</td>
+                                                    <td>{{ $failedRow['value'] }}</td>
+                                                    <td>{{ $failedRow['reason'] }}</td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+                            @endif
+                        </div>
+                    @endif
                     <div class="alert alert-warning" style="margin-bottom: 15px;">
                         Despesas por pagar: <strong>{{ $unpaidCount ?? 0 }}</strong>
                     </div>
