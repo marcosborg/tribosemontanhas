@@ -7,8 +7,24 @@
                 <a class="btn btn-success" href="{{ route('admin.company-expenses.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.companyExpense.title_singular') }}
                 </a>
+                <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">{{ trans('global.app_csvImport') }}</button>
+                <button class="btn btn-info" data-toggle="modal" data-target="#accountingImportModal">Importar contabilidade</button>
+                @include('csvImport.modal', ['model' => 'CompanyExpense', 'route' => 'admin.company-expenses.parseCsvImport'])
             </div>
         </div>
+    @endcan
+    @can('company_expense_create')
+    <div class="modal fade" id="accountingImportModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog"><div class="modal-content">
+            <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title">Importar despesas da contabilidade</h4></div>
+            <div class="modal-body"><form method="POST" action="{{ route('admin.company-expenses.importAccounting') }}" enctype="multipart/form-data">@csrf
+                <div class="form-group {{ $errors->has('accounting_file') ? 'has-error' : '' }}"><label for="accounting_file">Ficheiro</label><input class="form-control" type="file" name="accounting_file" id="accounting_file" accept=".csv,.txt,.xls,.xlsx" required>
+                    @if($errors->has('accounting_file'))<span class="help-block">{{ $errors->first('accounting_file') }}</span>@endif
+                    <span class="help-block">Obrigatórias: Data, Descrição Banco, Valor e Tipo/nt. Empresa é obrigatória apenas quando não está selecionada no topo. Opcionais: IVA e Valor final.</span>
+                </div><button class="btn btn-primary" type="submit">Importar</button>
+            </form></div>
+        </div></div>
+    </div>
     @endcan
     <div class="row">
         <div class="col-lg-12">
@@ -17,6 +33,14 @@
                     {{ trans('cruds.companyExpense.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    @if(session('companyExpenseImportReport'))
+                        @php($report = session('companyExpenseImportReport'))
+                        <div class="alert alert-info"><strong>Relatório de importação:</strong> {{ $report['imported'] ?? 0 }} importadas, {{ count($report['failed'] ?? []) }} falhadas.
+                        @if(!empty($report['failed']))<div class="table-responsive"><table class="table table-bordered table-condensed"><thead><tr><th>Linha</th><th>Empresa</th><th>Tipo</th><th>Valor</th><th>Motivo</th></tr></thead><tbody>
+                            @foreach($report['failed'] as $row)<tr><td>{{ $row['line'] }}</td><td>{{ $row['company'] }}</td><td>{{ $row['expense_type'] }}</td><td>{{ $row['value'] }}</td><td>{{ $row['reason'] }}</td></tr>@endforeach
+                        </tbody></table></div>@endif</div>
+                    @endif
+                    <div class="alert alert-warning">Despesas contabilísticas por pagar: <strong>{{ $unpaidCount }}</strong></div>
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CompanyExpense">
                         <thead>
                             <tr>
@@ -26,24 +50,15 @@
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.id') }}
                                 </th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.name') }}
-                                </th>
+                                <th>Modo / tipo</th>
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.company') }}
                                 </th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.weekly_value') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.start_date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.end_date') }}
-                                </th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.qty') }}
-                                </th>
+                                <th>Modo</th>
+                                <th>Data / período</th>
+                                <th>Estado</th>
+                                <th>Documentos</th>
+                                <th>Valor</th>
                                 <th>
                                     &nbsp;
                                 </th>
@@ -104,12 +119,13 @@
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
-{ data: 'name', name: 'name' },
+{ data: 'name', name: 'expense_type' },
 { data: 'company_name', name: 'company.name' },
-{ data: 'weekly_value', name: 'weekly_value' },
-{ data: 'start_date', name: 'start_date' },
-{ data: 'end_date', name: 'end_date' },
-{ data: 'qty', name: 'qty' },
+{ data: 'expense_mode', name: 'expense_mode' },
+{ data: 'date', name: 'date' },
+{ data: 'is_paid', name: 'is_paid' },
+{ data: 'files', name: 'files', orderable: false, searchable: false },
+{ data: 'weekly_value', name: 'value' },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,

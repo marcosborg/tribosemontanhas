@@ -92,17 +92,10 @@ class WeeklyExpenseReportController extends Controller
 
         //COMPANY EXPENSES
 
-        $now = Carbon::now()->format('Y-m-d');
-
-        $company_expenses = CompanyExpense::where([
-            'company_id' => $company_id,
-        ])
-            ->where('start_date', '<=', $now)
-            ->where('end_date', '>=', $now)
-            ->get();
+        $company_expenses = CompanyExpense::forPeriod($company_id, $tvde_week->start_date, $tvde_week->end_date)->get();
 
         $company_expenses = $company_expenses->map(function ($expense) {
-            $expense->total = $expense->qty * $expense->weekly_value;
+            $expense->total = $expense->report_total;
             return $expense;
         });
 

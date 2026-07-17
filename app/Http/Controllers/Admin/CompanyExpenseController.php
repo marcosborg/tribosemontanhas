@@ -4,19 +4,22 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Controllers\Traits\CsvImportTrait;
+use App\Http\Controllers\Traits\MediaUploadingTrait;
 use App\Http\Requests\MassDestroyCompanyExpenseRequest;
 use App\Http\Requests\StoreCompanyExpenseRequest;
 use App\Http\Requests\UpdateCompanyExpenseRequest;
 use App\Models\Company;
 use App\Models\CompanyExpense;
+use App\Services\AccountingCompanyExpenseImporter;
 use Gate;
 use Illuminate\Http\Request;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
 
 class CompanyExpenseController extends Controller
 {
-    use CsvImportTrait;
+    use CsvImportTrait, MediaUploadingTrait;
 
     public function index(Request $request)
     {
@@ -40,7 +43,7 @@ class CompanyExpenseController extends Controller
                 $deleteGate = 'company_expense_delete';
                 $crudRoutePart = 'company-expenses';
 
-                return view(
+                $actions = view(
                     'partials.datatablesActions',
                     compact(
                         'viewGate',
@@ -49,29 +52,47 @@ class CompanyExpenseController extends Controller
                         'crudRoutePart',
                         'row'
                     )
-                );
+                )->render();
+
+                if ($row->expense_mode === CompanyExpense::MODE_ACCOUNTING && !$row->is_paid && Gate::allows('company_expense_edit')) {
+                    $actions .= sprintf(
+                        '<form action="%s" method="POST" style="display:inline-block">%s<button class="btn btn-xs btn-success" type="submit">Marcar pago</button></form>',
+                        route('admin.company-expenses.mark-paid', $row->id),
+                        csrf_field()
+                    );
+                }
+
+                return $actions;
             });
 
             $table->editColumn('id', function ($row) {
                 return $row->id ? $row->id : '';
             });
             $table->editColumn('name', function ($row) {
-                return $row->name ? $row->name : '';
+                return $row->expense_mode === CompanyExpense::MODE_ACCOUNTING
+                    ? (CompanyExpense::EXPENSE_TYPE_RADIO[$row->expense_type] ?? $row->expense_type)
+                    : ($row->name ?: '');
             });
             $table->addColumn('company_name', function ($row) {
                 return $row->company ? $row->company->name : '';
             });
 
             $table->editColumn('weekly_value', function ($row) {
-                return $row->weekly_value ? $row->weekly_value : '';
+                return $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->value : $row->weekly_value;
             });
+            $table->editColumn('expense_mode', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
+            $table->editColumn('date', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
+            $table->editColumn('is_paid', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
+            $table->addColumn('files', fn ($row) => $row->files->map(fn ($media) => sprintf('<a href="%s" target="_blank">%s</a>', $media->getUrl(), e($media->file_name)))->implode('<br>'));
 
-            $table->rawColumns(['actions', 'placeholder', 'company']);
+            $table->rawColumns(['actions', 'placeholder', 'company', 'files']);
 
             return $table->make(true);
         }
 
-        return view('admin.companyExpenses.index');
+        $unpaidCount = CompanyExpense::where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('is_paid', false)->count();
+
+        return view('admin.companyExpenses.index', compact('unpaidCount'));
     }
 
     public function create()
@@ -85,7 +106,18 @@ class CompanyExpenseController extends Controller
 
     public function store(StoreCompanyExpenseRequest $request)
     {
-        $companyExpense = CompanyExpense::create($request->all());
+        $payload = $this->payload($request);
+        $companyExpense = CompanyExpense::create($payload);
+
+        foreach ($request->input('files', []) as $file) {
+            $companyExpense->addMedia(storage_path('tmp/uploads/' . basename($file)))->toMediaCollection('files');
+        }
+        foreach ($request->file('documents', []) as $file) {
+            $companyExpense->addMedia($file)->toMediaCollection('files');
+        }
+        if ($media = $request->input('ck-media', false)) {
+            Media::whereIn('id', $media)->update(['model_id' => $companyExpense->id]);
+        }
 
         return redirect()->route('admin.company-expenses.index');
     }
@@ -103,7 +135,11 @@ class CompanyExpenseController extends Controller
 
     public function update(UpdateCompanyExpenseRequest $request, CompanyExpense $companyExpense)
     {
-        $companyExpense->update($request->all());
+        $companyExpense->update($this->payload($request, $companyExpense));
+
+        foreach ($request->file('documents', []) as $file) {
+            $companyExpense->addMedia($file)->toMediaCollection('files');
+        }
 
         return redirect()->route('admin.company-expenses.index');
     }
@@ -135,5 +171,64 @@ class CompanyExpenseController extends Controller
         }
 
         return response(null, Response::HTTP_NO_CONTENT);
+    }
+
+    public function markPaid(CompanyExpense $companyExpense)
+    {
+        abort_if(Gate::denies('company_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $companyExpense->update(['is_paid' => true, 'paid_at' => now()]);
+        return redirect()->route('admin.company-expenses.index');
+    }
+
+    public function importAccounting(Request $request, AccountingCompanyExpenseImporter $importer)
+    {
+        abort_if(Gate::denies('company_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $request->validate(['accounting_file' => ['required', 'file', function ($attribute, $file, $fail) {
+            if (!in_array(strtolower($file->getClientOriginalExtension()), ['csv', 'txt', 'xls', 'xlsx'], true)) $fail('O ficheiro deve ser CSV, TXT, XLS ou XLSX.');
+        }]]);
+
+        try {
+            $file = $request->file('accounting_file');
+            $sessionCompanyId = session('company_id') && session('company_id') !== '0' ? (int) session('company_id') : null;
+            $result = $importer->import($file->getRealPath(), $file->getClientOriginalName(), $sessionCompanyId);
+            return redirect()->route('admin.company-expenses.index')
+                ->with('message', 'Importacao concluida: ' . $result['imported'] . ' despesas importadas.')
+                ->with('companyExpenseImportReport', $result);
+        } catch (\Throwable $exception) {
+            return redirect()->route('admin.company-expenses.index')->withErrors(['accounting_file' => $exception->getMessage()]);
+        }
+    }
+
+    public function storeCKEditorImages(Request $request)
+    {
+        abort_if(Gate::denies('company_expense_create') && Gate::denies('company_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $model = new CompanyExpense();
+        $model->id = $request->input('crud_id', 0);
+        $model->exists = true;
+        $media = $model->addMediaFromRequest('upload')->toMediaCollection('ck-media');
+        return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
+    }
+
+    private function payload(Request $request, ?CompanyExpense $existing = null): array
+    {
+        $payload = $request->all();
+        if ($request->input('expense_mode') === CompanyExpense::MODE_ACCOUNTING) {
+            $payload['name'] = $request->input('expense_type');
+            $payload['weekly_value'] = $request->input('value');
+            $payload['start_date'] = $request->input('date');
+            $payload['end_date'] = $request->input('date');
+            $payload['qty'] = 1;
+            $wasPaid = (bool) optional($existing)->is_paid;
+            $payload['is_paid'] = $request->boolean('is_paid');
+            $payload['paid_at'] = $payload['is_paid'] ? ($wasPaid ? $existing->paid_at : now()) : null;
+        } else {
+            $payload['expense_type'] = null;
+            $payload['date'] = null;
+            $payload['value'] = null;
+            $payload['invoice_value'] = null;
+            $payload['is_paid'] = false;
+            $payload['paid_at'] = null;
+        }
+        return $payload;
     }
 }

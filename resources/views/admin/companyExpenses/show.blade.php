@@ -25,6 +25,19 @@
                                         {{ $companyExpense->id }}
                                     </td>
                                 </tr>
+                                <tr><th>Modo</th><td>{{ $companyExpense->expense_mode === 'accounting' ? 'Contabilidade' : 'Recorrente' }}</td></tr>
+                                @if($companyExpense->expense_mode === 'accounting')
+                                <tr><th>Tipo de despesa</th><td>{{ App\Models\CompanyExpense::EXPENSE_TYPE_RADIO[$companyExpense->expense_type] ?? $companyExpense->expense_type }}</td></tr>
+                                <tr><th>Data</th><td>{{ $companyExpense->date }}</td></tr>
+                                <tr><th>Descrição</th><td>{!! $companyExpense->description !!}</td></tr>
+                                <tr><th>Valor</th><td>{{ number_format($companyExpense->value, 2, ',', '.') }} €</td></tr>
+                                <tr><th>Valor final</th><td>{{ $companyExpense->invoice_value !== null ? number_format($companyExpense->invoice_value, 2, ',', '.') . ' €' : '—' }}</td></tr>
+                                <tr><th>IVA</th><td>{{ $companyExpense->vat }}%</td></tr>
+                                <tr><th>Estado</th><td>{{ $companyExpense->is_paid ? 'Pago' : 'Por pagar' }}</td></tr>
+                                <tr><th>Referência</th><td>{{ $companyExpense->payment_reference }}</td></tr>
+                                <tr><th>Pagar a</th><td>{{ $companyExpense->pay_to }}</td></tr>
+                                <tr><th>Documentos</th><td>@foreach($companyExpense->files as $file)<a href="{{ $file->getUrl() }}" target="_blank">{{ $file->file_name }}</a><br>@endforeach</td></tr>
+                                @endif
                                 <tr>
                                     <th>
                                         {{ trans('cruds.companyExpense.fields.name') }}

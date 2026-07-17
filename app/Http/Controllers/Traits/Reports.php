@@ -857,15 +857,10 @@ trait Reports
     {
         $tvde_week = TvdeWeek::find($tvde_week_id);
 
-        $company_expenses = CompanyExpense::where([
-            'company_id' => $company_id,
-        ])
-            ->where('start_date', '<=', $tvde_week->start_date)
-            ->where('end_date', '>=', $tvde_week->end_date)
-            ->get();
+        $company_expenses = CompanyExpense::forPeriod($company_id, $tvde_week->start_date, $tvde_week->end_date)->get();
 
         $company_expenses = $company_expenses->map(function ($expense) {
-            $expense->total = $expense->qty * $expense->weekly_value;
+            $expense->total = $expense->report_total;
             return $expense;
         });
 

@@ -433,6 +433,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('company-expenses/destroy', 'CompanyExpenseController@massDestroy')->name('company-expenses.massDestroy');
     Route::post('company-expenses/parse-csv-import', 'CompanyExpenseController@parseCsvImport')->name('company-expenses.parseCsvImport');
     Route::post('company-expenses/process-csv-import', 'CompanyExpenseController@processCsvImport')->name('company-expenses.processCsvImport');
+    Route::post('company-expenses/import-accounting', 'CompanyExpenseController@importAccounting')->name('company-expenses.importAccounting');
+    Route::post('company-expenses/media', 'CompanyExpenseController@storeMedia')->name('company-expenses.storeMedia');
+    Route::post('company-expenses/ckmedia', 'CompanyExpenseController@storeCKEditorImages')->name('company-expenses.storeCKEditorImages');
+    Route::post('company-expenses/{companyExpense}/mark-paid', 'CompanyExpenseController@markPaid')->name('company-expenses.mark-paid');
     Route::resource('company-expenses', 'CompanyExpenseController');
 
     // Weekly Expense Report
