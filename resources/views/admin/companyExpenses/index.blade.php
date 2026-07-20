@@ -4,15 +4,18 @@
     @can('company_expense_create')
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">
+                @if($accountingReady)
                 <a class="btn btn-success" href="{{ route('admin.company-expenses.create') }}">
                     {{ trans('global.add') }} {{ trans('cruds.companyExpense.title_singular') }}
                 </a>
                 <button class="btn btn-warning" data-toggle="modal" data-target="#csvImportModal">{{ trans('global.app_csvImport') }}</button>
                 <button class="btn btn-info" data-toggle="modal" data-target="#accountingImportModal">Importar contabilidade</button>
+                @endif
                 @include('csvImport.modal', ['model' => 'CompanyExpense', 'route' => 'admin.company-expenses.parseCsvImport'])
             </div>
         </div>
     @endcan
+    @if($accountingReady)
     @can('company_expense_create')
     <div class="modal fade" id="accountingImportModal" tabindex="-1" role="dialog">
         <div class="modal-dialog"><div class="modal-content">
@@ -26,6 +29,7 @@
         </div></div>
     </div>
     @endcan
+    @endif
     <div class="row">
         <div class="col-lg-12">
             <div class="panel panel-default">
@@ -33,6 +37,9 @@
                     {{ trans('cruds.companyExpense.title_singular') }} {{ trans('global.list') }}
                 </div>
                 <div class="panel-body">
+                    @if(!$accountingReady)
+                        <div class="alert alert-warning">A atualização contabilística está preparada, mas aguarda a execução da migration no servidor. A listagem histórica permanece disponível.</div>
+                    @endif
                     @if(session('companyExpenseImportReport'))
                         @php($report = session('companyExpenseImportReport'))
                         <div class="alert alert-info"><strong>Relatório de importação:</strong> {{ $report['imported'] ?? 0 }} importadas, {{ count($report['failed'] ?? []) }} falhadas.

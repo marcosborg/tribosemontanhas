@@ -13,6 +13,7 @@ use App\Models\CompanyExpense;
 use App\Services\AccountingCompanyExpenseImporter;
 use Gate;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Schema;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Symfony\Component\HttpFoundation\Response;
 use Yajra\DataTables\Facades\DataTables;
@@ -24,6 +25,7 @@ class CompanyExpenseController extends Controller
     public function index(Request $request)
     {
         abort_if(Gate::denies('company_expense_access'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $accountingReady = Schema::hasColumn('company_expenses', 'expense_mode');
 
         if ($request->ajax()) {
             if (session()->has('company_id') && session()->get('company_id') !== '0') {
@@ -37,7 +39,7 @@ class CompanyExpenseController extends Controller
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
-            $table->editColumn('actions', function ($row) {
+            $table->editColumn('actions', function ($row) use ($accountingReady) {
                 $viewGate = 'company_expense_show';
                 $editGate = 'company_expense_edit';
                 $deleteGate = 'company_expense_delete';
@@ -54,7 +56,7 @@ class CompanyExpenseController extends Controller
                     )
                 )->render();
 
-                if ($row->expense_mode === CompanyExpense::MODE_ACCOUNTING && !$row->is_paid && Gate::allows('company_expense_edit')) {
+                if ($accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING && !$row->is_paid && Gate::allows('company_expense_edit')) {
                     $actions .= sprintf(
                         '<form action="%s" method="POST" style="display:inline-block">%s<button class="btn btn-xs btn-success" type="submit">Marcar pago</button></form>',
                         route('admin.company-expenses.mark-paid', $row->id),
@@ -68,8 +70,8 @@ class CompanyExpenseController extends Controller
             $table->editColumn('id', function ($row) {
                 return $row->id ? $row->id : '';
             });
-            $table->editColumn('name', function ($row) {
-                return $row->expense_mode === CompanyExpense::MODE_ACCOUNTING
+            $table->editColumn('name', function ($row) use ($accountingReady) {
+                return $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING
                     ? (CompanyExpense::EXPENSE_TYPE_RADIO[$row->expense_type] ?? $row->expense_type)
                     : ($row->name ?: '');
             });
@@ -77,12 +79,12 @@ class CompanyExpenseController extends Controller
                 return $row->company ? $row->company->name : '';
             });
 
-            $table->editColumn('weekly_value', function ($row) {
-                return $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->value : $row->weekly_value;
+            $table->editColumn('weekly_value', function ($row) use ($accountingReady) {
+                return $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->value : $row->weekly_value;
             });
-            $table->editColumn('expense_mode', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
-            $table->editColumn('date', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
-            $table->editColumn('is_paid', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
+            $table->editColumn('expense_mode', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
+            $table->editColumn('date', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
+            $table->editColumn('is_paid', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
             $table->addColumn('files', fn ($row) => $row->files->map(fn ($media) => sprintf('<a href="%s" target="_blank">%s</a>', $media->getUrl(), e($media->file_name)))->implode('<br>'));
 
             $table->rawColumns(['actions', 'placeholder', 'company', 'files']);
@@ -90,9 +92,11 @@ class CompanyExpenseController extends Controller
             return $table->make(true);
         }
 
-        $unpaidCount = CompanyExpense::where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('is_paid', false)->count();
+        $unpaidCount = $accountingReady
+            ? CompanyExpense::where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('is_paid', false)->count()
+            : 0;
 
-        return view('admin.companyExpenses.index', compact('unpaidCount'));
+        return view('admin.companyExpenses.index', compact('unpaidCount', 'accountingReady'));
     }
 
     public function create()
