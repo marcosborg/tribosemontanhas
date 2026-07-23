@@ -122,6 +122,7 @@ class UpdateDriverRequest extends FormRequest
                 'string',
                 'nullable',
             ],
+            'weekly_km_allowance' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 }

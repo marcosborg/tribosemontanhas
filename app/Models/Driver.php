@@ -62,6 +62,7 @@ class Driver extends Model implements HasMedia
         'model',
         'notes',
         'company_id',
+        'weekly_km_allowance',
         'created_at',
         'updated_at',
         'deleted_at',

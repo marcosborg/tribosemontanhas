@@ -441,7 +441,7 @@
                                     <i class="fa-fw fas fa-car">
 
                                     </i>
-                                    <span>{{ trans('cruds.weeklyVehicleExpense.title') }}</span>
+                                    <span>Quilómetros semanais</span>
 
                                 </a>
                             </li>

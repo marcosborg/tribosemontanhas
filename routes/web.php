@@ -546,6 +546,10 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::delete('weekly-vehicle-expenses/destroy', 'WeeklyVehicleExpensesController@massDestroy')->name('weekly-vehicle-expenses.massDestroy');
     Route::post('weekly-vehicle-expenses/parse-csv-import', 'WeeklyVehicleExpensesController@parseCsvImport')->name('weekly-vehicle-expenses.parseCsvImport');
     Route::post('weekly-vehicle-expenses/process-csv-import', 'WeeklyVehicleExpensesController@processCsvImport')->name('weekly-vehicle-expenses.processCsvImport');
+    Route::post('weekly-vehicle-expenses/import-tesla', 'WeeklyVehicleExpensesController@importTesla')->name('weekly-vehicle-expenses.importTesla');
+    Route::post('weekly-vehicle-expenses/import-cartrack', 'WeeklyVehicleExpensesController@importCarTrack')->name('weekly-vehicle-expenses.importCarTrack');
+    Route::get('weekly-vehicle-expenses/{weeklyVehicleExpense}/allocations', 'WeeklyVehicleExpensesController@allocations')->name('weekly-vehicle-expenses.allocations');
+    Route::put('weekly-vehicle-expenses/{weeklyVehicleExpense}/allocations', 'WeeklyVehicleExpensesController@updateAllocations')->name('weekly-vehicle-expenses.updateAllocations');
     Route::resource('weekly-vehicle-expenses', 'WeeklyVehicleExpensesController');
 
     // Periods Of The Year

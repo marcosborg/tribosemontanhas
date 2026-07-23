@@ -363,6 +363,12 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.driver.fields.company_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('weekly_km_allowance') ? 'has-error' : '' }}">
+                            <label for="weekly_km_allowance">Limite semanal de quilómetros</label>
+                            <input class="form-control" type="number" name="weekly_km_allowance" id="weekly_km_allowance" min="0" step="0.01" value="{{ old('weekly_km_allowance', $driver->weekly_km_allowance) }}">
+                            @if($errors->has('weekly_km_allowance'))<span class="help-block">{{ $errors->first('weekly_km_allowance') }}</span>@endif
+                            <span class="help-block">Quilómetros incluídos por semana antes de calcular km extra.</span>
+                        </div>
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}

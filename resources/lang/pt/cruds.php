@@ -2254,8 +2254,8 @@ return [
         ],
     ],
     'weeklyVehicleExpense' => [
-        'title'          => 'Despesas semanais da viatura',
-        'title_singular' => 'Despesa semanal da viatura',
+        'title'          => 'Quilómetros semanais',
+        'title_singular' => 'Quilometragem semanal',
         'fields'         => [
             'id'                  => 'ID',
             'id_helper'           => ' ',
@@ -2504,7 +2504,6 @@ return [
         'title_singular' => 'Receita da viatura',
     ],
 ];
-
 
 
 
