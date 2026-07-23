@@ -95,8 +95,9 @@ class CompanyExpenseController extends Controller
         $unpaidCount = $accountingReady
             ? CompanyExpense::where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('is_paid', false)->count()
             : 0;
+        $companies = Company::orderBy('name')->pluck('name', 'id');
 
-        return view('admin.companyExpenses.index', compact('unpaidCount', 'accountingReady'));
+        return view('admin.companyExpenses.index', compact('unpaidCount', 'accountingReady', 'companies'));
     }
 
     public function create()
@@ -187,14 +188,19 @@ class CompanyExpenseController extends Controller
     public function importAccounting(Request $request, AccountingCompanyExpenseImporter $importer)
     {
         abort_if(Gate::denies('company_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        $request->validate(['accounting_file' => ['required', 'file', function ($attribute, $file, $fail) {
-            if (!in_array(strtolower($file->getClientOriginalExtension()), ['csv', 'txt', 'xls', 'xlsx'], true)) $fail('O ficheiro deve ser CSV, TXT, XLS ou XLSX.');
-        }]]);
+        $request->validate([
+            'accounting_company_id' => ['nullable', 'integer', 'exists:companies,id'],
+            'accounting_file' => ['required', 'file', function ($attribute, $file, $fail) {
+                if (!in_array(strtolower($file->getClientOriginalExtension()), ['csv', 'txt', 'xls', 'xlsx'], true)) $fail('O ficheiro deve ser CSV, TXT, XLS ou XLSX.');
+            }],
+        ]);
 
         try {
             $file = $request->file('accounting_file');
-            $sessionCompanyId = session('company_id') && session('company_id') !== '0' ? (int) session('company_id') : null;
-            $result = $importer->import($file->getRealPath(), $file->getClientOriginalName(), $sessionCompanyId);
+            $selectedCompanyId = $request->filled('accounting_company_id')
+                ? (int) $request->input('accounting_company_id')
+                : (session('company_id') && session('company_id') !== '0' ? (int) session('company_id') : null);
+            $result = $importer->import($file->getRealPath(), $file->getClientOriginalName(), $selectedCompanyId);
             return redirect()->route('admin.company-expenses.index')
                 ->with('message', 'Importacao concluida: ' . $result['imported'] . ' despesas importadas.')
                 ->with('companyExpenseImportReport', $result);

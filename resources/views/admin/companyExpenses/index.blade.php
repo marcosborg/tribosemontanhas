@@ -21,6 +21,18 @@
         <div class="modal-dialog"><div class="modal-content">
             <div class="modal-header"><button type="button" class="close" data-dismiss="modal">&times;</button><h4 class="modal-title">Importar despesas da contabilidade</h4></div>
             <div class="modal-body"><form method="POST" action="{{ route('admin.company-expenses.importAccounting') }}" enctype="multipart/form-data">@csrf
+                @php($selectedAccountingCompany = old('accounting_company_id', session('company_id') && session('company_id') !== '0' ? session('company_id') : ''))
+                <div class="form-group {{ $errors->has('accounting_company_id') ? 'has-error' : '' }}">
+                    <label for="accounting_company_id">Empresa</label>
+                    <select class="form-control select2" name="accounting_company_id" id="accounting_company_id" required style="width: 100%;">
+                        <option value="">Selecionar empresa</option>
+                        @foreach($companies as $id => $name)
+                            <option value="{{ $id }}" {{ (string) $selectedAccountingCompany === (string) $id ? 'selected' : '' }}>{{ $name }}</option>
+                        @endforeach
+                    </select>
+                    @if($errors->has('accounting_company_id'))<span class="help-block">{{ $errors->first('accounting_company_id') }}</span>@endif
+                    <span class="help-block">A empresa selecionada será aplicada às linhas que não tenham uma coluna Empresa.</span>
+                </div>
                 <div class="form-group {{ $errors->has('accounting_file') ? 'has-error' : '' }}"><label for="accounting_file">Ficheiro</label><input class="form-control" type="file" name="accounting_file" id="accounting_file" accept=".csv,.txt,.xls,.xlsx" required>
                     @if($errors->has('accounting_file'))<span class="help-block">{{ $errors->first('accounting_file') }}</span>@endif
                     <span class="help-block">Obrigatórias: Data, Descrição Banco, Valor e Tipo/nt. Empresa é obrigatória apenas quando não está selecionada no topo. Opcionais: IVA e Valor final.</span>
