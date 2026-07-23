@@ -7,6 +7,7 @@ use App\Models\CompanyExpense;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
+use ZipArchive;
 
 class AccountingCompanyExpenseImporter
 {
@@ -42,9 +43,11 @@ class AccountingCompanyExpenseImporter
                 $type = $typeRaw ? $types->get($this->key($typeRaw)) : null;
                 $date = $this->date($row[$columns['date']] ?? null);
                 $value = $this->amount($row[$columns['value']] ?? null);
-                $vat = $columns['vat'] !== null ? $this->amount($row[$columns['vat']] ?? null, false) : 23.0;
+                $vatRaw = $columns['vat'] !== null ? ($row[$columns['vat']] ?? null) : null;
+                $vat = $this->text($vatRaw) === null ? 23.0 : $this->amount($vatRaw, false);
                 $invoiceValue = $columns['final_value'] !== null ? $this->amount($row[$columns['final_value']] ?? null) : null;
                 $companyId = $defaultCompanyId ?: $this->companyId($row[$columns['company']] ?? null);
+                $description = $this->description($row, $columns);
                 $errors = [];
 
                 if (!$companyId) $errors[] = 'Empresa inexistente';
@@ -59,6 +62,7 @@ class AccountingCompanyExpenseImporter
                     ->where('expense_type', $type)
                     ->whereDate('date', Carbon::createFromFormat(config('panel.date_format'), $date)->format('Y-m-d'))
                     ->where('value', number_format($value, 2, '.', ''))
+                    ->where('description', $description)
                     ->exists()) {
                     $errors[] = 'Despesa ja existente';
                 }
@@ -68,7 +72,6 @@ class AccountingCompanyExpenseImporter
                     continue;
                 }
 
-                $description = $this->text($row[$columns['description']] ?? null);
                 CompanyExpense::create([
                     'company_id' => $companyId,
                     'expense_mode' => CompanyExpense::MODE_ACCOUNTING,
@@ -109,7 +112,11 @@ class AccountingCompanyExpenseImporter
             return $rows;
         }
 
-        if (!in_array($extension, ['xls', 'xlsx'], true)) {
+        if ($extension === 'xlsx') {
+            return $this->readXlsxRows($path);
+        }
+
+        if ($extension !== 'xls') {
             throw new RuntimeException('Formato nao suportado. Usa CSV, TXT, XLS ou XLSX.');
         }
         $copy = sys_get_temp_dir() . '/' . uniqid('company-expenses-', true) . '.' . $extension;
@@ -120,6 +127,116 @@ class AccountingCompanyExpenseImporter
         } finally {
             @unlink($copy);
         }
+    }
+
+    private function readXlsxRows(string $path): array
+    {
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('A extensao PHP zip nao esta ativa no servidor. E necessaria para importar XLSX.');
+        }
+
+        $zip = new ZipArchive();
+        if ($zip->open($path) !== true) {
+            throw new RuntimeException('Nao foi possivel abrir o ficheiro XLSX.');
+        }
+
+        try {
+            $sharedStrings = $this->readSharedStrings($zip);
+            $sheetXml = $zip->getFromName('xl/worksheets/sheet1.xml');
+            if ($sheetXml === false) {
+                throw new RuntimeException('A primeira folha do XLSX nao foi encontrada.');
+            }
+
+            $sheet = simplexml_load_string($sheetXml);
+            if ($sheet === false) {
+                throw new RuntimeException('Nao foi possivel ler a primeira folha do XLSX.');
+            }
+
+            $rows = [];
+            foreach ($sheet->sheetData->row as $row) {
+                $current = [];
+                foreach ($row->c as $cell) {
+                    $columnIndex = $this->columnReferenceToIndex((string) $cell['r']);
+                    $type = (string) $cell['t'];
+                    $value = isset($cell->v) ? (string) $cell->v : '';
+
+                    if ($type === 's') {
+                        $value = $sharedStrings[(int) $value] ?? '';
+                    } elseif ($type === 'inlineStr') {
+                        $value = $this->inlineString($cell);
+                    }
+
+                    $current[$columnIndex] = $value;
+                }
+
+                if ($current === []) {
+                    continue;
+                }
+
+                ksort($current);
+                $normalized = array_fill(0, max(array_keys($current)) + 1, null);
+                foreach ($current as $index => $value) {
+                    $normalized[$index] = $value;
+                }
+                $rows[] = $normalized;
+            }
+
+            return $rows;
+        } finally {
+            $zip->close();
+        }
+    }
+
+    private function readSharedStrings(ZipArchive $zip): array
+    {
+        $xmlContent = $zip->getFromName('xl/sharedStrings.xml');
+        if ($xmlContent === false) {
+            return [];
+        }
+
+        $xml = simplexml_load_string($xmlContent);
+        if ($xml === false) {
+            return [];
+        }
+
+        $strings = [];
+        foreach ($xml->si as $item) {
+            if (isset($item->t)) {
+                $strings[] = (string) $item->t;
+                continue;
+            }
+
+            $text = '';
+            foreach ($item->r as $run) {
+                $text .= (string) $run->t;
+            }
+            $strings[] = $text;
+        }
+
+        return $strings;
+    }
+
+    private function inlineString(\SimpleXMLElement $cell): string
+    {
+        if (isset($cell->is->t)) {
+            return (string) $cell->is->t;
+        }
+
+        $text = '';
+        foreach ($cell->is->r as $run) {
+            $text .= (string) $run->t;
+        }
+        return $text;
+    }
+
+    private function columnReferenceToIndex(string $reference): int
+    {
+        $letters = strtoupper((string) preg_replace('/\d+/', '', $reference));
+        $index = 0;
+        for ($i = 0, $length = strlen($letters); $i < $length; $i++) {
+            $index = ($index * 26) + ord($letters[$i]) - 64;
+        }
+        return $index - 1;
     }
 
     private function resolveColumns(array $header): array
@@ -136,11 +253,25 @@ class AccountingCompanyExpenseImporter
             }
             if (!isset($columns[$field])) throw new RuntimeException('Coluna obrigatoria em falta: ' . $field);
         }
-        foreach (['company' => ['empresa', 'company'], 'vat' => ['iva', 'vat'], 'final_value' => ['valor final', 'valor total', 'total']] as $field => $candidates) {
+        foreach (['company' => ['empresa', 'company'], 'vat' => ['iva', 'vat'], 'final_value' => ['valor final', 'valor total', 'total'], 'license_plate' => ['matricula', 'matrícula']] as $field => $candidates) {
             $columns[$field] = null;
             foreach ($candidates as $candidate) if (array_key_exists($this->key($candidate), $normalized)) $columns[$field] = $normalized[$this->key($candidate)];
         }
         return $columns;
+    }
+
+    private function description(array $row, array $columns): ?string
+    {
+        $description = $this->text($row[$columns['description']] ?? null);
+        $licensePlate = $columns['license_plate'] !== null
+            ? $this->text($row[$columns['license_plate']] ?? null)
+            : null;
+
+        if ($licensePlate === null) {
+            return $description;
+        }
+
+        return implode(' — ', array_filter([$description, 'Matrícula: ' . $licensePlate]));
     }
 
     private function companyId($value): ?int
