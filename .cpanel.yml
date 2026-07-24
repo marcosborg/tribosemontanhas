@@ -1,0 +1,7 @@
+---
+deployment:
+  tasks:
+    - export APPPATH=/home1/gestvde/tribosemontanhas.gestvde.pt
+    - /bin/rm -f $APPPATH/bootstrap/cache/*.php
+    - cd $APPPATH && /opt/cpanel/ea-php82/root/usr/bin/php artisan package:discover --ansi
+    - cd $APPPATH && /opt/cpanel/ea-php82/root/usr/bin/php artisan optimize:clear
