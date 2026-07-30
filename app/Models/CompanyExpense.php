@@ -47,6 +47,11 @@ class CompanyExpense extends Model implements HasMedia
         'paid_at',
         'payment_reference',
         'pay_to',
+        'source_type',
+        'source_filename',
+        'source_row_number',
+        'source_fingerprint',
+        'source_payload',
         'weekly_value',
         'start_date',
         'end_date',
@@ -59,6 +64,7 @@ class CompanyExpense extends Model implements HasMedia
     protected $casts = [
         'is_paid' => 'boolean',
         'paid_at' => 'datetime',
+        'source_payload' => 'array',
     ];
 
     public function registerMediaConversions(Media $media = null): void

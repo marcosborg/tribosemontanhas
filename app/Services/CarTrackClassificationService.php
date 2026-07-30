@@ -63,6 +63,17 @@ class CarTrackClassificationService
         ];
     }
 
+    public function classifyCompanyExpense(?string $licensePlate, string $reason): array
+    {
+        $vehicle = $this->findVehicle($licensePlate);
+
+        if (! $vehicle) {
+            return $this->manual('missing_vehicle');
+        }
+
+        return $this->company($vehicle, $reason);
+    }
+
     private function findVehicle(?string $licensePlate): ?VehicleItem
     {
         $normalized = $this->normalizePlate($licensePlate);

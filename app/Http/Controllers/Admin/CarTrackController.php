@@ -253,11 +253,14 @@ class CarTrackController extends Controller
             ->route('admin.car-tracks.index')
             ->with('open_import_panel', 'via_verde')
             ->with('message', sprintf(
-                'Import Via Verde concluido com %d linhas: %d motorista, %d empresa, %d validacao manual.',
+                'Import Via Verde concluido com %d linhas: %d novas, %d duplicadas, %d motorista, %d empresa, %d validacao manual e %d anuidades registadas como despesa da empresa.',
                 $summary['total'],
+                $summary['inserted'],
+                $summary['duplicates'],
                 $summary['driver'],
                 $summary['company'],
-                $summary['manual']
+                $summary['manual'],
+                $summary['company_expenses']
             ));
     }
 
@@ -280,6 +283,7 @@ class CarTrackController extends Controller
             'missing_usage' => 'Sem utilizacao ativa',
             'missing_driver' => 'Sem motorista imputavel',
             'missing_company' => 'Sem empresa na viatura',
+            CarTrackImporter::ANNUAL_FEE_REASON => 'Anuidade Via Verde',
         ][$reason] ?? '';
     }
 }
