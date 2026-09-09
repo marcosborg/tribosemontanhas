@@ -61,6 +61,23 @@ class InactiveDriverTest extends TestCase
         $this->assertNull($driver->fresh()->latestVehicleAllocation->end_date);
     }
 
+    public function test_first_allocation_uses_earliest_valid_date_not_creation_order(): void
+    {
+        $insert = fn ($values) => DB::table('vehicle_usages')->insertGetId(array_merge([
+            'driver_id' => 1, 'vehicle_item_id' => 1, 'start_date' => '2025-06-01 09:00:00',
+            'end_date' => null, 'usage_exceptions' => 'usage',
+        ], $values));
+        $latest = $insert([]);
+        $first = $insert(['start_date' => '2024-01-10 08:30:00']);
+        $insert(['start_date' => '2023-01-01 09:00:00', 'usage_exceptions' => 'maintenance']);
+        $insert(['start_date' => '2023-01-01 09:00:00', 'deleted_at' => now()]);
+        $driver = Driver::with(['firstVehicleAllocation', 'latestVehicleAllocation'])->findOrFail(1);
+        $this->assertSame($first, $driver->firstVehicleAllocation->id);
+        $this->assertSame('2024-01-10 08:30:00', $driver->firstVehicleAllocation->start_date);
+        $this->assertSame($latest, $driver->latestVehicleAllocation->id);
+        $this->assertNull(Driver::findOrFail(2)->firstVehicleAllocation);
+    }
+
     public function test_report_filters_by_company_and_inactive_state(): void
     {
         Gate::shouldReceive('allows')->with('company_expenses_menu_access')->andReturn(true);

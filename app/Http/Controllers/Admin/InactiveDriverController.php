@@ -15,7 +15,7 @@ class InactiveDriverController extends Controller
         $companyId = session('company_id');
         $drivers = Driver::where('state_id', 2)
             ->when($companyId, fn ($query) => $query->where('company_id', $companyId))
-            ->with(['latestVehicleAllocation.vehicle_item' => fn ($query) => $query->withTrashed()])
+            ->with(['firstVehicleAllocation', 'latestVehicleAllocation.vehicle_item' => fn ($query) => $query->withTrashed()])
             ->orderBy('name')
             ->get();
 

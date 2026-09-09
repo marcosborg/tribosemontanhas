@@ -15,7 +15,7 @@
                     @endforeach
                 </div>
                 <div class="row">
-                    @foreach([3 => 'Entrada na empresa', 5 => 'Início da última alocação', 6 => 'Fim da última utilização'] as $column => $label)
+                    @foreach([3 => 'Entrada na empresa', 5 => 'Início da primeira alocação', 6 => 'Fim da última utilização'] as $column => $label)
                         <fieldset class="col-sm-4 form-group">
                             <legend style="font-size:14px; border:0; margin-bottom:5px; font-weight:700;">{{ $label }}</legend>
                             <div class="row">
@@ -55,20 +55,21 @@
                             <th>Telefone</th>
                             <th>Entrada na empresa</th>
                             <th>Última viatura</th>
-                            <th>Início da última alocação</th>
+                            <th>Início da primeira alocação</th>
                             <th>Fim da última utilização</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($drivers as $driver)
                             @php($usage = $driver->latestVehicleAllocation)
-                            <tr data-date-3="{{ $driver->getRawOriginal('start_date') }}" data-date-5="{{ $usage->start_date ?? '' }}" data-date-6="{{ $usage->end_date ?? '' }}">
+                            @php($firstUsage = $driver->firstVehicleAllocation)
+                            <tr data-date-3="{{ $driver->getRawOriginal('start_date') }}" data-date-5="{{ $firstUsage->start_date ?? '' }}" data-date-6="{{ $usage->end_date ?? '' }}">
                                 <td>{{ $driver->name }}</td>
                                 <td>{{ $driver->email ?: '—' }}</td>
                                 <td>{{ $driver->phone ?: '—' }}</td>
                                 <td data-order="{{ $driver->getRawOriginal('start_date') }}">{{ $driver->getRawOriginal('start_date') ? \Carbon\Carbon::parse($driver->getRawOriginal('start_date'))->format('d/m/Y') : '—' }}</td>
                                 <td>{{ $usage ? ($usage->vehicle_item->license_plate ?? 'Viatura indisponível') : 'Sem alocação registada' }}</td>
-                                <td data-order="{{ $usage->start_date ?? '' }}">{{ $usage ? \Carbon\Carbon::parse($usage->start_date)->format('d/m/Y H:i:s') : '—' }}</td>
+                                <td data-order="{{ $firstUsage->start_date ?? '' }}">{{ $firstUsage ? \Carbon\Carbon::parse($firstUsage->start_date)->format('d/m/Y H:i:s') : '—' }}</td>
                                 <td data-order="{{ $usage->end_date ?? '' }}">{{ $usage ? ($usage->end_date ? \Carbon\Carbon::parse($usage->end_date)->format('d/m/Y H:i:s') : 'Sem fim registado') : '—' }}</td>
                             </tr>
                         @endforeach

@@ -187,6 +187,21 @@ class Driver extends Model implements HasMedia
         });
     }
 
+    public function firstVehicleAllocation()
+    {
+        return $this->hasOne(VehicleUsage::class, 'driver_id')->ofMany([
+            'start_date' => 'min',
+            'id' => 'min',
+        ], function ($query) {
+            $query->where('start_date', '<=', now())
+                ->whereNotNull('vehicle_item_id')
+                ->where(function ($query) {
+                    $query->whereIn('usage_exceptions', ['usage', 'personal'])
+                        ->orWhereNull('usage_exceptions');
+                });
+        });
+    }
+
     public function deposits()
     {
         return $this->hasMany(DriverDeposit::class, 'driver_id', 'id');
