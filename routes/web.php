@@ -438,6 +438,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('company-expenses/ckmedia', 'CompanyExpenseController@storeCKEditorImages')->name('company-expenses.storeCKEditorImages');
     Route::post('company-expenses/{companyExpense}/mark-paid', 'CompanyExpenseController@markPaid')->name('company-expenses.mark-paid');
     Route::resource('company-expenses', 'CompanyExpenseController');
+    Route::get('inactive-drivers', 'InactiveDriverController@index')->name('inactive-drivers.index');
 
     // Weekly Expense Report
     Route::prefix('weekly-expense-reports')->group(function () {

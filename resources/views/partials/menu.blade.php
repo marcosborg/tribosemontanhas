@@ -495,7 +495,7 @@
             </li>
             @endcan
             @can('company_expenses_menu_access')
-                <li class="treeview">
+                <li class="treeview {{ request()->is('admin/inactive-drivers') ? 'active' : '' }}">
                     <a href="#">
                         <i class="fa-fw fas fa-building">
 
@@ -523,6 +523,14 @@
                                     </i>
                                     <span>{{ trans('cruds.companyExpense.title') }}</span>
 
+                                </a>
+                            </li>
+                        @endcan
+                        @can('driver_access')
+                            <li class="{{ request()->is('admin/inactive-drivers') ? 'active' : '' }}">
+                                <a href="{{ route('admin.inactive-drivers.index') }}">
+                                    <i class="fa-fw fas fa-user-clock"></i>
+                                    <span>Drivers inativos</span>
                                 </a>
                             </li>
                         @endcan

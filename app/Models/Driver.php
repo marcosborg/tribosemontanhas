@@ -172,6 +172,21 @@ class Driver extends Model implements HasMedia
         return $this->hasMany(VehicleUsage::class, 'driver_id', 'id');
     }
 
+    public function latestVehicleAllocation()
+    {
+        return $this->hasOne(VehicleUsage::class, 'driver_id')->ofMany([
+            'start_date' => 'max',
+            'id' => 'max',
+        ], function ($query) {
+            $query->where('start_date', '<=', now())
+                ->whereNotNull('vehicle_item_id')
+                ->where(function ($query) {
+                    $query->whereIn('usage_exceptions', ['usage', 'personal'])
+                        ->orWhereNull('usage_exceptions');
+                });
+        });
+    }
+
     public function deposits()
     {
         return $this->hasMany(DriverDeposit::class, 'driver_id', 'id');
