@@ -39,7 +39,7 @@ class StoreVehicleItemRequest extends FormRequest
             ],
             'vehicle_type' => [
                 'nullable',
-                'in:fleet,management',
+                'in:fleet,management,slot',
             ],
             'documents' => [
                 'array',

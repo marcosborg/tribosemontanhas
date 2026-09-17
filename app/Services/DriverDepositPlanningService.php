@@ -103,6 +103,7 @@ class DriverDepositPlanningService
                 'description' => $data['description'] ?? null,
                 'amount' => $amount,
                 'payment_method' => $data['payment_method'] ?? null,
+                'payment_date' => $data['payment_date'] ?? null,
                 'created_by' => auth()->id(),
                 'affects_statement' => false,
             ]);
@@ -195,7 +196,7 @@ class DriverDepositPlanningService
             ->whereIn('type', array_keys(DriverDepositMovement::REAL_TYPE_SELECT))
             ->get()
             ->map(fn (DriverDepositMovement $movement) => [
-                'date' => optional($movement->created_at)->format('Y-m-d'),
+                'date' => optional($movement->payment_date ?? $movement->created_at)->format('Y-m-d'),
                 'kind' => 'Real',
                 'label' => DriverDepositMovement::REAL_TYPE_SELECT[$movement->type] ?? $movement->type,
                 'amount' => (float) $movement->amount,

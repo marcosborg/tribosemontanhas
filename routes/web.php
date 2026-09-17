@@ -358,6 +358,12 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::post('vehicle-items/document-expirations', 'VehicleItemController@updateDocumentExpirations')->name('vehicle-items.document-expirations.update');
     Route::resource('vehicle-items', 'VehicleItemController');
 
+    // Vehicle Maintenance
+    Route::get('vehicle-maintenances', 'VehicleMaintenanceController@index')->name('vehicle-maintenances.index');
+    Route::get('vehicle-maintenances/{vehicleItem}/edit', 'VehicleMaintenanceController@edit')->name('vehicle-maintenances.edit');
+    Route::put('vehicle-maintenances/{vehicleItem}', 'VehicleMaintenanceController@update')->name('vehicle-maintenances.update');
+    Route::post('vehicle-maintenance-schedules/{schedule}/complete', 'VehicleMaintenanceController@complete')->name('vehicle-maintenance-schedules.complete');
+
     // Company
     Route::delete('companies/destroy', 'CompanyController@massDestroy')->name('companies.massDestroy');
     Route::post('companies/media', 'CompanyController@storeMedia')->name('companies.storeMedia');

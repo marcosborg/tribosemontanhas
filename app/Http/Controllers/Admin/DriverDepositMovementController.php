@@ -27,8 +27,9 @@ class DriverDepositMovementController extends Controller
             ->when($filters['company_id'] ?? null, fn ($query, $companyId) => $query->where('company_id', $companyId))
             ->when($filters['type'] ?? null, fn ($query, $type) => $query->where('type', $type))
             ->when($filters['tvde_week_id'] ?? null, fn ($query, $weekId) => $query->where('tvde_week_id', $weekId))
-            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '>=', $date))
-            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereDate('created_at', '<=', $date))
+            ->when($filters['date_from'] ?? null, fn ($query, $date) => $query->whereRaw('DATE(COALESCE(payment_date, created_at)) >= ?', [$date]))
+            ->when($filters['date_to'] ?? null, fn ($query, $date) => $query->whereRaw('DATE(COALESCE(payment_date, created_at)) <= ?', [$date]))
+            ->orderByRaw('COALESCE(payment_date, created_at) DESC')
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->get();
@@ -58,6 +59,7 @@ class DriverDepositMovementController extends Controller
             'type' => ['required', 'string', Rule::in(array_keys(DriverDepositMovement::REAL_TYPE_SELECT))],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'payment_method' => ['nullable', 'string', 'max:255'],
+            'payment_date' => ['required', 'date'],
             'description' => ['nullable', 'string'],
         ]));
 
@@ -93,7 +95,7 @@ class DriverDepositMovementController extends Controller
 
             foreach ($movements as $movement) {
                 fputcsv($out, [
-                    optional($movement->created_at)->format('Y-m-d'),
+                    optional($movement->payment_date ?? $movement->created_at)->format('Y-m-d'),
                     $movement->driver->name ?? '',
                     $movement->company->name ?? '',
                     $movement->tvde_week->start_date ?? '',

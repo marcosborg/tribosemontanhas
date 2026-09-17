@@ -48,6 +48,7 @@ class DriverDepositMovement extends Model
         'description',
         'amount',
         'payment_method',
+        'payment_date',
         'created_by',
         'balance_after',
         'affects_statement',
@@ -60,6 +61,7 @@ class DriverDepositMovement extends Model
         'amount' => 'decimal:2',
         'balance_after' => 'decimal:2',
         'affects_statement' => 'boolean',
+        'payment_date' => 'date',
     ];
 
     protected function serializeDate(DateTimeInterface $date)

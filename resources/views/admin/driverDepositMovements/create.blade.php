@@ -15,16 +15,19 @@
                     </div>
                 </div>
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group"><label>Tipo</label><select class="form-control" name="type" required>@foreach($types as $key => $label)<option value="{{ $key }}" {{ old('type') === $key ? 'selected' : '' }}>{{ $label }}</option>@endforeach</select></div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group"><label>Valor</label><input class="form-control" type="number" name="amount" value="{{ old('amount') }}" step="0.01" min="0.01" required></div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group"><label>Data de pagamento</label><input class="form-control" type="date" name="payment_date" value="{{ old('payment_date', now()->format('Y-m-d')) }}" required></div>
                     </div>
                     <div class="col-md-3">
                         <div class="form-group"><label>Metodo pagamento</label><input class="form-control" type="text" name="payment_method" value="{{ old('payment_method') }}"></div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <div class="form-group"><label>Semana</label><select class="form-control select2" name="tvde_week_id"><option value=""></option>@foreach($tvdeWeeks as $week)<option value="{{ $week->id }}" {{ old('tvde_week_id') == $week->id ? 'selected' : '' }}>{{ $week->start_date }} - {{ $week->end_date }}</option>@endforeach</select></div>
                     </div>
                 </div>

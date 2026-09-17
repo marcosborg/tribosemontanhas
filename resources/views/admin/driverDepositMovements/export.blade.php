@@ -22,7 +22,7 @@
         <tbody>
             @foreach($movements as $movement)
                 <tr>
-                    <td>{{ optional($movement->created_at)->format('Y-m-d') }}</td>
+                    <td>{{ optional($movement->payment_date ?? $movement->created_at)->format('Y-m-d') }}</td>
                     <td>{{ $movement->driver->name ?? '' }}</td>
                     <td>{{ $movement->company->name ?? '' }}</td>
                     <td>{{ $movement->tvde_week->start_date ?? '' }}</td>

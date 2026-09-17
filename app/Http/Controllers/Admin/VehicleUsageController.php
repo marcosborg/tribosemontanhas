@@ -159,7 +159,7 @@ class VehicleUsageController extends Controller
     {
         abort_if(Gate::denies('vehicle_usage_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = Driver::withTrashed()->orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
         $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         return view('admin.vehicleUsages.create', compact('drivers', 'vehicle_items'));
@@ -186,7 +186,7 @@ class VehicleUsageController extends Controller
     {
         abort_if(Gate::denies('vehicle_usage_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $drivers = Driver::pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $drivers = Driver::withTrashed()->orderBy('name')->pluck('name', 'id')->prepend(trans('global.pleaseSelect'), '');
         $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $vehicleUsage->load('driver', 'vehicle_item');
@@ -326,6 +326,10 @@ class VehicleUsageController extends Controller
                 $timelineItems[] = [
                     'id' => $usage->id,
                     'content' => $content,
+                    'driverId' => $usage->driver?->id,
+                    'driverName' => $usage->driver?->name,
+                    'vehicleItemId' => optional($grouped[$plate]->first())->vehicle_item_id,
+                    'usageType' => $usageExceptionKey,
                     'start' => $usage->start->format('Y-m-d H:i:s'),
                     'end' => $usage->is_open_ended ? null : ($usage->end ? $usage->end->format('Y-m-d H:i:s') : null),
                     'openEnded' => (bool) $usage->is_open_ended,
@@ -685,7 +689,6 @@ class VehicleUsageController extends Controller
         return 'usage';
     }
 }
-
 
 
 

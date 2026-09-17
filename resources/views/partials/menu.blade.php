@@ -1451,6 +1451,12 @@
 
                         </a>
                     </li>
+                    <li class="{{ request()->is("admin/vehicle-maintenances") || request()->is("admin/vehicle-maintenances/*") ? "active" : "" }}">
+                        <a href="{{ route("admin.vehicle-maintenances.index") }}">
+                            <i class="fa-fw fas fa-tools"></i>
+                            <span>Manutenções</span>
+                        </a>
+                    </li>
                     @endcan
                     @can('vehicle_expense_access')
                             <li class="{{ request()->is("admin/vehicle-expenses") || request()->is("admin/vehicle-expenses/*") ? "active" : "" }}">

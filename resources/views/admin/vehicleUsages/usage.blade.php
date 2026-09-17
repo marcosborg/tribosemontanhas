@@ -338,7 +338,15 @@ document.addEventListener('DOMContentLoaded', function () {
         openModal();
     }
 
-    async function openEditModal(usageId) {
+    function ensureSelectOption(select, value, label) {
+        if (!value || Array.from(select.options).some(option => String(option.value) === String(value))) {
+            return;
+        }
+
+        select.add(new Option(label || `#${value}`, value));
+    }
+
+    async function openEditModal(usageId, timelineItem = null) {
         await loadOptionsIfNeeded();
         clearForm();
         modalMode = 'edit';
@@ -350,12 +358,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const html = await res.text();
         const doc = new DOMParser().parseFromString(html, 'text/html');
 
-        const driverValue = doc.querySelector('[name="driver_id"]')?.value || '';
-        const vehicleValue = doc.querySelector('[name="vehicle_item_id"]')?.value || '';
-        const startValue = doc.querySelector('[name="start_date"]')?.value || '';
-        const endValue = doc.querySelector('[name="end_date"]')?.value || '';
-        const usageValue = doc.querySelector('input[name="usage_exceptions"]:checked')?.value || '';
+        const driverValue = timelineItem?.driverId ?? doc.querySelector('[name="driver_id"]')?.value ?? '';
+        const vehicleValue = timelineItem?.vehicleItemId ?? doc.querySelector('[name="vehicle_item_id"]')?.value ?? '';
+        const startValue = timelineItem?.start ?? doc.querySelector('[name="start_date"]')?.value ?? '';
+        const endValue = timelineItem?.openEnded ? '' : (timelineItem?.end ?? doc.querySelector('[name="end_date"]')?.value ?? '');
+        const usageValue = timelineItem?.usageType ?? doc.querySelector('input[name="usage_exceptions"]:checked')?.value ?? '';
 
+        ensureSelectOption(driverSelect, driverValue, timelineItem?.driverName);
         driverSelect.value = driverValue;
         vehicleSelect.value = vehicleValue;
         startInput.value = startValue;
@@ -424,17 +433,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const { className, content } = getUsageClassAndContent(driverName, usageType);
 
         if (modalMode === 'edit') {
+            const numericUsageId = Number(usageIdInput.value);
+            const timelineUsageId = timelineItems.get(numericUsageId) ? numericUsageId : usageIdInput.value;
             if (endVal) {
-                openEndedItemIds.delete(usageIdInput.value);
+                openEndedItemIds.delete(timelineUsageId);
             } else {
-                openEndedItemIds.add(usageIdInput.value);
+                openEndedItemIds.add(timelineUsageId);
             }
 
             timelineItems.update({
-                id: usageIdInput.value,
+                id: timelineUsageId,
                 content,
+                driverId: driverSelect.value || null,
+                driverName: driverName || null,
+                vehicleItemId: vehicleSelect.value,
+                usageType,
                 start: startVal,
                 end: endVal || null,
+                openEnded: !endVal,
                 group: plateByVehicleId[vehicleSelect.value] || null,
                 className
             });
@@ -458,8 +474,13 @@ document.addEventListener('DOMContentLoaded', function () {
             timelineItems.add({
                 id: newId,
                 content,
+                driverId: driverSelect.value || null,
+                driverName: driverName || null,
+                vehicleItemId: vehicleSelect.value,
+                usageType,
                 start: startVal,
                 end: endVal || null,
+                openEnded: !endVal,
                 group: plateByVehicleId[vehicleSelect.value] || null,
                 className
             });
@@ -527,7 +548,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!props) return;
 
         if (props.item) {
-            openEditModal(props.item);
+            openEditModal(props.item, timelineItems.get(props.item));
             return;
         }
 

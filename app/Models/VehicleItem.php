@@ -16,10 +16,12 @@ class VehicleItem extends Model implements HasMedia
 
     public const VEHICLE_TYPE_FLEET = 'fleet';
     public const VEHICLE_TYPE_MANAGEMENT = 'management';
+    public const VEHICLE_TYPE_SLOT = 'slot';
 
     public const VEHICLE_TYPE_SELECT = [
         self::VEHICLE_TYPE_FLEET => 'Frota',
         self::VEHICLE_TYPE_MANAGEMENT => 'Gestão',
+        self::VEHICLE_TYPE_SLOT => 'Slot',
     ];
 
     public $table = 'vehicle_items';
@@ -116,5 +118,15 @@ class VehicleItem extends Model implements HasMedia
     public function vehicle_usage()
     {
         return $this->hasMany(VehicleUsage::class, 'vehicle_item_id');
+    }
+
+    public function weekly_vehicle_expenses()
+    {
+        return $this->hasMany(WeeklyVehicleExpense::class, 'vehicle_item_id');
+    }
+
+    public function maintenance_schedules()
+    {
+        return $this->hasMany(VehicleMaintenanceSchedule::class, 'vehicle_item_id');
     }
 }

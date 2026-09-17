@@ -1,1 +1,4 @@
 .env
+
+# Local database backups
+/storage/backups/database/*.sql
