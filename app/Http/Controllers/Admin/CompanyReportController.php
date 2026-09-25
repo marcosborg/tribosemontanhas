@@ -11,6 +11,8 @@ use App\Models\CurrentAccount;
 use App\Models\DriversBalance;
 use App\Models\Driver;
 use App\Models\Reimbursement;
+use App\Services\DriverDepositInstallmentService;
+use Illuminate\Support\Facades\DB;
 
 class CompanyReportController extends Controller
 {
@@ -54,6 +56,8 @@ class CompanyReportController extends Controller
         $driversById = collect($results['drivers'] ?? [])->keyBy('id');
 
         foreach ($request->data as $data) {
+
+            DB::transaction(function () use ($data, $driversById, $company_id) {
 
             // 🔹 Função inline para normalizar valores vindos do front
             $normalize = function ($value): float {
@@ -118,6 +122,12 @@ class CompanyReportController extends Controller
             // recalcula semanas futuras (se existirem) com o novo carry
             DriversBalance::applyAdjustmentFromWeek($data['driver']['id'], $data['tvde_week_id'], 0);
 
+            app(DriverDepositInstallmentService::class)->confirmWeek(
+                (int) $data['driver']['id'], (int) $company_id, (int) $data['tvde_week_id'],
+                collect($serverDriver->deposit_movements ?? [])->pluck('id')->all()
+            );
+            });
+
             /*
         $email = $data['driver']['email'];
 
@@ -129,6 +139,7 @@ class CompanyReportController extends Controller
 
     public function revalidateData(Request $request)
     {
+        return DB::transaction(function () use ($request) {
         $driver_id = $request->driver_id;
         $company_id = Driver::find($driver_id)->company_id;
         $tvde_week_id = $request->tvde_week_id;
@@ -175,10 +186,16 @@ class CompanyReportController extends Controller
         );
 
         DriversBalance::applyAdjustmentFromWeek($driver_id, $tvde_week_id, 0);
+        app(DriverDepositInstallmentService::class)->confirmWeek(
+            (int) $driver_id, (int) $company_id, (int) $tvde_week_id,
+            collect($serverDriver->deposit_movements ?? [])->pluck('id')->all()
+        );
+        });
     }
 
     public function deleteData($tvde_week_id, $driver_id)
     {
+        return DB::transaction(function () use ($tvde_week_id, $driver_id) {
 
         $current_account = CurrentAccount::where([
             'tvde_week_id' => $tvde_week_id,
@@ -188,6 +205,7 @@ class CompanyReportController extends Controller
         if ($current_account) {
             $current_account->delete();
         }
+        app(DriverDepositInstallmentService::class)->reverseWeek((int) $driver_id, (int) $tvde_week_id);
 
         DriversBalance::where([
             'tvde_week_id' => $tvde_week_id,
@@ -203,6 +221,7 @@ class CompanyReportController extends Controller
         }
 
         return redirect()->route('admin.company-reports.index')->with('message', 'Data deleted successfully.');
+        });
     }
 
     protected function buildFuelDetailsPayload($driver): array

@@ -13,6 +13,9 @@ class DriverDepositService
 {
     public function syncPlannedMovements(DriverDeposit $deposit, array $tvdeWeekIds): void
     {
+        if ($deposit->plan()->exists()) {
+            throw ValidationException::withMessages(['plan' => 'Edite as prestações na caução associada.']);
+        }
         $tvdeWeekIds = array_values(array_unique(array_filter(array_map('intval', $tvdeWeekIds))));
 
         if ($tvdeWeekIds === []) {
@@ -100,6 +103,7 @@ class DriverDepositService
 
     public function availableBalance(DriverDeposit $deposit, ?int $tvdeWeekId = null): float
     {
+        $integrated = $deposit->plan()->exists();
         $query = DriverDepositMovement::where('driver_deposit_id', $deposit->id)
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
             ->select('driver_deposit_movements.*');
@@ -123,6 +127,10 @@ class DriverDepositService
         $balance = 0.0;
         foreach ($movements as $movement) {
             $amount = (float) $movement->amount;
+            if ($integrated) {
+                $balance += $this->realImpact($movement);
+                continue;
+            }
             $balance += in_array($movement->type, [DriverDepositMovement::TYPE_INITIAL_CHARGE, DriverDepositMovement::TYPE_WEEKLY_CHARGE], true)
                 ? $amount
                 : -$amount;
@@ -240,6 +248,7 @@ class DriverDepositService
 
     public function recalculateBalances(DriverDeposit $deposit): void
     {
+        $integrated = $deposit->plan()->exists();
         $movements = DriverDepositMovement::where('driver_deposit_id', $deposit->id)
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
             ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.created_at)')
@@ -252,7 +261,9 @@ class DriverDepositService
         foreach ($movements as $movement) {
             $amount = (float) $movement->amount;
 
-            if (in_array($movement->type, [DriverDepositMovement::TYPE_INITIAL_CHARGE, DriverDepositMovement::TYPE_WEEKLY_CHARGE], true)) {
+            if ($integrated) {
+                $balance += $this->realImpact($movement);
+            } elseif (in_array($movement->type, [DriverDepositMovement::TYPE_INITIAL_CHARGE, DriverDepositMovement::TYPE_WEEKLY_CHARGE], true)) {
                 $balance += $amount;
             } else {
                 $balance -= $amount;
@@ -265,6 +276,10 @@ class DriverDepositService
 
     private function updateStatus(DriverDeposit $deposit): void
     {
+        if ($deposit->plan()->exists()) {
+            app(DriverDepositInstallmentService::class)->refreshState($deposit);
+            return;
+        }
         if ($deposit->status === DriverDeposit::STATUS_CLOSED) {
             return;
         }
@@ -277,5 +292,12 @@ class DriverDepositService
             ? DriverDeposit::STATUS_COMPLETED
             : DriverDeposit::STATUS_ACTIVE;
         $deposit->save();
+    }
+
+    private function realImpact(DriverDepositMovement $movement): float
+    {
+        if (in_array($movement->type, ['payment', 'adjustment'], true)) return (float) $movement->amount;
+        if (in_array($movement->type, ['refund', 'internal_debit', 'writeoff'], true)) return -(float) $movement->amount;
+        return 0;
     }
 }

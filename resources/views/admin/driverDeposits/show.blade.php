@@ -24,11 +24,15 @@
                             <tr><th>Empresa</th><td>{{ $driverDeposit->company->name ?? $driverDeposit->driver->company->name ?? '' }}</td></tr>
                             <tr><th>Valor total</th><td>{{ number_format($driverDeposit->total_amount, 2) }} €</td></tr>
                             <tr><th>Pagamento inicial</th><td>{{ number_format($driverDeposit->initial_payment, 2) }} €</td></tr>
-                            <tr><th>Valor semanal</th><td>{{ number_format($driverDeposit->weekly_amount, 2) }} €</td></tr>
+                            @unless($driverDeposit->plan)<tr><th>Valor semanal</th><td>{{ number_format($driverDeposit->weekly_amount, 2) }} €</td></tr>@endunless
                             <tr><th>Saldo disponível</th><td>{{ number_format($availableBalance, 2) }} €</td></tr>
                             <tr><th>Estado</th><td>{{ \App\Models\DriverDeposit::STATUS_SELECT[$driverDeposit->status] ?? $driverDeposit->status }}</td></tr>
                         </tbody>
                     </table>
+
+                    @if($driverDeposit->plan)
+                        @include('admin.driverDeposits.partials.installmentSummary', ['plan' => $driverDeposit->plan])
+                    @endif
 
                     @can('driver_deposit_edit')
                         <div class="row">

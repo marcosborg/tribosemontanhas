@@ -36,6 +36,9 @@ class DriverDepositPlanningService
 
     public function generateItems(DriverDepositPlan $plan): void
     {
+        if ($plan->driver_deposit_id) {
+            throw ValidationException::withMessages(['plan' => 'Edite as prestações na caução associada.']);
+        }
         $hasPaidItems = $plan->items()
             ->where(function ($query) {
                 $query->where('paid_amount', '>', 0)
@@ -94,6 +97,10 @@ class DriverDepositPlanningService
             }
 
             $deposit = $this->legacyDepositForMovement($data);
+            if ($deposit->plan()->exists() && in_array($type, ['refund', 'writeoff'], true)
+                && $amount > app(DriverDepositService::class)->availableBalance($deposit)) {
+                throw ValidationException::withMessages(['amount' => 'O valor excede o saldo recebido disponível.']);
+            }
             $movement = DriverDepositMovement::create([
                 'driver_deposit_id' => $deposit->id,
                 'driver_id' => $data['driver_id'],
@@ -113,6 +120,10 @@ class DriverDepositPlanningService
             }
 
             app(DriverDepositService::class)->recalculateBalances($deposit);
+            if ($deposit->plan()->exists()) {
+                app(DriverDepositInstallmentService::class)->refreshState($deposit);
+                app(DriverDepositInstallmentService::class)->syncSchedule($deposit);
+            }
 
             return $movement;
         });
@@ -128,9 +139,9 @@ class DriverDepositPlanningService
         $driverIds = $plans->pluck('driver_id')->unique()->values();
         $movementTotals = DriverDepositMovement::query()
             ->whereIn('driver_id', $driverIds)
-            ->whereIn('type', array_keys(DriverDepositMovement::REAL_TYPE_SELECT))
-            ->selectRaw('driver_id, company_id, type, SUM(amount) as total')
-            ->groupBy('driver_id', 'company_id', 'type')
+            ->whereIn('type', array_merge(array_keys(DriverDepositMovement::REAL_TYPE_SELECT), ['internal_debit']))
+            ->selectRaw('driver_id, company_id, driver_deposit_id, type, SUM(amount) as total')
+            ->groupBy('driver_id', 'company_id', 'driver_deposit_id', 'type')
             ->get()
             ->groupBy(fn ($movement) => $movement->driver_id . ':' . $movement->company_id);
 
@@ -139,24 +150,30 @@ class DriverDepositPlanningService
             ->map(function (Collection $driverPlans, string $key) use ($movementTotals) {
                 $first = $driverPlans->first();
                 $movements = $movementTotals->get($key, collect());
-                $realReceived = (float) $movements->whereIn('type', [
+                $linkedIds = $driverPlans->pluck('driver_deposit_id')->filter();
+                $linkedReceipts = (float) $movements->whereIn('driver_deposit_id', $linkedIds)
+                    ->whereIn('type', ['payment', 'adjustment'])->sum('total');
+                $legacyMovements = $movements->whereNotIn('driver_deposit_id', $linkedIds);
+                $realReceived = (float) $legacyMovements->whereIn('type', [
                     DriverDepositMovement::TYPE_PAYMENT,
                     DriverDepositMovement::TYPE_ADJUSTMENT,
                 ])->sum('total');
                 $refunds = (float) $movements->whereIn('type', [
                     DriverDepositMovement::TYPE_REFUND,
                     DriverDepositMovement::TYPE_WRITEOFF,
+                    DriverDepositMovement::TYPE_INTERNAL_DEBIT,
                 ])->sum('total');
                 $planned = (float) $driverPlans->flatMap->items->where('status', '!=', DriverDepositPlanItem::STATUS_CANCELLED)->sum('amount');
-                $paid = (float) $driverPlans->flatMap->items->sum('paid_amount');
-                $received = max($realReceived, $paid);
+                $legacyPaid = (float) $driverPlans->whereNull('driver_deposit_id')->flatMap->items->sum('paid_amount');
+                $received = $linkedReceipts + max($realReceived, $legacyPaid);
 
                 return [
                     'driver' => $first->driver,
                     'company' => $first->company,
                     'planned' => round($planned, 2),
                     'received' => round($received, 2),
-                    'debt' => round(max($planned - $paid, 0), 2),
+                    'debt' => round($driverPlans->flatMap->items->where('status', '!=', DriverDepositPlanItem::STATUS_CANCELLED)
+                        ->sum(fn ($item) => max((float) $item->amount - (float) $item->paid_amount, 0)), 2),
                     'refunds' => round($refunds, 2),
                     'balance' => round($received - $refunds, 2),
                 ];
@@ -221,6 +238,7 @@ class DriverDepositPlanningService
 
     private function allocatePayment(DriverDepositMovement $movement): void
     {
+        $linkedPlan = $movement->deposit->plan;
         $remaining = round((float) $movement->amount, 2);
         $items = DriverDepositPlanItem::whereHas('plan', function ($query) use ($movement) {
                 $query->where('driver_id', $movement->driver_id)
@@ -230,6 +248,8 @@ class DriverDepositPlanningService
                 DriverDepositPlanItem::STATUS_PENDING,
                 DriverDepositPlanItem::STATUS_OVERDUE,
             ])
+            ->when($linkedPlan, fn ($query) => $query->where('plan_id', $linkedPlan->id))
+            ->when(!$linkedPlan, fn ($query) => $query->whereHas('plan', fn ($plan) => $plan->whereNull('driver_deposit_id')))
             ->orderBy('due_date')
             ->orderBy('id')
             ->lockForUpdate()
@@ -264,6 +284,16 @@ class DriverDepositPlanningService
 
     private function legacyDepositForMovement(array $data): DriverDeposit
     {
+        if (!empty($data['driver_deposit_id'])) {
+            $deposit = DriverDeposit::where('id', $data['driver_deposit_id'])->where('driver_id', $data['driver_id'])
+                ->where('company_id', $data['company_id'])->first();
+            if (!$deposit) throw ValidationException::withMessages(['driver_deposit_id' => 'Selecione uma caução deste motorista e empresa.']);
+            return $deposit;
+        }
+        $linked = DriverDeposit::where('driver_id', $data['driver_id'])->where('company_id', $data['company_id'])
+            ->whereHas('plan')->get();
+        if ($linked->count() > 1) throw ValidationException::withMessages(['driver_deposit_id' => 'Selecione a caução a que pertence o movimento.']);
+        if ($linked->count() === 1) return $linked->first();
         return DriverDeposit::firstOrCreate(
             [
                 'driver_id' => $data['driver_id'],

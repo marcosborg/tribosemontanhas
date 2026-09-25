@@ -29,7 +29,7 @@ class BackfillDriverDepositPlanning extends Command
             foreach ($deposits as $deposit) {
                 $exists = DriverDepositPlan::where('notes', 'like', '%legacy driver_deposits #' . $deposit->id . '%')->exists();
 
-                if ($exists) {
+                if ($exists || $deposit->plan()->exists()) {
                     $skipped++;
                     continue;
                 }

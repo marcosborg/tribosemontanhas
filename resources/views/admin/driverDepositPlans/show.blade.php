@@ -7,10 +7,12 @@
             <a class="btn btn-default" href="{{ route('admin.driver-deposit-plans.index') }}">Voltar</a>
             @can('driver_deposit_plan_edit')
                 <a class="btn btn-info" href="{{ route('admin.driver-deposit-plans.edit', $driverDepositPlan) }}">Editar</a>
+                @unless($driverDepositPlan->driver_deposit_id)
                 <form method="POST" action="{{ route('admin.driver-deposit-plans.recalculate', $driverDepositPlan) }}" style="display:inline-block">
                     @csrf
                     <button class="btn btn-warning" type="submit">Recalcular</button>
                 </form>
+                @endunless
             @endcan
 
             <div class="row" style="margin-top: 15px;">

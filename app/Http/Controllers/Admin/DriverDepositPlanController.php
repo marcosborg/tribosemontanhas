@@ -62,8 +62,8 @@ class DriverDepositPlanController extends Controller
         $items = $driverDepositPlan->items->sortBy('due_date');
         $totalPlanned = round((float) $items->where('status', '!=', DriverDepositPlanItem::STATUS_CANCELLED)->sum('amount'), 2);
         $totalPaid = round((float) $items->sum('paid_amount'), 2);
-        $futureTotal = round((float) $items->where('status', DriverDepositPlanItem::STATUS_PENDING)->sum('amount'), 2);
-        $overdueTotal = round((float) $items->where('status', DriverDepositPlanItem::STATUS_OVERDUE)->sum('amount'), 2);
+        $futureTotal = round((float) $items->where('status', DriverDepositPlanItem::STATUS_PENDING)->sum(fn ($item) => $item->amount - $item->paid_amount), 2);
+        $overdueTotal = round((float) $items->where('status', DriverDepositPlanItem::STATUS_OVERDUE)->sum(fn ($item) => $item->amount - $item->paid_amount), 2);
 
         return view('admin.driverDepositPlans.show', compact('driverDepositPlan', 'items', 'totalPlanned', 'totalPaid', 'futureTotal', 'overdueTotal'));
     }
@@ -71,6 +71,10 @@ class DriverDepositPlanController extends Controller
     public function edit(DriverDepositPlan $driverDepositPlan)
     {
         abort_if(Gate::denies('driver_deposit_plan_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($driverDepositPlan->driver_deposit_id) {
+            return redirect()->route('admin.driver-deposits.edit', $driverDepositPlan->driver_deposit_id);
+        }
 
         return view('admin.driverDepositPlans.edit', array_merge($this->formData(), compact('driverDepositPlan')));
     }
@@ -88,7 +92,12 @@ class DriverDepositPlanController extends Controller
     {
         abort_if(Gate::denies('driver_deposit_plan_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driverDepositPlan->update(['status' => DriverDepositPlan::STATUS_PAUSED]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($driverDepositPlan) {
+            $driverDepositPlan->update(['status' => DriverDepositPlan::STATUS_PAUSED]);
+            if ($driverDepositPlan->deposit) {
+                app(\App\Services\DriverDepositInstallmentService::class)->syncSchedule($driverDepositPlan->deposit);
+            }
+        });
 
         return back()->with('message', 'Plano pausado com sucesso.');
     }
@@ -97,7 +106,13 @@ class DriverDepositPlanController extends Controller
     {
         abort_if(Gate::denies('driver_deposit_plan_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $driverDepositPlan->update(['status' => DriverDepositPlan::STATUS_ACTIVE]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($driverDepositPlan) {
+            $driverDepositPlan->update(['status' => DriverDepositPlan::STATUS_ACTIVE]);
+            if ($driverDepositPlan->deposit) {
+                app(\App\Services\DriverDepositInstallmentService::class)->refreshState($driverDepositPlan->deposit);
+                app(\App\Services\DriverDepositInstallmentService::class)->syncSchedule($driverDepositPlan->deposit);
+            }
+        });
 
         return back()->with('message', 'Plano reativado com sucesso.');
     }
@@ -114,6 +129,10 @@ class DriverDepositPlanController extends Controller
     public function destroy(DriverDepositPlan $driverDepositPlan)
     {
         abort_if(Gate::denies('driver_deposit_plan_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+
+        if ($driverDepositPlan->driver_deposit_id) {
+            return back()->withErrors('Feche a caução associada para preservar o histórico.');
+        }
 
         $hasPaidItems = $driverDepositPlan->items()
             ->where(function ($query) {

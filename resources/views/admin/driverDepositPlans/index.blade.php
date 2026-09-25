@@ -61,7 +61,13 @@
                             <td>{{ $plan->driver->name ?? '' }}</td>
                             <td>{{ $plan->company->name ?? '' }}</td>
                             <td>{{ number_format($plan->initial_amount, 2) }} &euro;</td>
-                            <td>{{ number_format($plan->weekly_amount, 2) }} &euro;</td>
+                            <td>
+                                @if($plan->driver_deposit_id)
+                                    Por semana
+                                @else
+                                    {{ number_format($plan->weekly_amount, 2) }} &euro;
+                                @endif
+                            </td>
                             <td>{{ $plan->total_weeks }}</td>
                             <td>{{ \App\Models\DriverDepositPlan::STATUS_SELECT[$plan->status] ?? $plan->status }}</td>
                             <td>{{ number_format($plan->items->sum('amount'), 2) }} &euro;</td>

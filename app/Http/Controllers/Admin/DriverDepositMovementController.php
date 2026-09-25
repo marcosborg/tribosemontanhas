@@ -53,6 +53,7 @@ class DriverDepositMovementController extends Controller
         abort_if(Gate::denies('driver_deposit_movement_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
         $service->recordMovement($request->validate([
+            'driver_deposit_id' => ['nullable', 'integer', 'exists:driver_deposits,id'],
             'driver_id' => ['required', 'integer', 'exists:drivers,id'],
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'tvde_week_id' => ['nullable', 'integer', 'exists:tvde_weeks,id'],
@@ -69,6 +70,7 @@ class DriverDepositMovementController extends Controller
     private function formData(): array
     {
         return [
+            'deposits' => \App\Models\DriverDeposit::with(['driver', 'company'])->whereHas('plan')->orderByDesc('id')->get(),
             'drivers' => Driver::orderBy('name')->get(),
             'companies' => Company::orderBy('name')->get(),
             'tvdeWeeks' => TvdeWeek::orderByDesc('start_date')->get(),

@@ -27,7 +27,7 @@ class DriverDepositController extends Controller
         $companyId = $request->input('company_id', session()->get('company_id') !== '0' ? session()->get('company_id') : null);
         $type = $request->input('type');
 
-        $movements = DriverDepositMovement::with(['deposit', 'driver.company', 'company', 'tvde_week.tvde_month'])
+        $movements = DriverDepositMovement::with(['deposit.plan', 'driver.company', 'company', 'tvde_week.tvde_month'])
             ->when($monthId, function ($query) use ($monthId) {
                 $query->whereHas('tvde_week', fn ($week) => $week->where('tvde_month_id', $monthId));
             })
@@ -59,14 +59,9 @@ class DriverDepositController extends Controller
     {
         abort_if(Gate::denies('driver_deposit_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $data = $this->validatedDepositData($request);
+        $deposit = app(\App\Services\DriverDepositInstallmentService::class)->save($request);
 
-        DB::transaction(function () use ($data, $service) {
-            $deposit = DriverDeposit::create($data);
-            $service->syncPlannedMovements($deposit, $data['tvde_weeks']);
-        });
-
-        return redirect()->route('admin.driver-deposits.index')->with('message', 'Caucao criada com sucesso.');
+        return redirect()->route('admin.driver-deposits.show', $deposit)->with('message', 'Caução criada com sucesso.');
     }
 
     public function show(DriverDeposit $driverDeposit, DriverDepositService $service)
@@ -113,6 +108,11 @@ class DriverDepositController extends Controller
     {
         abort_if(Gate::denies('driver_deposit_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
+        if ($driverDeposit->plan()->exists()) {
+            app(\App\Services\DriverDepositInstallmentService::class)->save($request, $driverDeposit);
+            return redirect()->route('admin.driver-deposits.show', $driverDeposit)->with('message', 'Caução atualizada com sucesso.');
+        }
+
         $data = $this->validatedDepositData($request);
 
         DB::transaction(function () use ($driverDeposit, $data, $service) {
@@ -133,6 +133,18 @@ class DriverDepositController extends Controller
 
         if ($hasValidatedWeek) {
             return back()->withErrors('Nao e possivel apagar uma caucao com movimentos em semanas ja validadas.');
+        }
+
+        if ($driverDeposit->plan()->exists()) {
+            if ($driverDeposit->movements()->whereIn('type', ['payment', 'adjustment'])->exists()) {
+                return back()->withErrors('Feche a caução para preservar os pagamentos já recebidos.');
+            }
+            DB::transaction(function () use ($driverDeposit) {
+                $driverDeposit->movements()->delete();
+                $driverDeposit->plan()->delete();
+                $driverDeposit->delete();
+            });
+            return redirect()->route('admin.driver-deposits.index')->with('message', 'Caução apagada com sucesso.');
         }
 
         $driverDeposit->delete();
@@ -256,6 +268,10 @@ class DriverDepositController extends Controller
 
     private function movementHasValidatedWeek(DriverDepositMovement $movement): bool
     {
+        // Integrated entries must be maintained through their owning deposit/validation.
+        if ($movement->deposit && $movement->deposit->plan()->exists()) {
+            return true;
+        }
         if (!$movement->tvde_week_id) {
             return false;
         }

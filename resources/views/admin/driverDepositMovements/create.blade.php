@@ -6,6 +6,12 @@
         <div class="panel-body">
             <form method="POST" action="{{ route('admin.driver-deposit-real-movements.store') }}">
                 @csrf
+                @if($errors->any())<div class="alert alert-danger"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
+                <div class="form-group"><label for="driver_deposit_id">Caução</label>
+                    <select class="form-control select2" name="driver_deposit_id" id="driver_deposit_id"><option value="">Automática quando existe apenas uma caução</option>
+                        @foreach($deposits as $deposit)<option value="{{ $deposit->id }}" {{ old('driver_deposit_id') == $deposit->id ? 'selected' : '' }}>#{{ $deposit->id }} — {{ $deposit->driver->name ?? '' }} — {{ $deposit->company->name ?? '' }}</option>@endforeach
+                    </select>
+                </div>
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group"><label>Motorista</label><select class="form-control select2" name="driver_id" required><option value=""></option>@foreach($drivers as $driver)<option value="{{ $driver->id }}" {{ old('driver_id') == $driver->id ? 'selected' : '' }}>{{ $driver->name }}</option>@endforeach</select></div>

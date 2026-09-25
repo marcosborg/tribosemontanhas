@@ -61,4 +61,9 @@ class DriverDeposit extends Model
     {
         return $this->hasMany(DriverDepositMovement::class, 'driver_deposit_id');
     }
+
+    public function plan()
+    {
+        return $this->hasOne(DriverDepositPlan::class, 'driver_deposit_id');
+    }
 }

@@ -39,6 +39,7 @@ class DriverDepositMovement extends Model
     public $table = 'driver_deposit_movements';
 
     protected $fillable = [
+        'source_key',
         'driver_deposit_id',
         'driver_deposit_plan_item_id',
         'driver_id',

@@ -89,11 +89,13 @@
                                                 <a class="btn btn-xs btn-primary" href="{{ route('admin.driver-deposits.show', $movement->driver_deposit_id) }}">Ver caução</a>
                                             @endcan
                                             @can('driver_deposit_delete')
+                                                @unless($movement->deposit && $movement->deposit->plan)
                                                 <form action="{{ route('admin.driver-deposit-movements.destroy', $movement) }}" method="POST" onsubmit="return confirm('{{ trans('global.areYouSure') }}');" style="display: inline-block;">
                                                     @method('DELETE')
                                                     @csrf
                                                     <button class="btn btn-xs btn-danger" type="submit">{{ trans('global.delete') }}</button>
                                                 </form>
+                                                @endunless
                                             @endcan
                                         </td>
                                     </tr>

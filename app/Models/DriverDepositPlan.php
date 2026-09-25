@@ -24,6 +24,7 @@ class DriverDepositPlan extends Model
     public $table = 'driver_deposit_plans';
 
     protected $fillable = [
+        'driver_deposit_id',
         'driver_id',
         'company_id',
         'initial_amount',
@@ -66,5 +67,10 @@ class DriverDepositPlan extends Model
     public function items()
     {
         return $this->hasMany(DriverDepositPlanItem::class, 'plan_id');
+    }
+
+    public function deposit()
+    {
+        return $this->belongsTo(DriverDeposit::class, 'driver_deposit_id');
     }
 }

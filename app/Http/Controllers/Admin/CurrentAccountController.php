@@ -140,7 +140,10 @@ class CurrentAccountController extends Controller
     {
         abort_if(Gate::denies('current_account_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $currentAccount->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($currentAccount) {
+            $currentAccount->delete();
+            app(\App\Services\DriverDepositInstallmentService::class)->reverseWeek($currentAccount->driver_id, $currentAccount->tvde_week_id);
+        });
 
         return back();
     }
@@ -150,7 +153,10 @@ class CurrentAccountController extends Controller
         $currentAccounts = CurrentAccount::find(request('ids'));
 
         foreach ($currentAccounts as $currentAccount) {
-            $currentAccount->delete();
+            \Illuminate\Support\Facades\DB::transaction(function () use ($currentAccount) {
+                $currentAccount->delete();
+                app(\App\Services\DriverDepositInstallmentService::class)->reverseWeek($currentAccount->driver_id, $currentAccount->tvde_week_id);
+            });
         }
 
         return response(null, Response::HTTP_NO_CONTENT);

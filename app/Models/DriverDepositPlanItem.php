@@ -25,6 +25,7 @@ class DriverDepositPlanItem extends Model
     public $table = 'driver_deposit_plan_items';
 
     protected $fillable = [
+        'kind',
         'plan_id',
         'tvde_week_id',
         'due_date',
