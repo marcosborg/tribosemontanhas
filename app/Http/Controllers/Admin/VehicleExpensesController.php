@@ -96,6 +96,8 @@ class VehicleExpensesController extends Controller
                 return $row->pay_to ?: '';
             });
             $table->filterColumn('is_paid', function ($query, $keyword) {
+                $keyword = preg_replace('/^\^(.+)\$$/', '$1', trim((string) $keyword));
+
                 if ($keyword === '1' || $keyword === '0') {
                     $query->where('is_paid', (bool) $keyword);
                 }

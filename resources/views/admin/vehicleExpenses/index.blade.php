@@ -118,7 +118,7 @@
                                 Filtrar datas
                             </button>
                             <button type="button" id="reset_date_range_filter" class="btn btn-default">
-                                Limpar
+                                Limpar filtros
                             </button>
                         </div>
                     </div>
@@ -252,6 +252,20 @@
         dtButtons.push(deleteButton)
         @endcan
 
+        const stateStorageKey = 'datatable-vehicle-expenses-v7';
+        let savedState = null;
+
+        try {
+            savedState = JSON.parse(localStorage.getItem(stateStorageKey) || 'null');
+        } catch (error) {
+            localStorage.removeItem(stateStorageKey);
+        }
+
+        if (savedState) {
+            $('#date_from_filter').val(savedState.date_from || '');
+            $('#date_to_filter').val(savedState.date_to || '');
+        }
+
         let dtOverrideGlobals = {
             buttons: dtButtons,
             processing: true,
@@ -261,10 +275,10 @@
             stateSaveCallback: function (settings, data) {
                 data.date_from = $('#date_from_filter').val();
                 data.date_to = $('#date_to_filter').val();
-                localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(data));
+                localStorage.setItem(stateStorageKey, JSON.stringify(data));
             },
             stateLoadCallback: function (settings) {
-                return JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5'));
+                return savedState;
             },
             aaSorting: [],
             ajax: {
@@ -304,12 +318,20 @@
         };
         let table = $('.datatable-VehicleExpense').DataTable(dtOverrideGlobals);
 
-        const savedState = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || 'null');
-        if (savedState && savedState.date_from) {
-            $('#date_from_filter').val(savedState.date_from);
-        }
-        if (savedState && savedState.date_to) {
-            $('#date_to_filter').val(savedState.date_to);
+        const loadedState = table.state.loaded();
+        if (loadedState && loadedState.columns) {
+            $('.datatable-VehicleExpense thead tr:eq(1) .search').each(function () {
+                const columnIndex = $(this).closest('th, td').index();
+                let value = loadedState.columns[columnIndex] && loadedState.columns[columnIndex].search
+                    ? loadedState.columns[columnIndex].search.search
+                    : '';
+
+                if ($(this).is('select')) {
+                    value = value.replace(/^\^|\$$/g, '');
+                }
+
+                $(this).val(value);
+            });
         }
 
         $('a[data-toggle="tab"]').on('shown.bs.tab click', function () {
@@ -317,45 +339,29 @@
         });
 
         $('#apply_date_range_filter').on('click', function () {
-            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || '{}');
-            state.date_from = $('#date_from_filter').val();
-            state.date_to = $('#date_to_filter').val();
-            localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(state));
             table.draw();
         });
 
         $('#reset_date_range_filter').on('click', function () {
             $('#date_from_filter').val('');
             $('#date_to_filter').val('');
-            const state = JSON.parse(localStorage.getItem('datatable-vehicle-expenses-v5') || '{}');
-            delete state.date_from;
-            delete state.date_to;
-            localStorage.setItem('datatable-vehicle-expenses-v5', JSON.stringify(state));
+            $('.datatable-VehicleExpense thead tr:eq(1) .search').val('');
+            table.search('');
+            table.columns().search('');
             table.draw();
         });
 
-        let visibleColumnsIndexes = null;
-        $('.datatable thead').on('input change', '.search', function () {
-            let strict = $(this).attr('strict') || false
-            let value = strict && this.value ? "^" + this.value + "$" : this.value
+        $(document)
+            .off('input.vehicleExpenseFilters change.vehicleExpenseFilters', '.datatable-VehicleExpense thead .search')
+            .on('input.vehicleExpenseFilters change.vehicleExpenseFilters', '.datatable-VehicleExpense thead .search', function () {
+                let value = this.value
+                let index = $(this).closest('th, td').index()
 
-            let index = $(this).parent().index()
-            if (visibleColumnsIndexes !== null) {
-                index = visibleColumnsIndexes[index]
-            }
-
-            table
-                .column(index)
-                .search(value, strict)
-                .draw()
-        });
-
-        table.on('column-visibility.dt', function () {
-            visibleColumnsIndexes = []
-            table.columns(":visible").every(function (colIdx) {
-                visibleColumnsIndexes.push(colIdx);
+                table
+                    .column(index)
+                    .search(value, false)
+                    .draw()
             });
-        });
 
         $('.datatable-VehicleExpense tbody').on('click', 'tr.is-clickable', function (event) {
             if ($(event.target).closest('a, button, form, input, select, label, textarea').length) {
