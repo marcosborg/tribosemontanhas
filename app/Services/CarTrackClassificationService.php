@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CarTrack;
 use App\Models\VehicleItem;
 use App\Models\VehicleUsage;
 use Carbon\Carbon;
@@ -61,6 +62,13 @@ class CarTrackClassificationService
             'driver_id' => $usage->driver_id,
             'company_id' => null,
         ];
+    }
+
+    public function reclassify(CarTrack $carTrack): CarTrack
+    {
+        $carTrack->update($this->classify($carTrack->license_plate, $carTrack->date));
+
+        return $carTrack->refresh();
     }
 
     public function classifyCompanyExpense(?string $licensePlate, string $reason): array

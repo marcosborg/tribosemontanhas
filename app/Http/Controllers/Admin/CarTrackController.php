@@ -190,9 +190,16 @@ class CarTrackController extends Controller
         return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks'));
     }
 
-    public function update(UpdateCarTrackRequest $request, CarTrack $carTrack)
+    public function update(
+        UpdateCarTrackRequest $request,
+        CarTrack $carTrack,
+        CarTrackClassificationService $classifier
+    )
     {
-        $carTrack->update($request->all());
+        DB::transaction(function () use ($request, $carTrack, $classifier) {
+            $carTrack->update($request->all());
+            $classifier->reclassify($carTrack);
+        });
 
         return redirect()->route('admin.car-tracks.index');
     }
