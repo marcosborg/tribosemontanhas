@@ -73,11 +73,9 @@ class VehicleExpensesController extends Controller
             $table->editColumn('vat', function ($row) {
                 return $row->vat ? $row->vat : '';
             });
+            $table->addColumn('vat_amount', fn ($row) => number_format(round((float) $row->value * (float) $row->vat / 100, 2), 2, '.', ''));
             $table->addColumn('final_value', function ($row) {
-                $value = (float) ($row->value ?? 0);
-                $vat = (float) ($row->vat ?? 0);
-
-                return number_format($value + ($value * ($vat / 100)), 2, '.', '');
+                return number_format($row->display_total, 2, '.', '');
             });
             $table->addColumn('group_info', function ($row) {
                 if (!$row->group_uuid) {
@@ -178,13 +176,11 @@ class VehicleExpensesController extends Controller
                 'Valor final',
                 'Grupo',
                 'Pagar a',
+                'IVA calculado (€)',
             ]);
 
             $query->chunk(500, function ($expenses) use ($handle) {
                 foreach ($expenses as $expense) {
-                    $value = (float) ($expense->value ?? 0);
-                    $vat = (float) ($expense->vat ?? 0);
-
                     fputcsv($handle, [
                         $expense->id,
                         optional($expense->vehicle_item)->license_plate,
@@ -195,9 +191,10 @@ class VehicleExpensesController extends Controller
                         $expense->files->map(fn ($media) => $media->getUrl())->implode(' | '),
                         $expense->value,
                         $expense->vat,
-                        number_format($value + ($value * ($vat / 100)), 2, '.', ''),
+                        number_format($expense->display_total, 2, '.', ''),
                         $expense->group_label ?: ($expense->group_uuid ? 'Grupo' : ''),
                         $expense->pay_to,
+                        number_format(round((float) $expense->value * (float) $expense->vat / 100, 2), 2, '.', ''),
                     ]);
                 }
             });
@@ -218,8 +215,8 @@ class VehicleExpensesController extends Controller
         $this->applyPaidFilter($query, $columns);
         $this->applyTextFilter($query, $columns, 8, 'value');
         $this->applyTextFilter($query, $columns, 9, 'vat');
-        $this->applyTextFilter($query, $columns, 11, 'group_label');
-        $this->applyTextFilter($query, $columns, 12, 'pay_to');
+        $this->applyTextFilter($query, $columns, 12, 'group_label');
+        $this->applyTextFilter($query, $columns, 13, 'pay_to');
 
         $global = trim((string) data_get($request->input('search', []), 'value', ''));
         if ($global === '') {
@@ -254,8 +251,8 @@ class VehicleExpensesController extends Controller
             6 => 'paid_at',
             8 => 'value',
             9 => 'vat',
-            11 => 'group_label',
-            12 => 'pay_to',
+            12 => 'group_label',
+            13 => 'pay_to',
         ];
 
         $query->orderBy($map[$column] ?? 'id', $direction);
@@ -318,6 +315,7 @@ class VehicleExpensesController extends Controller
         }
 
         $payload = $request->all();
+        $payload['final_value'] = $request->filled('final_value') ? $request->input('final_value') : round((float) $request->input('value') * (1 + (float) $request->input('vat') / 100), 2);
         $payload['is_paid'] = $request->boolean('is_paid');
         $payload['paid_at'] = $request->boolean('is_paid') ? now() : null;
 
@@ -348,6 +346,10 @@ class VehicleExpensesController extends Controller
     public function update(UpdateVehicleExpenseRequest $request, VehicleExpense $vehicleExpense)
     {
         $payload = $request->all();
+        $payload['final_value'] = $request->filled('final_value') ? $request->input('final_value') : round((float) $request->input('value') * (1 + (float) $request->input('vat') / 100), 2);
+        if ($vehicleExpense->final_value === null && (float) $payload['value'] === (float) $vehicleExpense->value && (float) $payload['vat'] === (float) $vehicleExpense->vat && (float) $payload['final_value'] === $vehicleExpense->display_total) {
+            $payload['final_value'] = null;
+        }
         $wasPaid = (bool) $vehicleExpense->is_paid;
         $isPaid = $request->boolean('is_paid');
 
@@ -592,6 +594,8 @@ class VehicleExpensesController extends Controller
             $payload = $commonPayload;
             $payload['vehicle_item_id'] = $vehicleId;
             $payload['value'] = $vehicleValues[$vehicleId];
+            $total = $request->input('vehicle_final_values.' . $vehicleId);
+            $payload['final_value'] = $total !== null && $total !== '' ? $total : round((float) $payload['value'] * (1 + (float) $request->input('vat') / 100), 2);
 
             $vehicleExpense = VehicleExpense::create($payload);
             $this->attachFilesToExpense($vehicleExpense, $request->input('files', []));

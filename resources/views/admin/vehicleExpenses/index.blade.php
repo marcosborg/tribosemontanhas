@@ -134,8 +134,9 @@
                                 <th>Estado</th>
                                 <th>Pago em</th>
                                 <th>{{ trans('cruds.vehicleExpense.fields.files') }}</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.value') }}</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.vat') }}</th>
+                                <th>Valor sem IVA (€)</th>
+                                <th>IVA (%)</th>
+                                <th>IVA calculado (€)</th>
                                 <th>Valor final</th>
                                 <th>Grupo</th>
                                 <th>Pagar a</th>
@@ -178,7 +179,7 @@
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
-                                <td></td>
+                                <td></td><td></td>
                                 <td>
                                     <input class="search" type="text" placeholder="{{ trans('global.search') }}">
                                 </td>
@@ -299,6 +300,7 @@
                 { data: 'files', name: 'files', sortable: false, searchable: false },
                 { data: 'value', name: 'value' },
                 { data: 'vat', name: 'vat' },
+                { data: 'vat_amount', name: 'vat_amount', sortable: false, searchable: false },
                 { data: 'final_value', name: 'final_value', sortable: false, searchable: false },
                 { data: 'group_info', name: 'group_label' },
                 { data: 'pay_to', name: 'pay_to' },

@@ -115,7 +115,7 @@
                             @endif
                         </div>
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}" id="single_value_wrapper">
-                            <label class="required" for="value">{{ trans('cruds.vehicleExpense.fields.value') }}</label>
+                            <label class="required" for="value">Valor sem IVA (€)</label>
                             <input class="form-control" type="number" name="value" id="value" value="{{ old('value', '0') }}" step="0.01" required>
                             @if($errors->has('value'))
                                 <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
@@ -128,7 +128,7 @@
                                 <thead>
                                     <tr>
                                         <th>Viatura</th>
-                                        <th style="width: 220px;">Valor</th>
+                                        <th style="width: 220px;">Valor sem IVA (€)</th><th>Valor final com IVA (€)</th>
                                     </tr>
                                 </thead>
                                 <tbody></tbody>
@@ -141,13 +141,14 @@
                             <span class="help-block">Indique manualmente o valor de cada viatura selecionada.</span>
                         </div>
                         <div class="form-group {{ $errors->has('vat') ? 'has-error' : '' }}">
-                            <label class="required" for="vat">{{ trans('cruds.vehicleExpense.fields.vat') }}</label>
+                            <label class="required" for="vat">IVA (%)</label>
                             <input class="form-control" type="number" name="vat" id="vat" value="{{ old('vat', '23.00') }}" step="0.01" required>
                             @if($errors->has('vat'))
                                 <span class="help-block" role="alert">{{ $errors->first('vat') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.vat_helper') }}</span>
                         </div>
+                        @include('partials.expenseTotal', ['expense' => $vehicleExpense ?? null])
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
@@ -162,9 +163,11 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/expense-totals.js') }}"></script>
 <script>
     $(function () {
         var oldVehicleValues = @json(old('vehicle_values', []));
+        var oldVehicleTotals = @json(old('vehicle_final_values', []));
         var $groupToggle = $('#is_group_expense');
         var $singleVehicleWrapper = $('#single_vehicle_wrapper');
         var $groupVehiclesWrapper = $('#group_vehicles_wrapper');
@@ -180,6 +183,7 @@
 
             $singleVehicleWrapper.toggle(!isGroup);
             $singleValueWrapper.toggle(!isGroup);
+            $('#expense_total_wrapper').toggle(!isGroup).find('input').prop('disabled', isGroup);
             $groupVehiclesWrapper.toggle(isGroup);
             $groupLabelWrapper.toggle(isGroup);
             $groupValuesWrapper.toggle(isGroup);
@@ -199,19 +203,20 @@
                 var id = $(this).val();
                 var label = $(this).text();
                 var value = oldVehicleValues[id] || '';
+                var total = oldVehicleTotals[id] ?? (Math.round(Number(value) * (1 + Number($('#vat').val()) / 100) * 100) / 100).toFixed(2);
 
                 $groupTableBody.append(
                     '<tr data-vehicle-id="' + id + '">' +
                         '<td>' + $('<div>').text(label).html() + '</td>' +
                         '<td>' +
                             '<input class="form-control" type="number" name="vehicle_values[' + id + ']" value="' + value + '" step="0.01" min="0" required>' +
-                        '</td>' +
+                        '</td><td><input class="form-control" type="number" name="vehicle_final_values[' + id + ']" value="' + total + '" step="0.01" min="0" required></td>' +
                     '</tr>'
                 );
             });
 
             if ($groupTableBody.children().length === 0) {
-                $groupTableBody.append('<tr><td colspan="2">Selecione viaturas para definir os valores.</td></tr>');
+                $groupTableBody.append('<tr><td colspan="3">Selecione viaturas para definir os valores.</td></tr>');
             }
         }
 
@@ -221,7 +226,8 @@
                 var id = $(this).val();
                 var currentInput = $groupTableBody.find('tr[data-vehicle-id="' + id + '"] input');
                 if (currentInput.length) {
-                    oldVehicleValues[id] = currentInput.val();
+                    oldVehicleValues[id] = currentInput.first().val();
+                    oldVehicleTotals[id] = currentInput.last().val();
                 }
             });
             renderGroupValueRows();

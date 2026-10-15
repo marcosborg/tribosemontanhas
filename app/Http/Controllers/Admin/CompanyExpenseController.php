@@ -82,6 +82,9 @@ class CompanyExpenseController extends Controller
             $table->editColumn('weekly_value', function ($row) use ($accountingReady) {
                 return $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->value : $row->weekly_value;
             });
+            $table->addColumn('vat', fn ($row) => $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->vat : '—');
+            $table->addColumn('vat_amount', fn ($row) => $row->expense_mode !== CompanyExpense::MODE_ACCOUNTING ? '—' : number_format(round((float) $row->value * (float) $row->vat / 100, 2), 2, '.', ''));
+            $table->addColumn('final_value', fn ($row) => number_format($row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->display_total : $row->report_total, 2, '.', ''));
             $table->editColumn('expense_mode', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
             $table->editColumn('date', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
             $table->editColumn('is_paid', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
@@ -223,6 +226,7 @@ class CompanyExpenseController extends Controller
     {
         $payload = $request->all();
         if ($request->input('expense_mode') === CompanyExpense::MODE_ACCOUNTING) {
+            $payload['final_value'] = $request->filled('final_value') ? $request->input('final_value') : round((float) $request->input('value') * (1 + (float) $request->input('vat') / 100), 2);
             $payload['name'] = $request->input('expense_type');
             $payload['weekly_value'] = $request->input('value');
             $payload['start_date'] = $request->input('date');
@@ -236,6 +240,7 @@ class CompanyExpenseController extends Controller
             $payload['date'] = null;
             $payload['value'] = null;
             $payload['invoice_value'] = null;
+            $payload['final_value'] = null;
             $payload['is_paid'] = false;
             $payload['paid_at'] = null;
         }

@@ -87,7 +87,7 @@
                                 </tr>
                                 <tr>
                                     <th>{{ trans('cruds.vehicleExpense.fields.vat') }}</th>
-                                    <td>{{ $vehicleExpense->vat }}</td>
+                                    <td>{{ $vehicleExpense->vat }}%</td></tr><tr><th>Valor final com IVA (€)</th><td>{{ number_format($vehicleExpense->display_total, 2, ",", ".") }} €</td>
                                 </tr>
                             </tbody>
                         </table>

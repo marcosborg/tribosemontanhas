@@ -44,10 +44,11 @@
     <div class="form-group"><label for="pay_to">Pagar a</label><input class="form-control" name="pay_to" id="pay_to" value="{{ old('pay_to', $companyExpense->pay_to ?? '') }}"></div>
     <div class="form-group"><input type="hidden" name="is_paid" value="0"><input type="checkbox" name="is_paid" id="is_paid" value="1" {{ old('is_paid', $companyExpense->is_paid ?? false) ? 'checked' : '' }}> <label for="is_paid" style="font-weight:400">Já pago</label></div>
     <div class="row">
-        <div class="col-md-4 form-group {{ $errors->has('value') ? 'has-error' : '' }}"><label class="required" for="value">Valor</label><input class="form-control" type="number" step="0.01" min="0" name="value" id="value" value="{{ old('value', $companyExpense->value ?? 0) }}"></div>
-        <div class="col-md-4 form-group"><label for="invoice_value">Valor final</label><input class="form-control" type="number" step="0.01" min="0" name="invoice_value" id="invoice_value" value="{{ old('invoice_value', $companyExpense->invoice_value ?? '') }}"></div>
-        <div class="col-md-4 form-group {{ $errors->has('vat') ? 'has-error' : '' }}"><label class="required" for="vat">IVA</label><input class="form-control" type="number" step="0.01" min="0" name="vat" id="vat" value="{{ old('vat', $companyExpense->vat ?? 23) }}"></div>
+        <div class="col-md-4 form-group {{ $errors->has('value') ? 'has-error' : '' }}"><label class="required" for="value">Valor sem IVA (€)</label><input class="form-control" type="number" step="0.01" min="0" name="value" id="value" value="{{ old('value', $companyExpense->value ?? 0) }}"></div>
+
+        <div class="col-md-4 form-group {{ $errors->has('vat') ? 'has-error' : '' }}"><label class="required" for="vat">IVA (%)</label><input class="form-control" type="number" step="0.01" min="0" name="vat" id="vat" value="{{ old('vat', $companyExpense->vat ?? 23) }}"></div>
     </div>
+    @include('partials.expenseTotal', ['expense' => $companyExpense])
 </div>
 
 <div id="recurring_fields">
@@ -61,6 +62,7 @@
 
 @section('scripts')
 @parent
+<script src="{{ asset('js/expense-totals.js') }}"></script>
 <script>
 $(function () {
     function toggleExpenseMode() {

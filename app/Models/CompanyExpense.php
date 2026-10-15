@@ -42,6 +42,7 @@ class CompanyExpense extends Model implements HasMedia
         'description',
         'value',
         'invoice_value',
+        'final_value',
         'vat',
         'is_paid',
         'paid_at',
@@ -139,4 +140,9 @@ class CompanyExpense extends Model implements HasMedia
                 });
             });
     }
+    public function getDisplayTotalAttribute(): float
+    {
+        return (float) ($this->final_value ?? ($this->invoice_value ?? round((float) $this->value * (1 + (float) $this->vat / 100), 2)));
+    }
+
 }

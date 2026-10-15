@@ -97,6 +97,7 @@ class VehicleExpense extends Model implements HasMedia
         'description',
         'value',
         'invoice_value',
+        'final_value',
         'is_paid',
         'paid_at',
         'payment_reference',
@@ -165,4 +166,9 @@ class VehicleExpense extends Model implements HasMedia
         return $this->hasMany(self::class, 'group_uuid', 'group_uuid')
             ->whereNotNull('group_uuid');
     }
+    public function getDisplayTotalAttribute(): float
+    {
+        return (float) ($this->final_value ?? round((float) $this->value * (1 + (float) $this->vat / 100), 2));
+    }
+
 }

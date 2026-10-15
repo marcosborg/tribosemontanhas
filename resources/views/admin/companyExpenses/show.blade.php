@@ -31,7 +31,7 @@
                                 <tr><th>Data</th><td>{{ $companyExpense->date }}</td></tr>
                                 <tr><th>Descrição</th><td>{!! $companyExpense->description !!}</td></tr>
                                 <tr><th>Valor</th><td>{{ number_format($companyExpense->value, 2, ',', '.') }} €</td></tr>
-                                <tr><th>Valor final</th><td>{{ $companyExpense->invoice_value !== null ? number_format($companyExpense->invoice_value, 2, ',', '.') . ' €' : '—' }}</td></tr>
+                                <tr><th>Valor final</th><td>{{ number_format($companyExpense->display_total, 2, ',', '.') . ' €' }}</td></tr>
                                 <tr><th>IVA</th><td>{{ $companyExpense->vat }}%</td></tr>
                                 <tr><th>Estado</th><td>{{ $companyExpense->is_paid ? 'Pago' : 'Por pagar' }}</td></tr>
                                 <tr><th>Referência</th><td>{{ $companyExpense->payment_reference }}</td></tr>

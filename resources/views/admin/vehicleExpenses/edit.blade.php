@@ -88,7 +88,7 @@
                             @endif
                         </div>
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
-                            <label class="required" for="value">{{ trans('cruds.vehicleExpense.fields.value') }}</label>
+                            <label class="required" for="value">Valor sem IVA (€)</label>
                             <input class="form-control" type="number" name="value" id="value" value="{{ old('value', $vehicleExpense->value) }}" step="0.01" required>
                             @if($errors->has('value'))
                                 <span class="help-block" role="alert">{{ $errors->first('value') }}</span>
@@ -96,13 +96,14 @@
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.value_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('vat') ? 'has-error' : '' }}">
-                            <label class="required" for="vat">{{ trans('cruds.vehicleExpense.fields.vat') }}</label>
+                            <label class="required" for="vat">IVA (%)</label>
                             <input class="form-control" type="number" name="vat" id="vat" value="{{ old('vat', $vehicleExpense->vat) }}" step="0.01" required>
                             @if($errors->has('vat'))
                                 <span class="help-block" role="alert">{{ $errors->first('vat') }}</span>
                             @endif
                             <span class="help-block">{{ trans('cruds.vehicleExpense.fields.vat_helper') }}</span>
                         </div>
+                        @include('partials.expenseTotal', ['expense' => $vehicleExpense ?? null])
                         <div class="form-group">
                             <button class="btn btn-danger" type="submit">
                                 {{ trans('global.save') }}
@@ -117,6 +118,7 @@
 @endsection
 
 @section('scripts')
+<script src="{{ asset('js/expense-totals.js') }}"></script>
 <script>
     $(document).ready(function () {
         function SimpleUploadAdapter(editor) {

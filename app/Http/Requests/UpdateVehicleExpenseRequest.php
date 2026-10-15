@@ -28,9 +28,15 @@ class UpdateVehicleExpenseRequest extends FormRequest
                 'array',
             ],
             'value' => [
+                'numeric',
+                'min:0',
                 'required',
             ],
+            'final_value' => ['nullable', 'numeric', 'min:0'],
+            'vehicle_final_values' => ['nullable', 'array'],
+            'vehicle_final_values.*' => ['nullable', 'numeric', 'min:0'],
             'vat' => [
+                'min:0',
                 'numeric',
                 'required',
             ],

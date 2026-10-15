@@ -311,6 +311,9 @@ class VehicleProfitabilityCalculator
     {
         $rate = (float) ($expense->vat ?? 0);
         $value = (float) ($expense->value ?? 0);
+        if ($expense->final_value !== null) {
+            return [(float) $expense->final_value, (float) $expense->final_value - $value];
+        }
         $invoiceValue = $expense->invoice_value;
 
         // New logic: when invoice_value is provided, VAT is based on full invoice total

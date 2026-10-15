@@ -56,6 +56,7 @@ class StoreCompanyExpenseRequest extends FormRequest
             'date' => ['required_if:expense_mode,accounting', 'nullable', 'date_format:' . config('panel.date_format')],
             'description' => ['nullable', 'string'],
             'value' => ['required_if:expense_mode,accounting', 'nullable', 'numeric', 'min:0'],
+            'final_value' => ['nullable', 'numeric', 'min:0'],
             'invoice_value' => ['nullable', 'numeric', 'min:0'],
             'vat' => ['required_if:expense_mode,accounting', 'nullable', 'numeric', 'min:0'],
             'is_paid' => ['nullable', 'boolean'],

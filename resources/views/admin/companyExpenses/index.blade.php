@@ -77,7 +77,7 @@
                                 <th>Data / período</th>
                                 <th>Estado</th>
                                 <th>Documentos</th>
-                                <th>Valor</th>
+                                <th>Valor sem IVA / semanal (€)</th><th>IVA (%)</th><th>IVA calculado (€)</th><th>Valor final (€)</th>
                                 <th>
                                     &nbsp;
                                 </th>
@@ -145,6 +145,9 @@
 { data: 'is_paid', name: 'is_paid' },
 { data: 'files', name: 'files', orderable: false, searchable: false },
 { data: 'weekly_value', name: 'value' },
+{ data: 'vat', name: 'vat' },
+{ data: 'vat_amount', name: 'vat_amount', orderable: false, searchable: false },
+{ data: 'final_value', name: 'final_value', orderable: false, searchable: false },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,
