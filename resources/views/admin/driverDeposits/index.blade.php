@@ -1,6 +1,7 @@
 @extends('layouts.admin')
 @section('content')
 <div class="content">
+    <p><a class="btn btn-primary" href="{{ route('admin.driver-deposit-global.index') }}">Cauções globais / Excel</a></p>
     @can('driver_deposit_create')
         <div style="margin-bottom: 10px;" class="row">
             <div class="col-lg-12">

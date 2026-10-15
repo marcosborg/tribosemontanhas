@@ -373,4 +373,94 @@ class DriverDepositInstallmentsTest extends TestCase
         $this->assertSame(0, $deposit->movements()->where('type', 'refund')->count());
     }
 
+    public function test_global_report_period_opening_balance_split_refunds_and_inactive_driver(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $ledger->createRefund($deposit, 4, 300, null, 'initial');
+        $ledger->createRefund($deposit, 4, 100, null, 'weekly');
+        DB::table('drivers')->where('id', 1)->update(['deleted_at' => now()]);
+        $report = app(\App\Services\DriverDepositGlobalReportService::class);
+        $row = $report->rows('2026-10-01', '2026-10-28')->sole();
+        $this->assertSame('Motorista A', $row['name']);
+        $this->assertEquals(300, $row['opening_total']);
+        $this->assertEquals(0, $row['initial_received']);
+        $this->assertEquals(300, $row['initial_refunded']);
+        $this->assertEquals(0, $row['initial_balance']);
+        $this->assertEquals(300, $row['weekly_received']);
+        $this->assertEquals(100, $row['weekly_refunded']);
+        $this->assertEquals(200, $row['total_balance']);
+        $this->assertEquals(200, $report->rows('2027-01-01', '2027-12-31')->sole()['opening_total']);
+        $ledger->createRefund($deposit, 4, 200, null, 'weekly');
+        $settled = $report->rows('2027-01-01', '2027-12-31')->sole();
+        $this->assertEquals(0, $settled['total_balance']);
+        $this->assertEquals(0, $settled['total_received']);
+    }
+
+    public function test_global_report_inclusive_dates_unclassified_refunds_and_adjustments_reconcile(): void
+    {
+        $deposit = $this->save($this->data());
+        foreach ([['refund', 50], ['adjustment', 10], ['internal_debit', 20]] as [$type, $amount]) {
+            $deposit->movements()->create(['driver_id' => 1, 'company_id' => 1, 'type' => $type, 'amount' => $amount,
+                'payment_date' => '2026-09-25', 'created_at' => '2026-10-20']);
+        }
+        $report = app(\App\Services\DriverDepositGlobalReportService::class);
+        $row = $report->rows('2026-09-25', '2026-09-25')->sole();
+        $this->assertEquals(100, $row['opening_total']);
+        $this->assertEquals(200, $row['initial_received']);
+        $this->assertEquals(50, $row['other_refunded']);
+        $this->assertEquals(-60, $row['other_balance']);
+        $this->assertEquals(240, $row['total_balance']);
+        $this->assertEquals($row['total_balance'], $row['opening_total'] + $row['total_received'] - $row['total_refunded'] + $row['adjustments'] - $row['debits']);
+        $this->assertCount(0, $report->rows('2020-01-01', '2020-12-31'));
+    }
+
+    public function test_global_report_aggregates_deposits_and_ignores_unconfirmed_legacy_weekly_charges(): void
+    {
+        $this->save($this->data()); $this->save($this->data());
+        $legacy = DriverDeposit::create(['driver_id' => 2, 'company_id' => 1, 'total_amount' => 600, 'initial_payment' => 300, 'weekly_amount' => 100, 'status' => 'closed']);
+        app(DriverDepositService::class)->syncPlannedMovements($legacy, [1, 2, 3]);
+        CurrentAccount::create(['driver_id' => 2, 'tvde_week_id' => 1]);
+        $rows = app(\App\Services\DriverDepositGlobalReportService::class)->rows('2026-01-01', '2026-12-31')->keyBy('driver_id');
+        $this->assertCount(2, $rows);
+        $this->assertEquals(600, $rows[1]['total_received']);
+        $this->assertEquals(400, $rows[2]['total_received']);
+        $this->assertEquals(100, $rows[2]['weekly_received']);
+    }
+
+    public function test_global_excel_contains_numeric_values_totals_period_and_safe_names(): void
+    {
+        $this->save($this->data());
+        DB::table('drivers')->where('id', 1)->update(['name' => '=1+1']);
+        $service = app(\App\Services\DriverDepositGlobalReportService::class);
+        $rows = $service->rows('2026-01-01', '2026-12-31');
+        $totals = []; foreach (array_slice(array_keys($service::COLUMNS), 3) as $key) $totals[$key] = $rows->sum($key);
+        $controller = app(\App\Http\Controllers\Admin\DriverDepositGlobalController::class);
+        $book = $controller->workbook($rows, '2026-01-01', '2026-12-31', $totals);
+        $file = tempnam(sys_get_temp_dir(), 'deposit-report-');
+        try {
+            (new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($book))->save($file);
+            $loaded = \PhpOffice\PhpSpreadsheet\IOFactory::load($file);
+            $sheet = $loaded->getActiveSheet();
+            $this->assertSame('s', $sheet->getCell('B4')->getDataType());
+            $this->assertSame('=1+1', $sheet->getCell('B4')->getValue());
+            $this->assertEquals(300, $sheet->getCell('E4')->getValue());
+            $this->assertSame('n', $sheet->getCell('E4')->getDataType());
+            $this->assertEquals(300, $sheet->getCell('R5')->getValue());
+            $this->assertStringContainsString('2026-12-31', $sheet->getCell('A1')->getValue());
+            $this->assertNotNull($loaded->getSheetByName('Critérios'));
+            $loaded->disconnectWorksheets();
+        } finally { unlink($file); $book->disconnectWorksheets(); }
+    }
+
+    public function test_global_report_rejects_unauthorized_access_and_reversed_dates(): void
+    {
+        $controller = app(\App\Http\Controllers\Admin\DriverDepositGlobalController::class);
+        $service = app(\App\Services\DriverDepositGlobalReportService::class);
+        try { $controller->index(Request::create('/', 'GET', ['export' => 'xlsx']), $service); $this->fail('Expected forbidden'); }
+        catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) { $this->assertSame(403, $e->getStatusCode()); }
+        \Illuminate\Support\Facades\Gate::before(fn (?\App\Models\User $user) => true);
+        $this->expectException(ValidationException::class);
+        $controller->index(Request::create('/', 'GET', ['date_from' => '2026-12-31', 'date_to' => '2026-01-01']), $service);
+    }
+
 }

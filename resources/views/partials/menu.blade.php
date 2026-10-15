@@ -434,6 +434,9 @@
 
                         </a>
                     </li>
+                    <li class="{{ request()->is('admin/driver-deposit-global') ? 'active' : '' }}">
+                        <a href="{{ route('admin.driver-deposit-global.index') }}"><i class="fa-fw fas fa-table"></i><span>Cauções globais</span></a>
+                    </li>
                     @endcan
                     @can('weekly_vehicle_expense_access')
                             <li class="{{ request()->is("admin/weekly-vehicle-expenses") || request()->is("admin/weekly-vehicle-expenses/*") ? "active" : "" }}">

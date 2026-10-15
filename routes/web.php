@@ -425,6 +425,7 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
         'driver-deposit-plans' => 'driverDepositPlan',
     ]);
     Route::resource('driver-deposit-real-movements', 'DriverDepositMovementController')->only(['index', 'create', 'store']);
+    Route::get('driver-deposit-global', 'DriverDepositGlobalController@index')->name('driver-deposit-global.index');
     Route::get('driver-deposit-reconciliation', 'DriverDepositReconciliationController@index')->name('driver-deposit-reconciliation.index');
     Route::get('driver-deposit-reconciliation/{driver}', 'DriverDepositReconciliationController@show')->name('driver-deposit-reconciliation.show');
     Route::post('driver-deposits/{driverDeposit}/internal-debit', 'DriverDepositController@internalDebit')->name('driver-deposits.internal-debit');
