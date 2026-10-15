@@ -32,7 +32,7 @@ class DriverDepositInstallmentsTest extends TestCase
             $table->text('data')->nullable(); $table->timestamps(); $table->softDeletes();
         });
         foreach (['2026_04_29_130000_create_driver_deposits_tables', '2026_05_21_100000_create_driver_deposit_planning_tables',
-            '2026_09_17_080000_add_payment_date_to_driver_deposit_movements', '2026_09_25_120000_link_deposit_installments'] as $migration) {
+            '2026_09_17_080000_add_payment_date_to_driver_deposit_movements', '2026_09_25_120000_link_deposit_installments', '2026_10_15_100000_add_refund_source_to_driver_deposit_movements'] as $migration) {
             (require database_path('migrations/' . $migration . '.php'))->up();
         }
         DB::table('drivers')->insert([['id' => 1, 'name' => 'Motorista A'], ['id' => 2, 'name' => 'Motorista B']]);
@@ -159,12 +159,12 @@ class DriverDepositInstallmentsTest extends TestCase
         $this->assertCount(0, app(DriverDepositService::class)->statementMovementsForWeek(1, 1, 1));
         $deposit->plan->update(['status' => 'active']); $service->syncSchedule($deposit);
         $this->assertCount(1, app(DriverDepositService::class)->statementMovementsForWeek(1, 1, 1));
-        app(DriverDepositService::class)->createRefund($deposit, 1, 100, 'Devolução');
+        app(DriverDepositService::class)->createRefund($deposit, 1, 100, 'Devolução', 'initial');
         $this->assertEquals(200, app(DriverDepositService::class)->availableBalance($deposit));
         $data = $this->editableData($deposit); $data['status'] = 'closed'; $this->save($data, $deposit);
         $this->assertSame(3, $deposit->plan->items()->where('status', 'cancelled')->count());
         $this->expectException(ValidationException::class);
-        app(DriverDepositService::class)->createRefund($deposit, 1, 201, null);
+        app(DriverDepositService::class)->createRefund($deposit, 1, 201, null, 'initial');
     }
 
     public function test_foreign_driver_cannot_confirm_and_manual_receipt_survives_reversal(): void
@@ -269,4 +269,108 @@ class DriverDepositInstallmentsTest extends TestCase
         $this->expectException(ValidationException::class);
         app(DriverDepositPlanningService::class)->generateItems($deposit->plan);
     }
+    private function fullyPaidDeposit(): DriverDeposit
+    {
+        $deposit = $this->save($this->data());
+        $ledger = app(DriverDepositService::class);
+        foreach ([1, 2, 3] as $week) {
+            CurrentAccount::create(['driver_id' => 1, 'tvde_week_id' => $week]);
+            app(DriverDepositInstallmentService::class)->confirmWeek(1, 1, $week,
+                $ledger->statementMovementsForWeek(1, 1, $week)->pluck('id')->all());
+        }
+        return $deposit;
+    }
+
+    public function test_split_refund_has_separate_sources_and_only_weekly_part_affects_statement(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $initial = $ledger->createRefund($deposit, 4, 300, null, 'initial');
+        $weekly = $ledger->createRefund($deposit, 4, 100, null, 'weekly');
+        $this->assertFalse($initial->affects_statement);
+        $this->assertTrue($weekly->affects_statement);
+        $this->assertEquals(100, $ledger->statementImpact($ledger->statementMovementsForWeek(1, 1, 4)));
+        $this->assertEquals(200, $ledger->availableBalance($deposit));
+        $summary = $ledger->refundSummary($deposit);
+        $this->assertEquals(0, $summary['initial']['remaining']);
+        $this->assertEquals(200, $summary['weekly']['remaining']);
+        $this->assertStringContainsString('pagamento semanal', $weekly->type_label);
+    }
+
+    public function test_historical_refund_can_be_corrected_without_counting_it_twice(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $old = $deposit->movements()->create(['driver_id' => 1, 'company_id' => 1, 'tvde_week_id' => 4,
+            'type' => 'refund', 'amount' => 600, 'affects_statement' => true]);
+        $this->assertEquals(600, $ledger->refundSummary($deposit)['unclassified_refunds']);
+        $ledger->updateRefund($old, 4, 300, 'Correção', 'initial');
+        $this->assertSame($old->id, $old->fresh()->id);
+        $this->assertSame('Correção', $old->fresh()->description);
+        $this->assertFalse($old->fresh()->affects_statement);
+        $ledger->createRefund($deposit, 4, 100, null, 'weekly');
+        $this->assertEquals(200, $ledger->availableBalance($deposit));
+        $this->assertEquals(0, $ledger->refundSummary($deposit)['unclassified_refunds']);
+        $this->assertSame(2, $deposit->movements()->where('type', 'refund')->count());
+    }
+
+    public function test_refund_cannot_exceed_source_balance_even_if_total_is_sufficient(): void
+    {
+        $deposit = $this->fullyPaidDeposit();
+        $this->expectException(ValidationException::class);
+        app(DriverDepositService::class)->createRefund($deposit, 4, 301, null, 'initial');
+    }
+
+    public function test_unpaid_weekly_schedule_cannot_be_refunded(): void
+    {
+        $deposit = $this->save($this->data());
+        $this->expectException(ValidationException::class);
+        app(DriverDepositService::class)->createRefund($deposit, 4, 100, null, 'weekly');
+    }
+
+    public function test_other_debits_and_unclassified_refunds_reduce_refundable_total(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $ledger->createInternalDebit($deposit, 4, 450, null);
+        $this->expectException(ValidationException::class);
+        $ledger->createRefund($deposit, 4, 200, null, 'initial');
+    }
+
+    public function test_invalid_edit_rolls_back_and_validated_refund_requires_reversal(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $refund = $ledger->createRefund($deposit, 4, 100, null, 'weekly');
+        try { $ledger->updateRefund($refund, 4, 301, null, 'initial'); $this->fail('Expected source limit'); }
+        catch (ValidationException $e) { $this->assertEquals(100, $refund->fresh()->amount); }
+        CurrentAccount::create(['driver_id' => 1, 'tvde_week_id' => 4]);
+        try { $ledger->updateRefund($refund, 4, 100, null, 'initial'); $this->fail('Expected validated week guard'); }
+        catch (ValidationException $e) { $this->assertTrue($refund->fresh()->affects_statement); }
+        $this->assertSame('weekly', $refund->fresh()->refund_source);
+        $this->assertEquals(500, $ledger->availableBalance($deposit));
+    }
+
+    public function test_imported_initial_receipts_precede_weekly_movements_in_running_balance(): void
+    {
+        $deposit = $this->fullyPaidDeposit(); $ledger = app(DriverDepositService::class);
+        $deposit->movements()->where('type', 'payment')->whereNull('tvde_week_id')->update(['created_at' => '2027-01-01']);
+        $refund = $ledger->createRefund($deposit, 4, 300, null, 'initial');
+        $this->assertEquals(300, $refund->balance_after);
+        $this->assertEquals(400, $deposit->movements()->where('source_key', 'like', 'receipt:%')->where('tvde_week_id', 1)->first()->balance_after);
+    }
+
+    public function test_refund_controller_requires_permission_and_explicit_source(): void
+    {
+        $deposit = $this->save($this->data());
+        $controller = app(\App\Http\Controllers\Admin\DriverDepositController::class);
+        $ledger = app(DriverDepositService::class);
+        try {
+            $controller->refund(Request::create('/', 'POST', []), $deposit, $ledger);
+            $this->fail('Expected forbidden');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) { $this->assertSame(403, $e->getStatusCode()); }
+        \Illuminate\Support\Facades\Gate::before(fn (?\App\Models\User $user) => true);
+        try {
+            $controller->refund(Request::create('/', 'POST', ['tvde_week_id' => 4, 'amount' => 100]), $deposit, $ledger);
+            $this->fail('Expected source validation');
+        } catch (ValidationException $e) { $this->assertArrayHasKey('refund_source', $e->errors()); }
+        $this->assertSame(0, $deposit->movements()->where('type', 'refund')->count());
+    }
+
 }

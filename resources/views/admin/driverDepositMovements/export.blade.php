@@ -26,7 +26,7 @@
                     <td>{{ $movement->driver->name ?? '' }}</td>
                     <td>{{ $movement->company->name ?? '' }}</td>
                     <td>{{ $movement->tvde_week->start_date ?? '' }}</td>
-                    <td>{{ \App\Models\DriverDepositMovement::REAL_TYPE_SELECT[$movement->type] ?? $movement->type }}</td>
+                    <td>{{ $movement->type_label }}</td>
                     <td>{{ number_format($movement->amount, 2) }} &euro;</td>
                     <td>{{ $movement->payment_method }}</td>
                     <td>{{ $movement->description }}</td>

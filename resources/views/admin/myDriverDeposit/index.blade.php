@@ -69,7 +69,7 @@
                                         <td></td>
                                         <td>{{ $movement->tvde_week ? $movement->tvde_week->start_date . ' a ' . $movement->tvde_week->end_date : '' }}</td>
                                         <td>{{ $movement->deposit->company->name ?? '' }}</td>
-                                        <td>{{ \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type }}</td>
+                                        <td>{{ $movement->type_label }}</td>
                                         <td>{{ $movement->description }}</td>
                                         <td style="text-align:right;">{{ number_format($movement->amount, 2) }} EUR</td>
                                         <td style="text-align:right;">{{ number_format($movement->balance_after, 2) }} EUR</td>

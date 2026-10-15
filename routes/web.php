@@ -428,6 +428,8 @@ Route::group(['prefix' => 'admin', 'as' => 'admin.', 'namespace' => 'Admin', 'mi
     Route::get('driver-deposit-reconciliation', 'DriverDepositReconciliationController@index')->name('driver-deposit-reconciliation.index');
     Route::get('driver-deposit-reconciliation/{driver}', 'DriverDepositReconciliationController@show')->name('driver-deposit-reconciliation.show');
     Route::post('driver-deposits/{driverDeposit}/internal-debit', 'DriverDepositController@internalDebit')->name('driver-deposits.internal-debit');
+    Route::get('driver-deposit-movements/{movement}/edit-refund', 'DriverDepositController@editRefund')->name('driver-deposit-movements.edit-refund');
+    Route::put('driver-deposit-movements/{movement}/refund', 'DriverDepositController@updateRefund')->name('driver-deposit-movements.update-refund');
     Route::post('driver-deposits/{driverDeposit}/refund', 'DriverDepositController@refund')->name('driver-deposits.refund');
     Route::delete('driver-deposit-movements/destroy', 'DriverDepositController@massDestroyMovements')->name('driver-deposit-movements.massDestroy');
     Route::delete('driver-deposit-movements/{movement}', 'DriverDepositController@destroyMovement')->name('driver-deposit-movements.destroy');

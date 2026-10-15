@@ -80,11 +80,12 @@
                                         <td>{{ $movement->driver->name ?? '' }}</td>
                                         <td>{{ $movement->company->name ?? $movement->driver->company->name ?? '' }}</td>
                                         <td>{{ $movement->tvde_week->start_date ?? '' }}</td>
-                                        <td>{{ \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type }}</td>
+                                        <td>{{ $movement->type_label }}</td>
                                         <td>{{ $movement->description }}</td>
                                         <td style="text-align:right;">{{ number_format($movement->amount, 2) }} €</td>
                                         <td style="text-align:right;">{{ number_format($movement->balance_after, 2) }} €</td>
                                         <td>
+                                            @include('admin.driverDeposits.partials.refundEditButton')
                                             @can('driver_deposit_show')
                                                 <a class="btn btn-xs btn-primary" href="{{ route('admin.driver-deposits.show', $movement->driver_deposit_id) }}">Ver caução</a>
                                             @endcan

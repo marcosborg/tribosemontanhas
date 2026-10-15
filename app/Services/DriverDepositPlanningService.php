@@ -215,7 +215,7 @@ class DriverDepositPlanningService
             ->map(fn (DriverDepositMovement $movement) => [
                 'date' => optional($movement->payment_date ?? $movement->created_at)->format('Y-m-d'),
                 'kind' => 'Real',
-                'label' => DriverDepositMovement::REAL_TYPE_SELECT[$movement->type] ?? $movement->type,
+                'label' => $movement->type_label,
                 'amount' => (float) $movement->amount,
                 'week' => $movement->tvde_week->start_date ?? '',
             ]);

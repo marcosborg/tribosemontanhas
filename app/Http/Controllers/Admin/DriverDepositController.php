@@ -73,16 +73,17 @@ class DriverDepositController extends Controller
         $movements = $driverDeposit->movements()
             ->with('tvde_week')
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
-            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.created_at)')
+            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.payment_date, driver_deposit_movements.created_at)')
             ->orderBy('driver_deposit_movements.id')
             ->select('driver_deposit_movements.*')
             ->get();
 
+        $refundSummary = $service->refundSummary($driverDeposit);
         $suggestedRefundWeekId = $service->suggestedRefundWeekId($driverDeposit);
         $availableBalance = $service->availableBalance($driverDeposit, $suggestedRefundWeekId);
         $tvdeWeeks = TvdeWeek::orderByDesc('start_date')->get();
 
-        return view('admin.driverDeposits.show', compact('driverDeposit', 'movements', 'availableBalance', 'suggestedRefundWeekId', 'tvdeWeeks'));
+        return view('admin.driverDeposits.show', compact('driverDeposit', 'movements', 'refundSummary', 'availableBalance', 'suggestedRefundWeekId', 'tvdeWeeks'));
     }
 
     public function edit(DriverDeposit $driverDeposit)
@@ -225,16 +226,36 @@ class DriverDepositController extends Controller
     public function refund(Request $request, DriverDeposit $driverDeposit, DriverDepositService $service)
     {
         abort_if(Gate::denies('driver_deposit_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $data = $this->validatedRefundData($request);
+        $service->createRefund($driverDeposit, (int) $data['tvde_week_id'], (float) $data['amount'], $data['description'] ?? null, $data['refund_source']);
+        return back()->with('message', 'Devolução registada com sucesso.');
+    }
 
-        $data = $request->validate([
+    public function editRefund(DriverDepositMovement $movement)
+    {
+        abort_if(Gate::denies('driver_deposit_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($movement->type === DriverDepositMovement::TYPE_REFUND && $movement->deposit, 404);
+        $tvdeWeeks = TvdeWeek::orderByDesc('start_date')->get();
+        return view('admin.driverDeposits.editRefund', compact('movement', 'tvdeWeeks'));
+    }
+
+    public function updateRefund(Request $request, DriverDepositMovement $movement, DriverDepositService $service)
+    {
+        abort_if(Gate::denies('driver_deposit_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        abort_unless($movement->type === DriverDepositMovement::TYPE_REFUND && $movement->deposit, 404);
+        $data = $this->validatedRefundData($request);
+        $service->updateRefund($movement, (int) $data['tvde_week_id'], (float) $data['amount'], $data['description'] ?? null, $data['refund_source']);
+        return redirect()->route('admin.driver-deposits.show', $movement->driver_deposit_id)->with('message', 'Devolução atualizada com sucesso.');
+    }
+
+    private function validatedRefundData(Request $request): array
+    {
+        return $request->validate([
             'tvde_week_id' => ['required', 'integer', 'exists:tvde_weeks,id'],
-            'amount' => ['required', 'numeric', 'min:0.01'],
+            'amount' => ['required', 'numeric', 'min:0.01', 'regex:/^\d+(?:\.\d{1,2})?$/'],
+            'refund_source' => ['required', \Illuminate\Validation\Rule::in(array_keys(DriverDepositMovement::REFUND_SOURCE_SELECT))],
             'description' => ['nullable', 'string'],
         ]);
-
-        $service->createRefund($driverDeposit, (int) $data['tvde_week_id'], (float) $data['amount'], $data['description'] ?? null);
-
-        return back()->with('message', 'Devolucao registada com sucesso.');
     }
 
     private function formData(): array

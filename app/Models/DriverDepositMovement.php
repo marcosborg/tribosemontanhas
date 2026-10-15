@@ -36,10 +36,26 @@ class DriverDepositMovement extends Model
         self::TYPE_WRITEOFF => 'Regularizacao',
     ];
 
+    public const REFUND_SOURCE_SELECT = [
+        'initial' => 'Pagamento inicial',
+        'weekly' => 'Pagamento semanal',
+    ];
+
+    public function getTypeLabelAttribute(): string
+    {
+        if ($this->type === self::TYPE_REFUND) {
+            return 'Caução - devolução - ' . (isset(self::REFUND_SOURCE_SELECT[$this->refund_source])
+                ? mb_strtolower(self::REFUND_SOURCE_SELECT[$this->refund_source])
+                : 'origem por classificar');
+        }
+        return self::TYPE_SELECT[$this->type] ?? $this->type;
+    }
+
     public $table = 'driver_deposit_movements';
 
     protected $fillable = [
         'source_key',
+        'refund_source',
         'driver_deposit_id',
         'driver_deposit_plan_item_id',
         'driver_id',

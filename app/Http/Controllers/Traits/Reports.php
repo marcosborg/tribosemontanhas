@@ -456,7 +456,7 @@ trait Reports
                 return [
                     'id' => $movement->id,
                     'type' => $movement->type,
-                    'label' => \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type,
+                    'label' => $movement->type_label,
                     'description' => $movement->description,
                     'amount' => (float) $movement->amount,
                     'statement_value' => $movement->type === \App\Models\DriverDepositMovement::TYPE_REFUND
@@ -759,7 +759,7 @@ trait Reports
             return [
                 'id' => $movement->id,
                 'type' => $movement->type,
-                'label' => \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type,
+                'label' => $movement->type_label,
                 'description' => $movement->description,
                 'amount' => (float) $movement->amount,
                 'statement_value' => $movement->type === \App\Models\DriverDepositMovement::TYPE_REFUND

@@ -101,7 +101,7 @@ class DriverDepositMovementController extends Controller
                     $movement->driver->name ?? '',
                     $movement->company->name ?? '',
                     $movement->tvde_week->start_date ?? '',
-                    DriverDepositMovement::REAL_TYPE_SELECT[$movement->type] ?? $movement->type,
+                    $movement->type_label,
                     $movement->amount,
                     $movement->payment_method,
                     $movement->description,

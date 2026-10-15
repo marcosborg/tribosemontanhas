@@ -34,6 +34,8 @@
                         @include('admin.driverDeposits.partials.installmentSummary', ['plan' => $driverDeposit->plan])
                     @endif
 
+                    @include('admin.driverDeposits.partials.refundSummary')
+
                     @can('driver_deposit_edit')
                         <div class="row">
                             <div class="col-md-6">
@@ -53,7 +55,7 @@
                                     <div class="panel-body">
                                         <form method="POST" action="{{ route('admin.driver-deposits.refund', $driverDeposit) }}">
                                             @csrf
-                                            @include('admin.driverDeposits.partials.movementForm', ['defaultAmount' => $availableBalance, 'button' => 'Registar devolução', 'defaultWeekId' => $suggestedRefundWeekId])
+                                            @include('admin.driverDeposits.partials.movementForm', ['isRefund' => true, 'defaultAmount' => '', 'button' => 'Registar devolução', 'defaultWeekId' => $suggestedRefundWeekId])
                                         </form>
                                     </div>
                                 </div>
@@ -65,23 +67,25 @@
                     <table class="table table-bordered table-striped table-hover datatable datatable-DriverDepositLedger">
                         <thead>
                             <tr>
-                                <th>Semana</th>
+                                <th>Semana / data</th>
                                 <th>Tipo</th>
                                 <th>Descrição</th>
                                 <th style="text-align:right;">Valor</th>
                                 <th style="text-align:right;">Saldo caução</th>
                                 <th>Extrato</th>
+                                <th>Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($movements as $movement)
                                 <tr>
-                                    <td>{{ $movement->tvde_week->start_date ?? '' }}</td>
-                                    <td>{{ \App\Models\DriverDepositMovement::TYPE_SELECT[$movement->type] ?? $movement->type }}</td>
+                                    <td>{{ $movement->tvde_week->start_date ?? optional($movement->payment_date)->format('Y-m-d') }}</td>
+                                    <td>{{ $movement->type_label }}</td>
                                     <td>{{ $movement->description }}</td>
                                     <td style="text-align:right;">{{ number_format($movement->amount, 2) }} €</td>
                                     <td style="text-align:right;">{{ number_format($movement->balance_after, 2) }} €</td>
-                                    <td>{{ $movement->affects_statement ? 'Sim' : 'Nao' }}</td>
+                                    <td>{{ $movement->affects_statement ? 'Sim' : 'Não' }}</td>
+                                    <td>@include('admin.driverDeposits.partials.refundEditButton')</td>
                                 </tr>
                             @endforeach
                         </tbody>
@@ -97,7 +101,8 @@
 <script>
     $(function () {
         $('.datatable-DriverDepositLedger').DataTable({
-            order: [[0, 'asc']],
+            order: [],
+            columnDefs: [{ targets: -1, orderable: false, searchable: false }],
             pageLength: 100
         });
     });

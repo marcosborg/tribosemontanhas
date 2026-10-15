@@ -64,16 +64,88 @@ class DriverDepositService
         );
     }
 
-    public function createRefund(DriverDeposit $deposit, int $tvdeWeekId, float $amount, ?string $description): DriverDepositMovement
+    public function createRefund(DriverDeposit $deposit, int $tvdeWeekId, float $amount, ?string $description, string $source): DriverDepositMovement
     {
-        return $this->createBalanceReducingMovement(
-            $deposit,
-            $tvdeWeekId,
-            $amount,
-            DriverDepositMovement::TYPE_REFUND,
-            $description ?: 'Devolucao de caucao',
-            true
-        );
+        return $this->saveRefund($deposit, $tvdeWeekId, $amount, $description, $source);
+    }
+
+    public function updateRefund(DriverDepositMovement $movement, int $tvdeWeekId, float $amount, ?string $description, string $source): DriverDepositMovement
+    {
+        abort_unless($movement->type === DriverDepositMovement::TYPE_REFUND, 404);
+        return $this->saveRefund($movement->deposit, $tvdeWeekId, $amount, $description, $source, $movement);
+    }
+
+    private function saveRefund(DriverDeposit $deposit, int $tvdeWeekId, float $amount, ?string $description, string $source, ?DriverDepositMovement $movement = null): DriverDepositMovement
+    {
+        return DB::transaction(function () use ($deposit, $tvdeWeekId, $amount, $description, $source, $movement) {
+            $deposit = DriverDeposit::lockForUpdate()->findOrFail($deposit->id);
+            if ($movement) $movement = $deposit->movements()->lockForUpdate()->findOrFail($movement->id);
+            if (!isset(DriverDepositMovement::REFUND_SOURCE_SELECT[$source])) {
+                throw ValidationException::withMessages(['refund_source' => 'Selecione a origem da devolução.']);
+            }
+            // Validated statements are snapshots: require reversal before changing their entries.
+            $weeks = $source === 'weekly' ? [$tvdeWeekId] : [];
+            if ($movement && $movement->affects_statement) $weeks[] = $movement->tvde_week_id;
+            if (\App\Models\CurrentAccount::where('driver_id', $deposit->driver_id)->whereIn('tvde_week_id', $weeks)->exists()) {
+                throw ValidationException::withMessages(['tvde_week_id' => 'Anule a validação do extrato da semana antes de alterar esta devolução e volte a validar depois.']);
+            }
+            $excludeId = $movement->id ?? null;
+            $summary = $this->refundSummary($deposit, $excludeId, $tvdeWeekId);
+            $allSummary = $this->refundSummary($deposit, $excludeId);
+            $limit = min($summary[$source]['remaining'], $allSummary[$source]['remaining'],
+                $this->availableBalance($deposit, $tvdeWeekId, $excludeId), $this->availableBalance($deposit, null, $excludeId));
+            $cents = DriverDepositInstallmentService::cents($amount);
+            if ($cents <= 0 || abs($amount * 100 - $cents) > 0.00001 || $cents > DriverDepositInstallmentService::cents($limit)) {
+                throw ValidationException::withMessages(['amount' => 'O valor deve ter até duas casas decimais e não pode exceder o saldo disponível desta origem (' . number_format(max(0, $limit), 2, ',', '.') . ' €).']);
+            }
+            $movement = $movement ?: new DriverDepositMovement([
+                'driver_deposit_id' => $deposit->id, 'driver_id' => $deposit->driver_id,
+                'company_id' => $deposit->company_id, 'created_by' => auth()->id(), 'type' => DriverDepositMovement::TYPE_REFUND,
+            ]);
+            $movement->fill([
+                'tvde_week_id' => $tvdeWeekId, 'amount' => $amount, 'refund_source' => $source,
+                'description' => $description ?: 'Devolução de caução', 'affects_statement' => $source === 'weekly',
+            ])->save();
+            $this->recalculateBalances($deposit);
+            $this->updateStatus($deposit);
+            return $movement->refresh();
+        });
+    }
+
+    public function refundSummary(DriverDeposit $deposit, ?int $excludeId = null, ?int $weekId = null): array
+    {
+        $summary = [];
+        foreach (DriverDepositMovement::REFUND_SOURCE_SELECT as $source => $label) {
+            $summary[$source] = ['label' => $label, 'received' => 0, 'refunded' => 0, 'remaining' => 0];
+        }
+        $summary['unclassified_refunds'] = 0;
+        $summary['other_debits'] = 0;
+        $integrated = $deposit->plan()->exists();
+        $weekStart = $weekId ? TvdeWeek::findOrFail($weekId)->getRawOriginal('start_date') : null;
+        $movements = $deposit->movements()->with(['plan_item', 'tvde_week'])
+            ->when($excludeId, fn ($q) => $q->where('id', '!=', $excludeId))->get();
+        foreach ($movements as $entry) {
+            if ($weekStart && $entry->tvde_week && $entry->tvde_week->getRawOriginal('start_date') > $weekStart) continue;
+            $source = null;
+            if ($integrated && $entry->type === 'payment') $source = $entry->plan_item->kind ?? null;
+            if (!$integrated && $entry->type === 'initial_charge') $source = 'initial';
+            if (!$integrated && $entry->type === 'weekly_charge') $source = 'weekly';
+            if (isset(DriverDepositMovement::REFUND_SOURCE_SELECT[$source])) $summary[$source]['received'] += DriverDepositInstallmentService::cents($entry->amount);
+            if ($entry->type === 'refund') {
+                if (isset(DriverDepositMovement::REFUND_SOURCE_SELECT[$entry->refund_source])) {
+                    $summary[$entry->refund_source]['refunded'] += DriverDepositInstallmentService::cents($entry->amount);
+                } else {
+                    $summary['unclassified_refunds'] += (float) $entry->amount;
+                }
+            }
+            if (in_array($entry->type, ['internal_debit', 'writeoff'])) $summary['other_debits'] += (float) $entry->amount;
+        }
+        foreach (array_keys(DriverDepositMovement::REFUND_SOURCE_SELECT) as $source) {
+            $summary[$source]['received'] /= 100;
+            $summary[$source]['refunded'] /= 100;
+            $summary[$source]['remaining'] = round($summary[$source]['received'] - $summary[$source]['refunded'], 2);
+        }
+        return $summary;
     }
 
     public function statementMovementsForWeek(int $driverId, int $companyId, int $tvdeWeekId): Collection
@@ -101,10 +173,11 @@ class DriverDepositService
         }), 2);
     }
 
-    public function availableBalance(DriverDeposit $deposit, ?int $tvdeWeekId = null): float
+    public function availableBalance(DriverDeposit $deposit, ?int $tvdeWeekId = null, ?int $excludeId = null): float
     {
         $integrated = $deposit->plan()->exists();
         $query = DriverDepositMovement::where('driver_deposit_id', $deposit->id)
+            ->when($excludeId, fn ($q) => $q->where('driver_deposit_movements.id', '!=', $excludeId))
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
             ->select('driver_deposit_movements.*');
 
@@ -120,7 +193,7 @@ class DriverDepositService
         }
 
         $movements = $query
-            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.created_at)')
+            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.payment_date, driver_deposit_movements.created_at)')
             ->orderBy('driver_deposit_movements.id')
             ->get();
 
@@ -251,7 +324,7 @@ class DriverDepositService
         $integrated = $deposit->plan()->exists();
         $movements = DriverDepositMovement::where('driver_deposit_id', $deposit->id)
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
-            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.created_at)')
+            ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.payment_date, driver_deposit_movements.created_at)')
             ->orderBy('driver_deposit_movements.id')
             ->select('driver_deposit_movements.*')
             ->get();
