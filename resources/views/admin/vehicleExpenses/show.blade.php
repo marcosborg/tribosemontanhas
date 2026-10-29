@@ -52,7 +52,7 @@
                                 </tr>
                                 <tr>
                                     <th>Pago em</th>
-                                    <td>{{ $vehicleExpense->paid_at ? $vehicleExpense->paid_at->format('Y-m-d H:i:s') : '' }}</td>
+                                    <td>{{ $vehicleExpense->paid_at ? $vehicleExpense->paid_at->format('Y-m-d') : '' }}</td>
                                 </tr>
                                 <tr>
                                     <th>Referencia pagamento</th>

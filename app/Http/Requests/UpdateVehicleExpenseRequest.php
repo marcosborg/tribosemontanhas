@@ -40,6 +40,7 @@ class UpdateVehicleExpenseRequest extends FormRequest
                 'numeric',
                 'required',
             ],
+            'paid_at' => ['nullable', 'date_format:Y-m-d'],
             'is_paid' => [
                 'nullable',
                 'boolean',

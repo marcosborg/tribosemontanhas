@@ -121,6 +121,27 @@ class ExpenseTotalsTest extends TestCase
         $this->travelBack();
     }
 
+    public function test_vehicle_payment_date_correction_is_saved_and_unpaid_clears_it(): void
+    {
+        $controller = app(VehicleExpensesController::class);
+        $data = ['value' => 100, 'vat' => 23, 'expense_type' => 'Seguro', 'is_paid' => 1, 'paid_at' => '2026-08-10'];
+        $controller->store(StoreVehicleExpenseRequest::create('/', 'POST', $data));
+        $expense = VehicleExpense::first();
+        $this->assertSame('2026-08-10', $expense->paid_at->toDateString());
+        $expense->setRelation('media', collect());
+        $data['paid_at'] = '2026-07-15';
+        $controller->update(UpdateVehicleExpenseRequest::create('/', 'PUT', $data), $expense);
+        $this->assertSame('2026-07-15', $expense->fresh()->paid_at->toDateString());
+        $data['paid_at'] = '';
+        $controller->update(UpdateVehicleExpenseRequest::create('/', 'PUT', $data), $expense);
+        $this->assertSame('2026-07-15', $expense->fresh()->paid_at->toDateString());
+        $data['is_paid'] = 0;
+        $data['paid_at'] = '2026-07-15';
+        $controller->update(UpdateVehicleExpenseRequest::create('/', 'PUT', $data), $expense);
+        $this->assertFalse($expense->fresh()->is_paid);
+        $this->assertNull($expense->fresh()->paid_at);
+    }
+
     public function test_invalid_money_is_rejected(): void
     {
         foreach ([new StoreVehicleExpenseRequest(), new UpdateVehicleExpenseRequest(), new StoreCompanyExpenseRequest()] as $request) {

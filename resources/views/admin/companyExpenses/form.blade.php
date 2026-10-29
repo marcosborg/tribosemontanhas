@@ -45,7 +45,7 @@
     <div class="form-group"><input type="hidden" name="is_paid" value="0"><input type="checkbox" name="is_paid" id="is_paid" value="1" {{ old('is_paid', $companyExpense->is_paid ?? false) ? 'checked' : '' }}> <label for="is_paid" style="font-weight:400">Já pago</label></div>
     <div class="form-group {{ $errors->has('paid_at') ? 'has-error' : '' }}">
         <label for="paid_at">Data de pagamento</label>
-        <input class="form-control date" type="text" name="paid_at" id="paid_at" value="{{ old('paid_at', isset($companyExpense) && $companyExpense->paid_at ? $companyExpense->paid_at->format(config('panel.date_format')) : '') }}">
+        <input class="form-control date" type="text" name="paid_at" id="paid_at" value="{{ old('paid_at', isset($companyExpense) && $companyExpense->paid_at ? $companyExpense->paid_at->format('Y-m-d') : '') }}">
         @if($errors->has('paid_at'))<span class="help-block">{{ $errors->first('paid_at') }}</span>@endif
         <span class="help-block">Opcional. Ao marcar como pago sem indicar uma data, será usado o dia atual. Numa despesa já paga, deixar em branco mantém a data existente. Preencher a data não marca a despesa como paga.</span>
     </div>

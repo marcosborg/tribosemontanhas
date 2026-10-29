@@ -83,9 +83,13 @@
                             @if($errors->has('is_paid'))
                                 <span class="help-block" role="alert">{{ $errors->first('is_paid') }}</span>
                             @endif
-                            @if($vehicleExpense->paid_at)
-                                <span class="help-block">Pago em {{ $vehicleExpense->paid_at->format('Y-m-d H:i:s') }}</span>
-                            @endif
+
+                        </div>
+                        <div class="form-group {{ $errors->has('paid_at') ? 'has-error' : '' }}">
+                            <label for="paid_at">Data de pagamento</label>
+                            <input class="form-control date" type="text" name="paid_at" id="paid_at" value="{{ old('paid_at', isset($vehicleExpense) && $vehicleExpense->paid_at ? $vehicleExpense->paid_at->format('Y-m-d') : '') }}">
+                            @if($errors->has('paid_at'))<span class="help-block">{{ $errors->first('paid_at') }}</span>@endif
+                            <span class="help-block">Opcional. Ao marcar como pago sem indicar uma data, será usado o dia atual. Numa despesa já paga, deixar em branco mantém a data existente. Preencher a data não marca a despesa como paga.</span>
                         </div>
                         <div class="form-group {{ $errors->has('value') ? 'has-error' : '' }}">
                             <label class="required" for="value">Valor sem IVA (€)</label>

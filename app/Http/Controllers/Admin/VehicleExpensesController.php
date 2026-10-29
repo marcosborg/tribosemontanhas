@@ -88,7 +88,7 @@ class VehicleExpensesController extends Controller
                 return $row->is_paid ? 'Pago' : 'Por pagar';
             });
             $table->addColumn('paid_at', function ($row) {
-                return $row->paid_at ? $row->paid_at->format('Y-m-d H:i:s') : '';
+                return $row->paid_at ? $row->paid_at->format('Y-m-d') : '';
             });
             $table->editColumn('pay_to', function ($row) {
                 return $row->pay_to ?: '';
@@ -187,7 +187,7 @@ class VehicleExpensesController extends Controller
                         VehicleExpense::EXPENSE_TYPE_RADIO[$expense->expense_type] ?? $expense->expense_type,
                         $expense->getRawOriginal('date'),
                         $expense->is_paid ? 'Pago' : 'Por pagar',
-                        $expense->paid_at ? $expense->paid_at->format('Y-m-d H:i:s') : '',
+                        $expense->paid_at ? $expense->paid_at->format('Y-m-d') : '',
                         $expense->files->map(fn ($media) => $media->getUrl())->implode(' | '),
                         $expense->value,
                         $expense->vat,
@@ -317,7 +317,7 @@ class VehicleExpensesController extends Controller
         $payload = $request->all();
         $payload['final_value'] = $request->filled('final_value') ? $request->input('final_value') : round((float) $request->input('value') * (1 + (float) $request->input('vat') / 100), 2);
         $payload['is_paid'] = $request->boolean('is_paid');
-        $payload['paid_at'] = $request->boolean('is_paid') ? now() : null;
+        $payload['paid_at'] = $this->paymentDate($request);
 
         $vehicleExpense = VehicleExpense::create($payload);
 
@@ -350,13 +350,10 @@ class VehicleExpensesController extends Controller
         if ($vehicleExpense->final_value === null && (float) $payload['value'] === (float) $vehicleExpense->value && (float) $payload['vat'] === (float) $vehicleExpense->vat && (float) $payload['final_value'] === $vehicleExpense->display_total) {
             $payload['final_value'] = null;
         }
-        $wasPaid = (bool) $vehicleExpense->is_paid;
         $isPaid = $request->boolean('is_paid');
 
         $payload['is_paid'] = $isPaid;
-        $payload['paid_at'] = $isPaid
-            ? ($wasPaid ? $vehicleExpense->paid_at : now())
-            : null;
+        $payload['paid_at'] = $this->paymentDate($request, $vehicleExpense);
 
         $vehicleExpense->update($payload);
 
@@ -395,14 +392,22 @@ class VehicleExpensesController extends Controller
         return view('admin.vehicleExpenses.show', compact('vehicleExpense', 'groupExpenses'));
     }
 
+    private function paymentDate(Request $request, ?VehicleExpense $existing = null)
+    {
+        if (!$request->boolean('is_paid')) return null;
+        if ($request->filled('paid_at')) {
+            return \Carbon\Carbon::createFromFormat('Y-m-d', $request->input('paid_at'))->startOfDay();
+        }
+        return $existing && $existing->is_paid ? $existing->paid_at : now();
+    }
+
     public function markPaid(VehicleExpense $vehicleExpense)
     {
         abort_if(Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicleExpense->update([
-            'is_paid' => true,
-            'paid_at' => now(),
-        ]);
+        if (!$vehicleExpense->is_paid) {
+            $vehicleExpense->update(['is_paid' => true, 'paid_at' => now()]);
+        }
 
         return redirect()->route('admin.vehicle-expenses.index');
     }
@@ -585,7 +590,7 @@ class VehicleExpensesController extends Controller
             'ck-media',
         ]);
         $commonPayload['is_paid'] = $request->boolean('is_paid');
-        $commonPayload['paid_at'] = $request->boolean('is_paid') ? now() : null;
+        $commonPayload['paid_at'] = $this->paymentDate($request);
         $commonPayload['group_uuid'] = (string) Str::uuid();
 
         $createdExpenses = collect();

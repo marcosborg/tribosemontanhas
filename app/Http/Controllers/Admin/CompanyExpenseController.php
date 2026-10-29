@@ -119,7 +119,7 @@ class CompanyExpenseController extends Controller
             $table->editColumn('expense_mode', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
             $table->editColumn('date', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
             $table->editColumn('is_paid', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
-            $table->editColumn('paid_at', fn ($row) => $row->is_paid && $row->paid_at ? $row->paid_at->format(config('panel.date_format')) : '—');
+            $table->editColumn('paid_at', fn ($row) => $row->is_paid && $row->paid_at ? $row->paid_at->format('Y-m-d') : '—');
             $table->addColumn('files', fn ($row) => $row->files->map(fn ($media) => sprintf('<a href="%s" target="_blank">%s</a>', $media->getUrl(), e($media->file_name)))->implode('<br>'));
 
             $table->rawColumns(['actions', 'placeholder', 'company', 'files']);
