@@ -61,7 +61,7 @@ class VehicleExpense extends Model implements HasMedia
         'Seguro Vida Banco' => 'Seguro Vida Banco',
         'Subscrição Tesla' => 'Subscrição Tesla',
         'Viatura Carolina' => 'Viatura Carolina',
-        'Vários/Outros' => 'Vários/Outros',
+        'Vários/outros' => 'Vários/outros',
     ];
 
 
@@ -140,7 +140,7 @@ class VehicleExpense extends Model implements HasMedia
         $key = mb_strtolower(trim((string) $value));
         $key = preg_replace('/\s*\/\s*/u', '/', $key);
         return in_array($key, ['acessórios', 'acessorios', 'outros', 'vários/outros', 'varios/outros'], true)
-            ? 'Vários/Outros'
+            ? 'Vários/outros'
             : $value;
     }
 

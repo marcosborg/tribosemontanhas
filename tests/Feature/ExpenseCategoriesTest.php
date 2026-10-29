@@ -13,10 +13,10 @@ class ExpenseCategoriesTest extends TestCase
     {
         $this->assertArrayNotHasKey('Acessórios', VehicleExpense::EXPENSE_TYPE_RADIO);
         $this->assertArrayNotHasKey('Outros', VehicleExpense::EXPENSE_TYPE_RADIO);
-        $this->assertArrayHasKey('Vários/Outros', CompanyExpense::EXPENSE_TYPE_RADIO);
+        $this->assertArrayHasKey('Vários/outros', CompanyExpense::EXPENSE_TYPE_RADIO);
         foreach ([VehicleExpense::class, CompanyExpense::class] as $class) {
-            foreach (['Acessórios', 'Outros', 'Vários / Outros', 'Vários/Outros'] as $type) {
-                $this->assertSame('Vários/Outros', (new $class(['expense_type'=>$type]))->expense_type);
+            foreach (['Acessórios', 'Outros', 'Vários / Outros', 'Vários/outros'] as $type) {
+                $this->assertSame('Vários/outros', (new $class(['expense_type'=>$type]))->expense_type);
             }
             $this->assertSame('Seguro', (new $class(['expense_type'=>'Seguro']))->expense_type);
         }
@@ -36,12 +36,14 @@ class ExpenseCategoriesTest extends TestCase
             }
         }
         $migration = require database_path('migrations/2026_10_29_100000_unify_miscellaneous_expense_categories.php');
+        $migration->up();
+        $migration = require database_path('migrations/2026_10_29_130000_normalize_miscellaneous_category_label.php');
         $migration->up(); $migration->up();
         foreach (['vehicle_expenses','company_expenses'] as $table) {
-            $this->assertSame(['Vários/Outros','Vários/Outros','Seguro'], DB::table($table)->orderBy('id')->pluck('expense_type')->all());
+            $this->assertSame(['Vários/outros','Vários/outros','Seguro'], DB::table($table)->orderBy('id')->pluck('expense_type')->all());
             $this->assertEquals(370.35, DB::table($table)->sum('value'));
             $this->assertSame(1, DB::table($table)->whereNotNull('deleted_at')->count());
         }
-        $this->assertSame('Vários/Outros', DB::table('company_expenses')->value('name'));
+        $this->assertSame('Vários/outros', DB::table('company_expenses')->value('name'));
     }
 }
