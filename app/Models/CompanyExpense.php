@@ -68,6 +68,34 @@ class CompanyExpense extends Model implements HasMedia
         'source_payload' => 'array',
     ];
 
+    public function scopeInDateRange($query, ?string $from, ?string $to, bool $accountingReady = true)
+    {
+        if (!$from && !$to) {
+            return $query;
+        }
+
+        return $query->where(function ($range) use ($from, $to, $accountingReady) {
+            if ($accountingReady) {
+                $range->where(function ($accounting) use ($from, $to) {
+                    $accounting->where('expense_mode', self::MODE_ACCOUNTING);
+                    if ($from) $accounting->whereDate('date', '>=', $from);
+                    if ($to) $accounting->whereDate('date', '<=', $to);
+                });
+            }
+            $method = $accountingReady ? 'orWhere' : 'where';
+            $range->$method(function ($recurring) use ($from, $to, $accountingReady) {
+                if ($accountingReady) {
+                    $recurring->where(function ($mode) {
+                        $mode->whereNull('expense_mode')->orWhere('expense_mode', '!=', self::MODE_ACCOUNTING);
+                    });
+                }
+                // Include recurring expenses whose period overlaps the selected dates.
+                if ($from) $recurring->whereDate('end_date', '>=', $from);
+                if ($to) $recurring->whereDate('start_date', '<=', $to);
+            });
+        });
+    }
+
     public function setNameAttribute($value): void
     {
         $this->attributes['name'] = VehicleExpense::canonicalExpenseType($value);

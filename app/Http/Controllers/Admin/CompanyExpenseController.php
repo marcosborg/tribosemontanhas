@@ -28,11 +28,17 @@ class CompanyExpenseController extends Controller
         $accountingReady = Schema::hasColumn('company_expenses', 'expense_mode');
 
         if ($request->ajax()) {
+            $request->validate([
+                'date_from' => ['nullable', 'date_format:Y-m-d'],
+                'date_to' => array_merge(['nullable', 'date_format:Y-m-d'], $request->filled('date_from') ? ['after_or_equal:date_from'] : []),
+            ]);
             if (session()->has('company_id') && session()->get('company_id') !== '0') {
                 $query = CompanyExpense::where('company_id', session()->get('company_id'))->with(['company'])->select(sprintf('%s.*', (new CompanyExpense)->table));
             } else {
                 $query = CompanyExpense::with(['company'])->select(sprintf('%s.*', (new CompanyExpense)->table));
             }
+
+            $query->inDateRange($request->input('date_from'), $request->input('date_to'), $accountingReady);
 
             $table = Datatables::of($query);
 

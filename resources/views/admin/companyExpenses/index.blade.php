@@ -60,6 +60,25 @@
                         </tbody></table></div>@endif</div>
                     @endif
                     <div class="alert alert-warning">Despesas contabilísticas por pagar: <strong>{{ $unpaidCount }}</strong></div>
+                    <div class="row" style="margin-bottom: 15px;">
+                        <div class="col-md-3">
+                            <label for="date_from_filter">Data inicial</label>
+                            <input type="text" id="date_from_filter" class="form-control date" value="">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date_to_filter">Data final</label>
+                            <input type="text" id="date_to_filter" class="form-control date" value="">
+                        </div>
+                        <div class="col-md-3" style="padding-top: 25px;">
+                            <button type="button" id="apply_date_range_filter" class="btn btn-primary">
+                                Filtrar datas
+                            </button>
+                            <button type="button" id="reset_date_range_filter" class="btn btn-default">
+                                Limpar filtros
+                            </button>
+                        </div>
+                    </div>
+
                     <table class=" table table-bordered table-striped table-hover ajaxTable datatable datatable-CompanyExpense">
                         <thead>
                             <tr>
@@ -128,13 +147,42 @@
   dtButtons.push(deleteButton)
 @endcan
 
+        const stateStorageKey = 'datatable-company-expenses-v1';
+        let savedState = null;
+
+        try {
+            savedState = JSON.parse(localStorage.getItem(stateStorageKey) || 'null');
+        } catch (error) {
+            localStorage.removeItem(stateStorageKey);
+        }
+
+        if (savedState) {
+            $('#date_from_filter').val(savedState.date_from || '');
+            $('#date_to_filter').val(savedState.date_to || '');
+        }
+
   let dtOverrideGlobals = {
     buttons: dtButtons,
     processing: true,
     serverSide: true,
     retrieve: true,
+            stateSave: true,
+            stateSaveCallback: function (settings, data) {
+                data.date_from = $('#date_from_filter').val();
+                data.date_to = $('#date_to_filter').val();
+                localStorage.setItem(stateStorageKey, JSON.stringify(data));
+            },
+            stateLoadCallback: function (settings) {
+                return savedState;
+            },
     aaSorting: [],
-    ajax: "{{ route('admin.company-expenses.index') }}",
+    ajax: {
+      url: "{{ route('admin.company-expenses.index') }}",
+      data: function (d) {
+        d.date_from = $('#date_from_filter').val();
+        d.date_to = $('#date_to_filter').val();
+      }
+    },
     columns: [
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
@@ -155,6 +203,21 @@
     pageLength: 100,
   };
   let table = $('.datatable-CompanyExpense').DataTable(dtOverrideGlobals);
+  $('#apply_date_range_filter').on('click', function () {
+      const from = $('#date_from_filter').val();
+      const to = $('#date_to_filter').val();
+      if (from && to && from > to) {
+          alert('A data final deve ser igual ou posterior à data inicial.');
+          return;
+      }
+      table.draw();
+  });
+  $('#reset_date_range_filter').on('click', function () {
+      $('#date_from_filter, #date_to_filter').val('');
+      table.search('');
+      table.columns().search('');
+      table.draw();
+  });
   $('a[data-toggle="tab"]').on('shown.bs.tab click', function(e){
       $($.fn.dataTable.tables(true)).DataTable()
           .columns.adjust();
