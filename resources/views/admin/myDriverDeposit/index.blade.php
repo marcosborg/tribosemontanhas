@@ -6,7 +6,7 @@
         <div class="col-md-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
-                    Caucao
+                    Caução
                 </div>
 
                 <div class="panel-body">
@@ -15,7 +15,7 @@
                             <div class="info-box">
                                 <span class="info-box-icon bg-green"><i class="fas fa-shield-alt"></i></span>
                                 <div class="info-box-content">
-                                    <span class="info-box-text">Saldo atual de caucao</span>
+                                    <span class="info-box-text">Saldo atual de caução</span>
                                     <span class="info-box-number">{{ number_format($currentBalance, 2) }} <small>EUR</small></span>
                                 </div>
                             </div>
@@ -27,7 +27,6 @@
                                         <th>Empresa</th>
                                         <th>Estado</th>
                                         <th style="text-align:right;">Valor total</th>
-                                        <th style="text-align:right;">Saldo</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -36,11 +35,10 @@
                                             <td>{{ $deposit->company->name ?? '' }}</td>
                                             <td>{{ \App\Models\DriverDeposit::STATUS_SELECT[$deposit->status] ?? $deposit->status }}</td>
                                             <td style="text-align:right;">{{ number_format($deposit->total_amount, 2) }} EUR</td>
-                                            <td style="text-align:right;">{{ number_format($depositBalances[$deposit->id] ?? 0, 2) }} EUR</td>
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="4">Nao existem caucoes registadas.</td>
+                                            <td colspan="3">Não existem cauções registadas.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
@@ -57,8 +55,9 @@
                                     <th>Semana</th>
                                     <th>Empresa</th>
                                     <th>Tipo</th>
-                                    <th>Descricao</th>
+                                    <th>Descrição</th>
                                     <th style="text-align:right;">Valor</th>
+                                    <th>Pagamento</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -68,8 +67,17 @@
                                         <td>{{ $movement->tvde_week ? $movement->tvde_week->start_date . ' a ' . $movement->tvde_week->end_date : '' }}</td>
                                         <td>{{ $movement->deposit->company->name ?? '' }}</td>
                                         <td>{{ $movement->type_label }}</td>
-                                        <td>{{ $movement->description }}</td>
+                                        <td>{{ strtr($movement->description ?? '', ['Caucao' => 'Caução', 'caucao' => 'caução', 'Devolucao' => 'Devolução', 'devolucao' => 'devolução', 'validacao' => 'validação', 'Regularizacao' => 'Regularização']) }}</td>
                                         <td style="text-align:right;">{{ number_format($movement->amount, 2) }} EUR</td>
+                                        <td>
+                                            @if($movement->payment_status_label === 'Pago')
+                                                <span class="label label-success">✓ Pago</span>
+                                            @elseif($movement->payment_status_label === 'Por pagar')
+                                                <span class="label label-warning">✗ Por pagar</span>
+                                            @else
+                                                {{ $movement->payment_status_label }}
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>

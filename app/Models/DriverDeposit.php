@@ -17,7 +17,7 @@ class DriverDeposit extends Model
 
     public const STATUS_SELECT = [
         self::STATUS_ACTIVE => 'Ativa',
-        self::STATUS_COMPLETED => 'Concluida',
+        self::STATUS_COMPLETED => 'Concluída',
         self::STATUS_CLOSED => 'Fechada',
     ];
 

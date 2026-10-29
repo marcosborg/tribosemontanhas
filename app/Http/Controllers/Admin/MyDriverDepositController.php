@@ -42,7 +42,7 @@ class MyDriverDepositController extends Controller
 
         $currentBalance = round(array_sum($depositBalances), 2);
 
-        $movements = DriverDepositMovement::with(['deposit.company', 'tvde_week'])
+        $movements = DriverDepositMovement::with(['deposit.company', 'tvde_week', 'plan_item'])
             ->where('driver_id', $driver->id)
             ->leftJoin('tvde_weeks', 'driver_deposit_movements.tvde_week_id', '=', 'tvde_weeks.id')
             ->orderByRaw('COALESCE(tvde_weeks.start_date, driver_deposit_movements.payment_date, driver_deposit_movements.created_at) DESC')

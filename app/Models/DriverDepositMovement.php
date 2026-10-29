@@ -20,26 +20,39 @@ class DriverDepositMovement extends Model
     public const TYPE_WRITEOFF = 'writeoff';
 
     public const TYPE_SELECT = [
-        self::TYPE_INITIAL_CHARGE => 'Caucao - pagamento inicial',
-        self::TYPE_WEEKLY_CHARGE => 'Caucao - pagamento semanal',
-        self::TYPE_INTERNAL_DEBIT => 'Caucao - abatimento',
+        self::TYPE_INITIAL_CHARGE => 'Caução - pagamento inicial',
+        self::TYPE_WEEKLY_CHARGE => 'Caução - pagamento semanal',
+        self::TYPE_INTERNAL_DEBIT => 'Caução - abatimento',
         self::TYPE_PAYMENT => 'Pagamento',
-        self::TYPE_REFUND => 'Caucao - devolucao',
+        self::TYPE_REFUND => 'Caução - devolução',
         self::TYPE_ADJUSTMENT => 'Ajuste',
-        self::TYPE_WRITEOFF => 'Regularizacao',
+        self::TYPE_WRITEOFF => 'Regularização',
     ];
 
     public const REAL_TYPE_SELECT = [
         self::TYPE_PAYMENT => 'Pagamento',
-        self::TYPE_REFUND => 'Devolucao',
+        self::TYPE_REFUND => 'Devolução',
         self::TYPE_ADJUSTMENT => 'Ajuste',
-        self::TYPE_WRITEOFF => 'Regularizacao',
+        self::TYPE_WRITEOFF => 'Regularização',
     ];
 
     public const REFUND_SOURCE_SELECT = [
         'initial' => 'Pagamento inicial',
         'weekly' => 'Pagamento semanal',
     ];
+
+    public function getPaymentStatusLabelAttribute(): string
+    {
+        if ($this->type === self::TYPE_PAYMENT) return 'Pago';
+        if (!in_array($this->type, [self::TYPE_INITIAL_CHARGE, self::TYPE_WEEKLY_CHARGE], true)) return '—';
+        $item = $this->plan_item;
+        // Legacy charges were recorded as receipts; planned charges have an installment.
+        if (!$item) return 'Pago';
+        if ($item->status === DriverDepositPlanItem::STATUS_CANCELLED) return 'Cancelado';
+        if ($item->status === DriverDepositPlanItem::STATUS_PAID) return 'Pago';
+        if ((float) $item->paid_amount > 0) return 'Parcialmente pago';
+        return 'Por pagar';
+    }
 
     public function getTypeLabelAttribute(): string
     {
