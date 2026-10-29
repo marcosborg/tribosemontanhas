@@ -59,8 +59,6 @@
                                     <th>Tipo</th>
                                     <th>Descricao</th>
                                     <th style="text-align:right;">Valor</th>
-                                    <th style="text-align:right;">Saldo apos movimento</th>
-                                    <th>Conta corrente</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -72,14 +70,6 @@
                                         <td>{{ $movement->type_label }}</td>
                                         <td>{{ $movement->description }}</td>
                                         <td style="text-align:right;">{{ number_format($movement->amount, 2) }} EUR</td>
-                                        <td style="text-align:right;">{{ number_format($movement->balance_after, 2) }} EUR</td>
-                                        <td>
-                                            @if($movement->affects_statement)
-                                                <span class="label label-success">Sim</span>
-                                            @else
-                                                <span class="label label-default">Nao</span>
-                                            @endif
-                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
