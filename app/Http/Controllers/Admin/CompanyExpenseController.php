@@ -119,6 +119,7 @@ class CompanyExpenseController extends Controller
             $table->editColumn('expense_mode', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? 'Contabilidade' : 'Recorrente');
             $table->editColumn('date', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? $row->date : $row->start_date . ' — ' . $row->end_date);
             $table->editColumn('is_paid', fn ($row) => $accountingReady && $row->expense_mode === CompanyExpense::MODE_ACCOUNTING ? ($row->is_paid ? 'Pago' : 'Por pagar') : '—');
+            $table->editColumn('paid_at', fn ($row) => $row->is_paid && $row->paid_at ? $row->paid_at->format(config('panel.date_format')) : '—');
             $table->addColumn('files', fn ($row) => $row->files->map(fn ($media) => sprintf('<a href="%s" target="_blank">%s</a>', $media->getUrl(), e($media->file_name)))->implode('<br>'));
 
             $table->rawColumns(['actions', 'placeholder', 'company', 'files']);
@@ -215,7 +216,9 @@ class CompanyExpenseController extends Controller
     public function markPaid(CompanyExpense $companyExpense)
     {
         abort_if(Gate::denies('company_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
-        $companyExpense->update(['is_paid' => true, 'paid_at' => now()]);
+        if (!$companyExpense->is_paid) {
+            $companyExpense->update(['is_paid' => true, 'paid_at' => now()]);
+        }
         return redirect()->route('admin.company-expenses.index');
     }
 
@@ -265,7 +268,11 @@ class CompanyExpenseController extends Controller
             $payload['qty'] = 1;
             $wasPaid = (bool) optional($existing)->is_paid;
             $payload['is_paid'] = $request->boolean('is_paid');
-            $payload['paid_at'] = $payload['is_paid'] ? ($wasPaid ? $existing->paid_at : now()) : null;
+            $payload['paid_at'] = $payload['is_paid']
+                ? ($request->filled('paid_at')
+                    ? \Carbon\Carbon::createFromFormat(config('panel.date_format'), $request->input('paid_at'))->startOfDay()
+                    : ($wasPaid ? $existing->paid_at : now()))
+                : null;
         } else {
             $payload['expense_type'] = null;
             $payload['date'] = null;

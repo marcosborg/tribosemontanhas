@@ -33,6 +33,7 @@
                                 <tr><th>Valor</th><td>{{ number_format($companyExpense->value, 2, ',', '.') }} €</td></tr>
                                 <tr><th>Valor final</th><td>{{ number_format($companyExpense->display_total, 2, ',', '.') . ' €' }}</td></tr>
                                 <tr><th>IVA</th><td>{{ $companyExpense->vat }}%</td></tr>
+                                <tr><th>Data de pagamento</th><td>{{ $companyExpense->is_paid && $companyExpense->paid_at ? $companyExpense->paid_at->format(config('panel.date_format')) : '—' }}</td></tr>
                                 <tr><th>Estado</th><td>{{ $companyExpense->is_paid ? 'Pago' : 'Por pagar' }}</td></tr>
                                 <tr><th>Referência</th><td>{{ $companyExpense->payment_reference }}</td></tr>
                                 <tr><th>Pagar a</th><td>{{ $companyExpense->pay_to }}</td></tr>

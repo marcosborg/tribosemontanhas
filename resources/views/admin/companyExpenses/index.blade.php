@@ -88,13 +88,10 @@
                                 <th>
                                     {{ trans('cruds.companyExpense.fields.id') }}
                                 </th>
-                                <th>Modo / tipo</th>
-                                <th>
-                                    {{ trans('cruds.companyExpense.fields.company') }}
-                                </th>
-                                <th>Modo</th>
+                                <th>Rubrica</th>
                                 <th>Data / período</th>
                                 <th>Estado</th>
+                                <th>Data de pagamento</th>
                                 <th>Documentos</th>
                                 <th>Valor sem IVA / semanal (€)</th><th>IVA (%)</th><th>IVA calculado (€)</th><th>Valor final (€)</th>
                                 <th>
@@ -109,12 +106,9 @@
                                         <option value="{{ $key }}">{{ $label }}</option>
                                     @endforeach
                                 </select></td>
-                                <td><select class="search" aria-label="Filtrar empresa"><option value="">{{ trans('global.all') }}</option>
-                                    @foreach($companies as $id => $name)<option value="{{ $name }}">{{ $name }}</option>@endforeach
-                                </select></td>
-                                <td><select class="search" aria-label="Filtrar modo"><option value="">{{ trans('global.all') }}</option><option value="accounting">Contabilidade</option><option value="recurring">Recorrente</option></select></td>
                                 <td></td>
                                 <td><select class="search" aria-label="Filtrar estado"><option value="">{{ trans('global.all') }}</option><option value="1">Pago</option><option value="0">Por pagar</option></select></td>
+                                <td></td>
                                 <td></td>
                                 <td><input class="search" type="text" aria-label="Filtrar valor" placeholder="{{ trans('global.search') }}"></td>
                                 <td><input class="search" type="text" aria-label="Filtrar IVA" placeholder="{{ trans('global.search') }}"></td>
@@ -166,7 +160,7 @@
   dtButtons.push(deleteButton)
 @endcan
 
-        const stateStorageKey = 'datatable-company-expenses-v1';
+        const stateStorageKey = 'datatable-company-expenses-v2';
         let savedState = null;
 
         try {
@@ -206,10 +200,9 @@
       { data: 'placeholder', name: 'placeholder' },
 { data: 'id', name: 'id' },
 { data: 'name', name: 'expense_type' },
-{ data: 'company_name', name: 'company.name' },
-{ data: 'expense_mode', name: 'expense_mode' },
 { data: 'date', name: 'date' },
 { data: 'is_paid', name: 'is_paid' },
+{ data: 'paid_at', name: 'paid_at' },
 { data: 'files', name: 'files', orderable: false, searchable: false },
 { data: 'weekly_value', name: 'value' },
 { data: 'vat', name: 'vat' },

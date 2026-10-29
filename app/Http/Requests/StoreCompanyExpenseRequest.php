@@ -59,6 +59,7 @@ class StoreCompanyExpenseRequest extends FormRequest
             'final_value' => ['nullable', 'numeric', 'min:0'],
             'invoice_value' => ['nullable', 'numeric', 'min:0'],
             'vat' => ['required_if:expense_mode,accounting', 'nullable', 'numeric', 'min:0'],
+            'paid_at' => ['nullable', 'date_format:' . config('panel.date_format')],
             'is_paid' => ['nullable', 'boolean'],
             'payment_reference' => ['nullable', 'string'],
             'pay_to' => ['nullable', 'string'],

@@ -100,6 +100,27 @@ class ExpenseTotalsTest extends TestCase
         $this->assertEquals(200, $expense->fresh()->invoice_value);
     }
 
+    public function test_company_payment_date_can_be_corrected_without_changing_payment_status(): void
+    {
+        $this->travelTo(\Carbon\Carbon::parse('2026-10-29 12:00:00'));
+        $method = new \ReflectionMethod(CompanyExpenseController::class, 'payload');
+        $method->setAccessible(true);
+        $data = ['expense_mode' => 'accounting', 'expense_type' => 'Seguro', 'value' => 100, 'vat' => 23, 'is_paid' => 1];
+        $payload = fn ($extra, $existing = null) => $method->invoke(app(CompanyExpenseController::class), StoreCompanyExpenseRequest::create('/', 'POST', array_merge($data, $extra)), $existing);
+        $this->assertSame('2026-10-29', $payload([])['paid_at']->toDateString());
+        $expense = CompanyExpense::create($payload(['paid_at' => '2026-09-15']));
+        $this->assertSame('2026-09-15', $expense->fresh()->paid_at->toDateString());
+        $expense->update($payload(['paid_at' => '2026-08-10'], $expense));
+        $this->assertSame('2026-08-10', $expense->fresh()->paid_at->toDateString());
+        $this->assertSame('2026-08-10', $payload(['paid_at' => ''], $expense)['paid_at']->toDateString());
+        $unpaid = $payload(['is_paid' => 0, 'paid_at' => '2026-09-15'], $expense);
+        $this->assertFalse($unpaid['is_paid']);
+        $this->assertNull($unpaid['paid_at']);
+        $rules = (new StoreCompanyExpenseRequest())->rules();
+        $this->assertTrue(Validator::make(['paid_at' => '2026-02-30'], ['paid_at' => $rules['paid_at']])->fails());
+        $this->travelBack();
+    }
+
     public function test_invalid_money_is_rejected(): void
     {
         foreach ([new StoreVehicleExpenseRequest(), new UpdateVehicleExpenseRequest(), new StoreCompanyExpenseRequest()] as $request) {

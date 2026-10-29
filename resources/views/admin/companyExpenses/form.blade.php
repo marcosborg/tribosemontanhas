@@ -28,7 +28,7 @@
         @if($errors->has('expense_type'))<span class="help-block">{{ $errors->first('expense_type') }}</span>@endif
     </div>
     <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
-        <label class="required" for="date">Data</label>
+        <label class="required" for="date">Data da fatura</label>
         <input class="form-control date" type="text" name="date" id="date" value="{{ old('date', $companyExpense->date ?? '') }}">
         @if($errors->has('date'))<span class="help-block">{{ $errors->first('date') }}</span>@endif
     </div>
@@ -43,6 +43,12 @@
     <div class="form-group"><label for="payment_reference">Referência de pagamento</label><input class="form-control" name="payment_reference" id="payment_reference" value="{{ old('payment_reference', $companyExpense->payment_reference ?? '') }}"></div>
     <div class="form-group"><label for="pay_to">Pagar a</label><input class="form-control" name="pay_to" id="pay_to" value="{{ old('pay_to', $companyExpense->pay_to ?? '') }}"></div>
     <div class="form-group"><input type="hidden" name="is_paid" value="0"><input type="checkbox" name="is_paid" id="is_paid" value="1" {{ old('is_paid', $companyExpense->is_paid ?? false) ? 'checked' : '' }}> <label for="is_paid" style="font-weight:400">Já pago</label></div>
+    <div class="form-group {{ $errors->has('paid_at') ? 'has-error' : '' }}">
+        <label for="paid_at">Data de pagamento</label>
+        <input class="form-control date" type="text" name="paid_at" id="paid_at" value="{{ old('paid_at', isset($companyExpense) && $companyExpense->paid_at ? $companyExpense->paid_at->format(config('panel.date_format')) : '') }}">
+        @if($errors->has('paid_at'))<span class="help-block">{{ $errors->first('paid_at') }}</span>@endif
+        <span class="help-block">Opcional. Ao marcar como pago sem indicar uma data, será usado o dia atual. Numa despesa já paga, deixar em branco mantém a data existente. Preencher a data não marca a despesa como paga.</span>
+    </div>
     <div class="row">
         <div class="col-md-4 form-group {{ $errors->has('value') ? 'has-error' : '' }}"><label class="required" for="value">Valor sem IVA (€)</label><input class="form-control" type="number" step="0.01" min="0" name="value" id="value" value="{{ old('value', $companyExpense->value ?? 0) }}"></div>
 
