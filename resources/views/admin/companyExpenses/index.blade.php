@@ -101,6 +101,25 @@
                                     &nbsp;
                                 </th>
                             </tr>
+                            <tr>
+                                <td></td>
+                                <td><input class="search" type="text" aria-label="Filtrar ID" placeholder="{{ trans('global.search') }}"></td>
+                                <td><select class="search" aria-label="Filtrar tipo"><option value="">{{ trans('global.all') }}</option>
+                                    @foreach(App\Models\CompanyExpense::EXPENSE_TYPE_RADIO as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select></td>
+                                <td><select class="search" aria-label="Filtrar empresa"><option value="">{{ trans('global.all') }}</option>
+                                    @foreach($companies as $id => $name)<option value="{{ $name }}">{{ $name }}</option>@endforeach
+                                </select></td>
+                                <td><select class="search" aria-label="Filtrar modo"><option value="">{{ trans('global.all') }}</option><option value="accounting">Contabilidade</option><option value="recurring">Recorrente</option></select></td>
+                                <td></td>
+                                <td><select class="search" aria-label="Filtrar estado"><option value="">{{ trans('global.all') }}</option><option value="1">Pago</option><option value="0">Por pagar</option></select></td>
+                                <td></td>
+                                <td><input class="search" type="text" aria-label="Filtrar valor" placeholder="{{ trans('global.search') }}"></td>
+                                <td><input class="search" type="text" aria-label="Filtrar IVA" placeholder="{{ trans('global.search') }}"></td>
+                                <td></td><td></td><td></td>
+                            </tr>
                         </thead>
                     </table>
                 </div>
@@ -203,6 +222,18 @@
     pageLength: 100,
   };
   let table = $('.datatable-CompanyExpense').DataTable(dtOverrideGlobals);
+  const loadedState = table.state.loaded();
+  if (loadedState && loadedState.columns) {
+      $('.datatable-CompanyExpense thead tr:eq(1) .search').each(function () {
+          const column = loadedState.columns[$(this).closest('td, th').index()];
+          $(this).val(column && column.search ? column.search.search : '');
+      });
+  }
+  $(document)
+      .off('input.companyExpenseFilters change.companyExpenseFilters', '.datatable-CompanyExpense thead .search')
+      .on('input.companyExpenseFilters change.companyExpenseFilters', '.datatable-CompanyExpense thead .search', function () {
+          table.column($(this).closest('td, th').index()).search(this.value, false).draw();
+      });
   $('#apply_date_range_filter').on('click', function () {
       const from = $('#date_from_filter').val();
       const to = $('#date_to_filter').val();
@@ -214,6 +245,7 @@
   });
   $('#reset_date_range_filter').on('click', function () {
       $('#date_from_filter, #date_to_filter').val('');
+      $('.datatable-CompanyExpense thead .search').val('');
       table.search('');
       table.columns().search('');
       table.draw();

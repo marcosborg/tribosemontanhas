@@ -42,6 +42,31 @@ class CompanyExpenseController extends Controller
 
             $table = Datatables::of($query);
 
+            $table->filterColumn('is_paid', function ($query, $keyword) use ($accountingReady) {
+                if ($accountingReady && in_array((string) $keyword, ['0', '1'], true)) {
+                    $query->where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('is_paid', $keyword);
+                }
+            });
+            $table->filterColumn('expense_type', function ($query, $keyword) use ($accountingReady) {
+                $query->where(function ($types) use ($keyword, $accountingReady) {
+                    $types->where('name', 'like', '%' . $keyword . '%');
+                    if ($accountingReady) $types->orWhere('expense_type', 'like', '%' . $keyword . '%');
+                });
+            });
+            $table->filterColumn('value', function ($query, $keyword) use ($accountingReady) {
+                $query->where(function ($values) use ($keyword, $accountingReady) {
+                    if ($accountingReady) {
+                        $values->where(function ($accounting) use ($keyword) {
+                            $accounting->where('expense_mode', CompanyExpense::MODE_ACCOUNTING)->where('value', 'like', '%' . $keyword . '%');
+                        })->orWhere(function ($recurring) use ($keyword) {
+                            $recurring->where('expense_mode', CompanyExpense::MODE_RECURRING)->where('weekly_value', 'like', '%' . $keyword . '%');
+                        });
+                    } else {
+                        $values->where('weekly_value', 'like', '%' . $keyword . '%');
+                    }
+                });
+            });
+
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 
