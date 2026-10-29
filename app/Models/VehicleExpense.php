@@ -32,7 +32,6 @@ class VehicleExpense extends Model implements HasMedia
     ];
 
     public const EXPENSE_TYPE_RADIO = [
-        'Acessórios' => 'Acessórios',
         'Advogados' => 'Advogados',
         'Anúncios' => 'Anúncios',
         'Aquisição / Venda' => 'Aquisição / Venda',
@@ -62,7 +61,7 @@ class VehicleExpense extends Model implements HasMedia
         'Seguro Vida Banco' => 'Seguro Vida Banco',
         'Subscrição Tesla' => 'Subscrição Tesla',
         'Viatura Carolina' => 'Viatura Carolina',
-        'Outros' => 'Outros',
+        'Vários/Outros' => 'Vários/Outros',
     ];
 
 
@@ -134,6 +133,20 @@ class VehicleExpense extends Model implements HasMedia
     public function setDateAttribute($value)
     {
         $this->attributes['date'] = $value ? Carbon::createFromFormat(config('panel.date_format'), $value)->format('Y-m-d') : null;
+    }
+
+    public static function canonicalExpenseType(?string $value): ?string
+    {
+        $key = mb_strtolower(trim((string) $value));
+        $key = preg_replace('/\s*\/\s*/u', '/', $key);
+        return in_array($key, ['acessórios', 'acessorios', 'outros', 'vários/outros', 'varios/outros'], true)
+            ? 'Vários/Outros'
+            : $value;
+    }
+
+    public function setExpenseTypeAttribute($value): void
+    {
+        $this->attributes['expense_type'] = self::canonicalExpenseType($value);
     }
 
     protected static function booted()

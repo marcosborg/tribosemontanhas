@@ -59,6 +59,7 @@ class AccountingVehicleExpenseImporter
                 $finalValue = $this->normalizeAmount($rawFinalValue);
                 $value = $baseValue;
                 $vat = $this->normalizeVatRate($rawVat);
+                $expenseType = VehicleExpense::canonicalExpenseType($expenseType);
                 $resolvedExpenseType = $expenseTypes[$expenseType] ?? null;
 
                 $errors = [];

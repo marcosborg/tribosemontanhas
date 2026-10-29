@@ -68,6 +68,16 @@ class CompanyExpense extends Model implements HasMedia
         'source_payload' => 'array',
     ];
 
+    public function setNameAttribute($value): void
+    {
+        $this->attributes['name'] = VehicleExpense::canonicalExpenseType($value);
+    }
+
+    public function setExpenseTypeAttribute($value): void
+    {
+        $this->attributes['expense_type'] = VehicleExpense::canonicalExpenseType($value);
+    }
+
     public function registerMediaConversions(Media $media = null): void
     {
         $this->addMediaConversion('thumb')->fit('crop', 50, 50);

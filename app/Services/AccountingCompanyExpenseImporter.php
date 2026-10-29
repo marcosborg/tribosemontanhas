@@ -40,7 +40,7 @@ class AccountingCompanyExpenseImporter
 
                 $line = $index + 2;
                 $typeRaw = $this->text($row[$columns['expense_type']] ?? null);
-                $type = $typeRaw ? $types->get($this->key($typeRaw)) : null;
+                $type = $typeRaw ? $types->get($this->key(\App\Models\VehicleExpense::canonicalExpenseType($typeRaw))) : null;
                 $date = $this->date($row[$columns['date']] ?? null);
                 $value = $this->amount($row[$columns['value']] ?? null);
                 $vatRaw = $columns['vat'] !== null ? ($row[$columns['vat']] ?? null) : null;
