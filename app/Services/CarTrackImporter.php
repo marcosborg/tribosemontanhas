@@ -138,7 +138,7 @@ class CarTrackImporter
         ];
     }
 
-    private function rebuildCompanyParkAggregates(int $tvdeWeekId): void
+    public function rebuildCompanyParkAggregates(int $tvdeWeekId): void
     {
         $totals = CarTrack::query()
             ->where('tvde_week_id', $tvdeWeekId)

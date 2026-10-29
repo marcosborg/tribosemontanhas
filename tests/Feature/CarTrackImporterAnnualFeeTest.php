@@ -84,19 +84,19 @@ class CarTrackImporterAnnualFeeTest extends TestCase
     {
         $summary = app(CarTrackImporter::class)->import($this->filePath, 'Via Verde teste.xlsx', $this->weekId);
 
-        $annualFee = CarTrack::where('classification_reason', CarTrackImporter::ANNUAL_FEE_REASON)->firstOrFail();
+        $annualFee = CarTrack::where('tvde_week_id', $this->weekId)->where('classification_reason', CarTrackImporter::ANNUAL_FEE_REASON)->firstOrFail();
         $this->assertSame(CarTrackClassificationService::STATUS_COMPANY, $annualFee->classification_status);
         $this->assertNull($annualFee->driver_id);
         $this->assertSame($this->companyId, $annualFee->company_id);
 
-        $companyExpense = CompanyExpense::where('source_type', CarTrackImporter::COMPANY_EXPENSE_SOURCE_TYPE)->firstOrFail();
+        $companyExpense = CompanyExpense::where('company_id', $this->companyId)->where('source_type', CarTrackImporter::COMPANY_EXPENSE_SOURCE_TYPE)->firstOrFail();
         $this->assertSame($this->companyId, $companyExpense->company_id);
         $this->assertSame('17.49', $companyExpense->value);
         $this->assertSame('23.49', $companyExpense->invoice_value);
         $this->assertSame('Via Verde teste.xlsx', $companyExpense->source_filename);
         $this->assertSame(2, $companyExpense->source_row_number);
 
-        $normalMovement = CarTrack::where('market_description', 'Portagens')->firstOrFail();
+        $normalMovement = CarTrack::where('tvde_week_id', $this->weekId)->where('market_description', 'Portagens')->firstOrFail();
         $this->assertSame(CarTrackClassificationService::STATUS_DRIVER, $normalMovement->classification_status);
         $this->assertSame($this->driverId, $normalMovement->driver_id);
         $this->assertSame(1, $summary['company_expenses']);
@@ -124,7 +124,7 @@ class CarTrackImporterAnnualFeeTest extends TestCase
         $this->assertSame(0, $second['inserted']);
         $this->assertSame(2, $second['duplicates']);
         $this->assertSame($trackCount, CarTrack::where('tvde_week_id', $this->weekId)->count());
-        $this->assertSame(1, CompanyExpense::where('source_type', CarTrackImporter::COMPANY_EXPENSE_SOURCE_TYPE)->count());
+        $this->assertSame(1, CompanyExpense::where('company_id', $this->companyId)->where('source_type', CarTrackImporter::COMPANY_EXPENSE_SOURCE_TYPE)->count());
 
         $historical = CarTrack::withTrashed()->findOrFail($historicalId);
         $this->assertSame('HIST-01', $historical->license_plate);
@@ -132,6 +132,36 @@ class CarTrackImporterAnnualFeeTest extends TestCase
         $this->assertSame('historical_test', $historical->classification_reason);
         $this->assertNull($historical->deleted_at);
         $this->assertSame('2035-01-02 10:00:00', $historical->updated_at->format('Y-m-d H:i:s'));
+    }
+
+    public function test_manual_destinations_sync_annual_fees_and_driver_assignment(): void
+    {
+        $service = app(\App\Services\CarTrackManualEntryService::class);
+        $data = ['tvde_week_id' => $this->weekId, 'date' => '2035-01-02 12:00:00', 'license_plate' => 'ZZ-99-XY', 'value' => 10, 'destination' => 'company', 'reason' => 'annual_fee', 'company_id' => $this->companyId];
+        $track = $service->save($data);
+        $this->assertNull($track->driver_id);
+        $this->assertSame('company', $track->classification_status);
+        $expense = CompanyExpense::where('source_fingerprint', $track->source_fingerprint)->firstOrFail();
+        $this->assertEquals(12.3, $expense->display_total);
+        $data['value'] = 20;
+        $service->save($data, $track);
+        $this->assertSame(1, CompanyExpense::where('source_fingerprint', $track->source_fingerprint)->count());
+        $this->assertEquals(24.6, $expense->fresh()->display_total);
+        $data['destination'] = 'driver';
+        $track = $service->save($data, $track);
+        $this->assertSame($this->driverId, $track->driver_id);
+        $this->assertSame(0, CompanyExpense::where('source_fingerprint', $track->source_fingerprint)->count());
+        $data['destination'] = 'company';
+        $data['reason'] = 'management_vehicle';
+        $service->save($data, $track);
+        $this->assertEquals(20, \App\Models\CompanyPark::where('company_id', $this->companyId)->where('tvde_week_id', $this->weekId)->sum('value'));
+        $data['reason'] = 'annual_fee';
+        $data['license_plate'] = '';
+        $service->save($data, $track);
+        $this->assertSame(1, CompanyExpense::where('source_fingerprint', $track->source_fingerprint)->count());
+        $this->assertEquals(0, \App\Models\CompanyPark::where('company_id', $this->companyId)->where('tvde_week_id', $this->weekId)->sum('value'));
+        $service->delete($track);
+        $this->assertSame(0, CompanyExpense::where('source_fingerprint', $track->source_fingerprint)->count());
     }
 
     private function writeWorkbook(string $path): void

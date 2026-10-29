@@ -17,6 +17,11 @@ class UpdateCarTrackRequest extends FormRequest
     public function rules()
     {
         return [
+            'date' => ['required', 'date_format:Y-m-d H:i:s'],
+            'value' => ['required', 'numeric'],
+            'destination' => ['required', 'in:driver,company'],
+            'reason' => ['nullable', 'required_if:destination,company', 'in:management_vehicle,personal_usage,annual_fee'],
+            'company_id' => ['nullable', 'integer', 'exists:companies,id'],
             'tvde_week_id' => [
                 'required',
                 'integer',

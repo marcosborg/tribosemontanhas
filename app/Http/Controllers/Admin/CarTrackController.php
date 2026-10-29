@@ -87,7 +87,7 @@ class CarTrackController extends Controller
             $table->editColumn('license_plate', fn ($row) => $row->license_plate ?: '');
             $table->editColumn('value', fn ($row) => $row->value ?: '');
             $table->editColumn('tvde_week_start_date', fn ($row) => $row->tvde_week_start_date ?: '');
-            $table->addColumn('driver_name', fn ($row) => $row->driver_name ?: '');
+            $table->addColumn('driver_name', fn ($row) => $row->classification_status === CarTrackClassificationService::STATUS_COMPANY ? '' : ($row->driver_name ?: ''));
             $table->addColumn('company_name', fn ($row) => $row->company_name ?: '');
             $table->addColumn('classification_destination', fn ($row) => $this->classificationDestinationLabel($row->classification_status));
             $table->addColumn('classification_reason_label', fn ($row) => $this->classificationReasonLabel($row->classification_reason));
@@ -169,12 +169,13 @@ class CarTrackController extends Controller
 
         $tvde_weeks = TvdeWeek::pluck('start_date', 'id')->prepend(trans('global.pleaseSelect'), '');
 
-        return view('admin.carTracks.create', compact('tvde_weeks'));
+        $companies = \App\Models\Company::orderBy('name')->pluck('name', 'id');
+        return view('admin.carTracks.create', compact('tvde_weeks', 'companies'));
     }
 
     public function store(StoreCarTrackRequest $request)
     {
-        CarTrack::create($request->all());
+        app(\App\Services\CarTrackManualEntryService::class)->save($request->validated());
 
         return redirect()->route('admin.car-tracks.index');
     }
@@ -187,7 +188,8 @@ class CarTrackController extends Controller
 
         $carTrack->load('tvde_week');
 
-        return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks'));
+        $companies = \App\Models\Company::orderBy('name')->pluck('name', 'id');
+        return view('admin.carTracks.edit', compact('carTrack', 'tvde_weeks', 'companies'));
     }
 
     public function update(
@@ -196,10 +198,7 @@ class CarTrackController extends Controller
         CarTrackClassificationService $classifier
     )
     {
-        DB::transaction(function () use ($request, $carTrack, $classifier) {
-            $carTrack->update($request->all());
-            $classifier->reclassify($carTrack);
-        });
+        app(\App\Services\CarTrackManualEntryService::class)->save($request->validated(), $carTrack);
 
         return redirect()->route('admin.car-tracks.index');
     }
@@ -215,7 +214,7 @@ class CarTrackController extends Controller
     {
         abort_if(Gate::denies('car_track_delete'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $carTrack->delete();
+        app(\App\Services\CarTrackManualEntryService::class)->delete($carTrack);
 
         return back();
     }
@@ -225,7 +224,7 @@ class CarTrackController extends Controller
         $carTracks = CarTrack::find(request('ids'));
 
         foreach ($carTracks as $carTrack) {
-            $carTrack->delete();
+            app(\App\Services\CarTrackManualEntryService::class)->delete($carTrack);
         }
 
         return response(null, Response::HTTP_NO_CONTENT);

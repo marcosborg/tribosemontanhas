@@ -12,6 +12,7 @@
                     <form method="POST" action="{{ route("admin.car-tracks.update", [$carTrack->id]) }}" enctype="multipart/form-data">
                         @method('PUT')
                         @csrf
+                        @include('admin.carTracks.classificationFields')
                         <div class="form-group {{ $errors->has('date') ? 'has-error' : '' }}">
                             <label for="date">{{ trans('cruds.carTrack.fields.date') }}</label>
                             <input class="form-control datetime" type="text" name="date" id="date" value="{{ old('date', $carTrack->date) }}">
