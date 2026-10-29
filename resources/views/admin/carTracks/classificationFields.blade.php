@@ -13,7 +13,7 @@
         <label for="reason">Motivo</label>
         <select class="form-control" id="reason" name="reason">
             <option value="">Selecionar motivo</option>
-            @foreach(['management_vehicle' => 'Viatura de gestão', 'personal_usage' => 'Utilização pessoal', 'annual_fee' => 'Anuidade'] as $key => $label)
+            @foreach(array_intersect_key(App\Models\CarTrack::CLASSIFICATION_REASONS, array_flip(['management_vehicle', 'personal_usage', 'annual_fee'])) as $key => $label)
                 <option value="{{ $key }}" {{ old('reason', $carTrack->classification_reason ?? '') === $key ? 'selected' : '' }}>{{ $label }}</option>
             @endforeach
         </select>

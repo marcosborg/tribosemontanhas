@@ -281,15 +281,6 @@ class CarTrackController extends Controller
 
     private function classificationReasonLabel(?string $reason): string
     {
-        return [
-            'normal_driver' => 'Motorista responsavel',
-            'management_vehicle' => 'Viatura de gestao',
-            'personal_usage' => 'Utilizacao pessoal',
-            'missing_vehicle' => 'Matricula/viatura nao encontrada',
-            'missing_usage' => 'Sem utilizacao ativa',
-            'missing_driver' => 'Sem motorista imputavel',
-            'missing_company' => 'Sem empresa na viatura',
-            CarTrackImporter::ANNUAL_FEE_REASON => 'Anuidade Via Verde',
-        ][$reason] ?? '';
+        return CarTrack::CLASSIFICATION_REASONS[$reason] ?? '';
     }
 }

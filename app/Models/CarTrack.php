@@ -11,6 +11,17 @@ class CarTrack extends Model
 {
     use SoftDeletes, HasFactory;
 
+    public const CLASSIFICATION_REASONS = [
+        'normal_driver' => 'Motorista responsavel',
+        'management_vehicle' => 'Viatura de gestao',
+        'personal_usage' => 'Utilizacao pessoal',
+        'missing_vehicle' => 'Matricula/viatura nao encontrada',
+        'missing_usage' => 'Sem utilizacao ativa',
+        'missing_driver' => 'Sem motorista imputavel',
+        'missing_company' => 'Sem empresa na viatura',
+        'annual_fee' => 'Anuidade Via Verde',
+    ];
+
     public $table = 'car_tracks';
 
     protected $dates = [
