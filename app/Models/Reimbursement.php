@@ -26,7 +26,10 @@ class Reimbursement extends Model implements HasMedia
         'deleted_at',
     ];
 
+    protected $casts = ['payment_date' => 'date'];
+
     protected $fillable = [
+        'payment_date',
         'value',
         'verified',
         'driver_id',

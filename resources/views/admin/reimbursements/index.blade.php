@@ -36,6 +36,7 @@
                                     <th>
                                         {{ trans('cruds.reimbursement.fields.verified') }}
                                     </th>
+                                    <th>Data de pagamento</th>
                                     <th>
                                         {{ trans('cruds.reimbursement.fields.driver') }}
                                     </th>
@@ -81,6 +82,15 @@
                                                     {{ $reimbursement->verified ? 'checked' : '' }}>
                                             @else
                                                 <input type="checkbox" disabled="disabled" {{ $reimbursement->verified ? 'checked' : '' }}>
+                                            @endcan
+                                        </td>
+                                        <td data-order="{{ $reimbursement->payment_date?->format('Y-m-d') ?? '' }}">
+                                            <span class="payment-date-text" style="display:none">{{ $reimbursement->payment_date?->format('Y-m-d') ?? '' }}</span>
+                                            @can('reimbursement_edit')
+                                                <input type="date" class="form-control input-sm reimbursement-payment-date" aria-label="Data de pagamento do reembolso {{ $reimbursement->id }}" data-url="{{ route('admin.reimbursements.paymentDate', $reimbursement->id) }}" data-saved="{{ $reimbursement->payment_date?->format('Y-m-d') ?? '' }}" value="{{ $reimbursement->payment_date?->format('Y-m-d') ?? '' }}">
+                                                <small class="payment-date-status" role="status"></small>
+                                            @else
+                                                {{ $reimbursement->payment_date?->format('Y-m-d') ?? '—' }}
                                             @endcan
                                         </td>
                                         <td>
@@ -209,5 +219,24 @@
 
 })
 
+$(document).on('change', '.reimbursement-payment-date', function () {
+    const input = $(this), cell = input.closest('td'), status = cell.find('.payment-date-status');
+    input.prop('disabled', true);
+    status.text('A guardar…');
+    $.ajax({
+        url: input.data('url'), method: 'PATCH',
+        headers: {'X-CSRF-TOKEN': _token},
+        data: {payment_date: input.val()}
+    }).done(function (data) {
+        const date = data.payment_date || '';
+        input.attr('data-saved', date);
+        cell.attr('data-order', date).find('.payment-date-text').text(date);
+        $('.datatable-Reimbursement').DataTable().cell(cell).invalidate('dom');
+        status.text('Guardado');
+    }).fail(function () {
+        input.val(input.attr('data-saved'));
+        status.text('Não foi possível guardar. Tente novamente.');
+    }).always(function () { input.prop('disabled', false); });
+});
 </script>
 @endsection

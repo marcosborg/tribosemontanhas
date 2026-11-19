@@ -20,6 +20,12 @@
                             @endif
                             <span class="help-block">{{ trans('cruds.reimbursement.fields.value_helper') }}</span>
                         </div>
+                        <div class="form-group {{ $errors->has('payment_date') ? 'has-error' : '' }}">
+                            <label for="payment_date">Data de pagamento</label>
+                            <input class="form-control" type="date" name="payment_date" id="payment_date" value="{{ old('payment_date', isset($reimbursement) ? $reimbursement->payment_date?->format('Y-m-d') : '') }}">
+                            @error('payment_date')<span class="help-block">{{ $message }}</span>@enderror
+                            <span class="help-block">Data efetiva do pagamento, independentemente da semana TVDE. Opcional.</span>
+                        </div>
                         <div class="form-group {{ $errors->has('file') ? 'has-error' : '' }}">
                             <label class="required" for="file">{{ trans('cruds.reimbursement.fields.file') }}</label>
                             <div class="needsclick dropzone" id="file-dropzone">

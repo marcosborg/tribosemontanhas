@@ -69,6 +69,7 @@
                                         {{ $reimbursement->tvde_week->start_date ?? '' }}
                                     </td>
                                 </tr>
+                                <tr><th>Data de pagamento</th><td>{{ $reimbursement->payment_date?->format('Y-m-d') ?? '—' }}</td></tr>
                             </tbody>
                         </table>
                         <div class="form-group">

@@ -136,6 +136,14 @@ class ReimbursementController extends Controller
         return response()->json(['id' => $media->id, 'url' => $media->getUrl()], Response::HTTP_CREATED);
     }
 
+    public function updatePaymentDate(Request $request, Reimbursement $reimbursement)
+    {
+        abort_if(Gate::denies('reimbursement_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
+        $data = $request->validate(['payment_date' => ['present', 'nullable', 'date_format:Y-m-d']]);
+        $reimbursement->update($data);
+        return response()->json(['payment_date' => $reimbursement->payment_date?->format('Y-m-d')]);
+    }
+
     public function toggleVerified(Request $request, Reimbursement $reimbursement)
     {
         abort_if(Gate::denies('reimbursement_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');

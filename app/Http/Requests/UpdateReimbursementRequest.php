@@ -17,6 +17,7 @@ class UpdateReimbursementRequest extends FormRequest
     public function rules()
     {
         return [
+            'payment_date' => ['nullable', 'date_format:Y-m-d'],
             'file' => [
                 'required',
             ],
