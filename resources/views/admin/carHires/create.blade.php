@@ -36,12 +36,12 @@
                             <span class="help-block">{{ trans('cruds.carHire.fields.start_date_helper') }}</span>
                         </div>
                         <div class="form-group {{ $errors->has('end_date') ? 'has-error' : '' }}">
-                            <label class="required" for="end_date">{{ trans('cruds.carHire.fields.end_date') }}</label>
-                            <input class="form-control date" type="text" name="end_date" id="end_date" value="{{ old('end_date') }}" required>
+                            <label for="end_date">{{ trans('cruds.carHire.fields.end_date') }}</label>
+                            <input class="form-control date" type="text" name="end_date" id="end_date" value="{{ old('end_date') }}">
                             @if($errors->has('end_date'))
                                 <span class="help-block" role="alert">{{ $errors->first('end_date') }}</span>
                             @endif
-                            <span class="help-block">{{ trans('cruds.carHire.fields.end_date_helper') }}</span>
+                            <span class="help-block">Deixe em branco para o aluguer continuar sem data de fim.</span>
                         </div>
                         <div class="form-group {{ $errors->has('driver') ? 'has-error' : '' }}">
                             <label class="required" for="driver_id">{{ trans('cruds.carHire.fields.driver') }}</label>

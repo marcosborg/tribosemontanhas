@@ -54,7 +54,7 @@
                                         {{ trans('cruds.carHire.fields.end_date') }}
                                     </th>
                                     <td>
-                                        {{ $carHire->end_date }}
+                                        {{ $carHire->end_date ?? 'Sem data de fim' }}
                                     </td>
                                 </tr>
                                 <tr>

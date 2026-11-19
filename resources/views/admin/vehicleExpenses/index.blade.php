@@ -124,71 +124,37 @@
                     </div>
 
                     <table class="table table-bordered table-striped table-hover ajaxTable datatable datatable-VehicleExpense">
-                        <thead>
-                            <tr>
-                                <th width="10"></th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.id') }}</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.expense_type') }}</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.date') }}</th>
-                                <th>Estado</th>
-                                <th>Pago em</th>
-                                <th>{{ trans('cruds.vehicleExpense.fields.files') }}</th>
-                                <th>Valor sem IVA (€)</th>
-                                <th>IVA (%)</th>
-                                <th>IVA calculado (€)</th>
-                                <th>Valor final</th>
-                                <th>Grupo</th>
-                                <th>Pagar a</th>
-                                <th>&nbsp;</th>
-                            </tr>
-                            <tr>
-                                <td></td>
-                                <td>
-                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
-                                </td>
-                                <td>
-                                    <select class="search">
+                        <thead><tr><th width="10"></th><th>{{ trans('cruds.vehicleExpense.fields.id') }}</th><th>{{ trans('cruds.vehicleExpense.fields.vehicle_item') }}</th><th>{{ trans('cruds.vehicleExpense.fields.expense_type') }}</th><th>Pagar a</th><th>{{ trans('cruds.vehicleExpense.fields.date') }}</th><th>Estado</th><th>Pago em</th><th>{{ trans('cruds.vehicleExpense.fields.files') }}</th><th>Valor sem IVA (€)</th><th>IVA (%)</th><th>IVA calculado (€)</th><th>Valor final</th><th>Grupo</th><th>&nbsp;</th></tr><tr><td></td><td>
+                                    <input aria-label="Filtrar ID" class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td><td>
+                                    <select aria-label="Filtrar viatura" class="search">
                                         <option value>{{ trans('global.all') }}</option>
                                         @foreach($vehicle_items as $key => $item)
                                             <option value="{{ $item->license_plate }}">{{ $item->license_plate }}</option>
                                         @endforeach
                                     </select>
-                                </td>
-                                <td>
-                                    <select class="search" strict="true">
+                                </td><td>
+                                    <select aria-label="Filtrar rubrica" class="search" strict="true">
                                         <option value>{{ trans('global.all') }}</option>
                                         @foreach(App\Models\VehicleExpense::EXPENSE_TYPE_RADIO as $key => $item)
                                             <option value="{{ $key }}">{{ $item }}</option>
                                         @endforeach
                                     </select>
-                                </td>
-                                <td></td>
-                                <td>
-                                    <select class="search" strict="true">
+                                </td><td>
+                                    <input aria-label="Filtrar pagar a" class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td><td><input aria-label="Filtrar data" class="search" type="text" placeholder="Procurar"></td><td>
+                                    <select aria-label="Filtrar estado" class="search" strict="true">
                                         <option value>{{ trans('global.all') }}</option>
                                         <option value="1">Pago</option>
                                         <option value="0">Por pagar</option>
                                     </select>
-                                </td>
-                                <td></td>
-                                <td></td>
-                                <td>
-                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
-                                </td>
-                                <td>
-                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
-                                </td>
-                                <td></td><td></td>
-                                <td>
-                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
-                                </td>
-                                <td>
-                                    <input class="search" type="text" placeholder="{{ trans('global.search') }}">
-                                </td>
-                                <td></td>
-                            </tr>
-                        </thead>
+                                </td><td><input aria-label="Filtrar data de pagamento" class="search" type="text" placeholder="Procurar"></td><td><input aria-label="Filtrar documentos" class="search" type="text" placeholder="Procurar"></td><td>
+                                    <input aria-label="Filtrar valor" class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td><td>
+                                    <input aria-label="Filtrar IVA" class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td><td><input aria-label="Filtrar IVA calculado" class="search" type="text" placeholder="Procurar"></td><td><input aria-label="Filtrar valor final" class="search" type="text" placeholder="Procurar"></td><td>
+                                    <input aria-label="Filtrar grupo" class="search" type="text" placeholder="{{ trans('global.search') }}">
+                                </td><td></td></tr></thead>
                     </table>
                 </div>
             </div>
@@ -253,7 +219,7 @@
         dtButtons.push(deleteButton)
         @endcan
 
-        const stateStorageKey = 'datatable-vehicle-expenses-v7';
+        const stateStorageKey = 'datatable-vehicle-expenses-v8';
         let savedState = null;
 
         try {
@@ -294,16 +260,16 @@
                 { data: 'id', name: 'id' },
                 { data: 'vehicle_item_license_plate', name: 'vehicle_item.license_plate' },
                 { data: 'expense_type', name: 'expense_type' },
+                { data: 'pay_to', name: 'pay_to' },
                 { data: 'date', name: 'date' },
                 { data: 'paid_status', name: 'is_paid' },
                 { data: 'paid_at', name: 'paid_at' },
-                { data: 'files', name: 'files', sortable: false, searchable: false },
+                { data: 'files', name: 'files', sortable: false, searchable: true },
                 { data: 'value', name: 'value' },
                 { data: 'vat', name: 'vat' },
-                { data: 'vat_amount', name: 'vat_amount', sortable: false, searchable: false },
-                { data: 'final_value', name: 'final_value', sortable: false, searchable: false },
+                { data: 'vat_amount', name: 'vat_amount', sortable: false, searchable: true },
+                { data: 'final_value', name: 'final_value', sortable: false, searchable: true },
                 { data: 'group_info', name: 'group_label' },
-                { data: 'pay_to', name: 'pay_to' },
                 { data: 'actions', name: '{{ trans('global.actions') }}' }
             ],
             createdRow: function (row, data) {

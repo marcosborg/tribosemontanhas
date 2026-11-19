@@ -193,7 +193,7 @@ class AdjustmentController extends Controller
 
     public function store(StoreAdjustmentRequest $request)
     {
-        $adjustment = Adjustment::create($request->all());
+        $adjustment = Adjustment::create($this->adjustmentData($request));
         $adjustment->drivers()->sync($request->input('drivers', []));
 
         return redirect()->route('admin.adjustments.index');
@@ -218,10 +218,19 @@ class AdjustmentController extends Controller
 
     public function update(UpdateAdjustmentRequest $request, Adjustment $adjustment)
     {
-        $adjustment->update($request->all());
+        $adjustment->update($this->adjustmentData($request));
         $adjustment->drivers()->sync($request->input('drivers', []));
 
         return redirect()->route('admin.adjustments.index');
+    }
+
+    private function adjustmentData(Request $request): array
+    {
+        $data = $request->except(['weekly_schedule', 'week_start', 'week_count']);
+        if ($request->boolean('weekly_schedule')) {
+            $data = array_merge($data, \App\Services\AdjustmentPeriod::dates($request->input('week_start'), (int) $request->input('week_count')));
+        }
+        return $data;
     }
 
     public function show(Adjustment $adjustment)

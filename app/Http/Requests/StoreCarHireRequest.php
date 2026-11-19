@@ -29,7 +29,8 @@ class StoreCarHireRequest extends FormRequest
                 'date_format:' . config('panel.date_format'),
             ],
             'end_date' => [
-                'required',
+                'nullable',
+                'after_or_equal:start_date',
                 'date_format:' . config('panel.date_format'),
             ],
             'driver_id' => [

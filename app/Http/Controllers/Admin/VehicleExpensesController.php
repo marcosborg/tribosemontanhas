@@ -62,7 +62,7 @@ class VehicleExpensesController extends Controller
                 }
                 $links = [];
                 foreach ($row->files as $media) {
-                    $links[] = '<a href="' . $media->getUrl() . '" target="_blank">' . trans('global.downloadFile') . '</a>';
+                    $links[] = '<a href="' . $media->getUrl() . '" target="_blank">' . e($media->file_name) . '</a>';
                 }
 
                 return implode(', ', $links);
@@ -93,13 +93,9 @@ class VehicleExpensesController extends Controller
             $table->editColumn('pay_to', function ($row) {
                 return $row->pay_to ?: '';
             });
-            $table->filterColumn('is_paid', function ($query, $keyword) {
-                $keyword = preg_replace('/^\^(.+)\$$/', '$1', trim((string) $keyword));
-
-                if ($keyword === '1' || $keyword === '0') {
-                    $query->where('is_paid', (bool) $keyword);
-                }
-            });
+            foreach (['is_paid', 'expense_type', 'paid_at', 'files', 'vat_amount', 'final_value', 'group_label'] as $column) {
+                $table->filterColumn($column, fn ($query, $keyword) => $this->filterExpenseColumn($query, $column, $keyword));
+            }
             $table->editColumn('actions', function ($row) {
                 $viewGate = 'vehicle_expense_show';
                 $editGate = 'vehicle_expense_edit';
@@ -131,7 +127,7 @@ class VehicleExpensesController extends Controller
             return $table->make(true);
         }
 
-        $vehicle_items = VehicleItem::get();
+        $vehicle_items = VehicleItem::orderBy('license_plate')->get();
         $unpaidCount = VehicleExpense::where('is_paid', false)->count();
 
         return view('admin.vehicleExpenses.index', compact('vehicle_items', 'unpaidCount'));
@@ -209,14 +205,10 @@ class VehicleExpensesController extends Controller
     {
         $columns = $request->input('columns', []);
 
-        $this->applyTextFilter($query, $columns, 1, 'id');
-        $this->applyVehicleFilter($query, $columns);
-        $this->applyExactFilter($query, $columns, 3, 'expense_type');
-        $this->applyPaidFilter($query, $columns);
-        $this->applyTextFilter($query, $columns, 8, 'value');
-        $this->applyTextFilter($query, $columns, 9, 'vat');
-        $this->applyTextFilter($query, $columns, 12, 'group_label');
-        $this->applyTextFilter($query, $columns, 13, 'pay_to');
+        foreach ($columns as $column) {
+            $value = trim((string) data_get($column, 'search.value', ''));
+            if ($value !== '') $this->filterExpenseColumn($query, $column['name'] ?? '', $value);
+        }
 
         $global = trim((string) data_get($request->input('search', []), 'value', ''));
         if ($global === '') {
@@ -243,19 +235,34 @@ class VehicleExpensesController extends Controller
         $column = (int) data_get($order, 'column', 1);
         $direction = data_get($order, 'dir') === 'asc' ? 'asc' : 'desc';
 
-        $map = [
-            1 => 'id',
-            3 => 'expense_type',
-            4 => 'date',
-            5 => 'is_paid',
-            6 => 'paid_at',
-            8 => 'value',
-            9 => 'vat',
-            12 => 'group_label',
-            13 => 'pay_to',
-        ];
+        $name = data_get($request->input('columns', []), "{$column}.name", 'id');
+        $allowed = ['id', 'expense_type', 'pay_to', 'date', 'is_paid', 'paid_at', 'value', 'vat', 'group_label'];
+        $query->orderBy(in_array($name, $allowed, true) ? $name : 'id', $direction);
+    }
 
-        $query->orderBy($map[$column] ?? 'id', $direction);
+    protected function filterExpenseColumn($query, string $column, string $keyword): void
+    {
+        $keyword = preg_replace('/^\^(.+)\$$/', '$1', trim($keyword));
+        if ($column === 'is_paid') {
+            if (in_array($keyword, ['0', '1'], true)) $query->where('is_paid', (bool) $keyword);
+        } elseif ($column === 'expense_type') {
+            $query->where('expense_type', $keyword);
+        } elseif ($column === 'vehicle_item.license_plate') {
+            $query->whereHas('vehicle_item', fn ($vehicle) => $vehicle->where('license_plate', 'like', "%{$keyword}%"));
+        } elseif ($column === 'files') {
+            $query->whereHas('media', fn ($media) => $media->where('collection_name', 'files')->where('file_name', 'like', "%{$keyword}%"));
+        } elseif (in_array($column, ['vat_amount', 'final_value'], true)) {
+            $number = str_replace(',', '.', $keyword);
+            if (!is_numeric($number)) { $query->whereRaw('1 = 0'); return; }
+            $expression = $column === 'vat_amount'
+                ? 'ROUND(COALESCE(value, 0) * COALESCE(vat, 0) / 100, 2)'
+                : 'ROUND(COALESCE(final_value, ROUND(COALESCE(value, 0) * (1 + COALESCE(vat, 0) / 100), 2)), 2)';
+            $query->whereRaw($expression . ' = CAST(? AS DECIMAL(15,2))', [$number]);
+        } elseif ($column === 'group_label') {
+            $query->whereRaw("COALESCE(NULLIF(group_label, ''), CASE WHEN group_uuid IS NOT NULL THEN 'Grupo' ELSE '' END) LIKE ?", ["%{$keyword}%"]);
+        } elseif (in_array($column, ['id', 'date', 'paid_at', 'value', 'vat', 'pay_to'], true)) {
+            $query->where($column, 'like', "%{$keyword}%");
+        }
     }
 
     protected function applyTextFilter($query, array $columns, int $index, string $field): void
@@ -303,7 +310,7 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_create'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $vehicle_items = VehicleItem::orderBy('license_plate')->pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         return view('admin.vehicleExpenses.create', compact('vehicle_items'));
     }
@@ -336,7 +343,7 @@ class VehicleExpensesController extends Controller
     {
         abort_if(Gate::denies('vehicle_expense_edit'), Response::HTTP_FORBIDDEN, '403 Forbidden');
 
-        $vehicle_items = VehicleItem::pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
+        $vehicle_items = VehicleItem::orderBy('license_plate')->pluck('license_plate', 'id')->prepend(trans('global.pleaseSelect'), '');
 
         $vehicleExpense->load('vehicle_item');
 

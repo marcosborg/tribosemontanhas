@@ -74,22 +74,7 @@
                             <span class="help-block">{{ trans('cruds.adjustment.fields.amount_helper') }}</span>
                         </div>
 <div class="adjustment-impact" id="adjustment-impact" role="status" aria-live="polite"><strong class="impact-title"></strong><span class="impact-value"></span><span class="impact-description"></span></div>
-<div class="form-group {{ $errors->has('start_date') ? 'has-error' : '' }}">
-                            <label for="start_date">{{ trans('cruds.adjustment.fields.start_date') }}</label>
-                            <input class="form-control date" type="text" name="start_date" id="start_date" value="{{ old('start_date') }}">
-                            @if($errors->has('start_date'))
-                                <span class="help-block" role="alert">{{ $errors->first('start_date') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.adjustment.fields.start_date_helper') }}</span>
-                        </div>
-<div class="form-group {{ $errors->has('end_date') ? 'has-error' : '' }}">
-                            <label for="end_date">{{ trans('cruds.adjustment.fields.end_date') }}</label>
-                            <input class="form-control date" type="text" name="end_date" id="end_date" value="{{ old('end_date') }}">
-                            @if($errors->has('end_date'))
-                                <span class="help-block" role="alert">{{ $errors->first('end_date') }}</span>
-                            @endif
-                            <span class="help-block">{{ trans('cruds.adjustment.fields.end_date_helper') }}</span>
-                        </div>
+@include('admin.adjustments.partials.weekPeriod')
 <div class="adjustment-notes"><div class="form-group {{ $errors->has('notes') ? 'has-error' : '' }}">
                             <label for="notes">{{ trans('cruds.adjustment.fields.notes') }}</label>
                             <textarea class="form-control ckeditor" name="notes" id="notes">{!! old('notes') !!}</textarea>
@@ -158,4 +143,5 @@
 @section('scripts')
 @parent
 @include('admin.adjustments.partials.formFeedback')
+@include('admin.adjustments.partials.weekCalendar')
 @endsection

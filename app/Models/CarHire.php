@@ -58,6 +58,12 @@ class CarHire extends Model
         $this->attributes['end_date'] = $value ? Carbon::createFromFormat(config('panel.date_format'), $value)->format('Y-m-d') : null;
     }
 
+    public function scopeOverlapping($query, string $start, ?string $end)
+    {
+        return $query->when($end, fn ($q) => $q->where(fn ($dates) => $dates->whereNull('start_date')->orWhere('start_date', '<=', $end)))
+            ->where(fn ($dates) => $dates->whereNull('end_date')->orWhere('end_date', '>=', $start));
+    }
+
     public function driver()
     {
         return $this->belongsTo(Driver::class, 'driver_id');

@@ -53,6 +53,23 @@ class ExpenseTotalsTest extends TestCase
         }
     }
 
+    public function test_vehicle_export_filters_follow_column_names_after_reordering(): void
+    {
+        Schema::table('vehicle_expenses', fn (Blueprint $t) => $t->string('pay_to')->nullable());
+        $a = VehicleExpense::create(['value'=>100, 'vat'=>23, 'final_value'=>122.99, 'pay_to'=>'Oficina', 'paid_at'=>'2026-11-19']);
+        VehicleExpense::create(['value'=>100, 'vat'=>23, 'pay_to'=>'Outro', 'paid_at'=>'2026-10-19']);
+        $method = new \ReflectionMethod(VehicleExpensesController::class, 'applyExportFilters'); $method->setAccessible(true);
+        $query = VehicleExpense::query();
+        $request = \Illuminate\Http\Request::create('/', 'GET', ['columns'=>[
+            ['name'=>'pay_to', 'search'=>['value'=>'Oficina']],
+            ['name'=>'paid_at', 'search'=>['value'=>'2026-11-19']],
+            ['name'=>'vat_amount', 'search'=>['value'=>'23,00']],
+            ['name'=>'final_value', 'search'=>['value'=>'122,99']],
+        ]]);
+        $method->invoke(app(VehicleExpensesController::class), $query, $request);
+        $this->assertSame([$a->id], $query->pluck('id')->all());
+    }
+
     public function test_vehicle_total_is_calculated_and_manual_cents_survive_update(): void
     {
         $data = ['value'=>100, 'vat'=>23, 'expense_type'=>'Outros'];

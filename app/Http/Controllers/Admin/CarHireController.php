@@ -50,7 +50,7 @@ class CarHireController extends Controller
             $table->editColumn('name', fn($row) => $row->name ?? '');
             $table->editColumn('amount', fn($row) => $row->amount ?? '');
             $table->editColumn('start_date', fn($row) => $row->start_date ?? '');
-            $table->editColumn('end_date', fn($row) => $row->end_date ?? '');
+            $table->editColumn('end_date', fn($row) => $row->end_date ?? 'Sem data de fim');
 
             // Relacional
             $table->addColumn('driver_name', fn($row) => $row->driver?->name ?: '');
@@ -120,10 +120,7 @@ class CarHireController extends Controller
         // 3) Verificar sobreposição com outros registos do MESMO driver
         $hasOverlap = CarHire::where('driver_id', $carHire->driver_id)
             ->where('id', '!=', $carHire->id) // ignora o próprio
-            ->where(function ($query) use ($startDate, $endDate) {
-                $query->where('start_date', '<=', $endDate)
-                    ->where('end_date', '>=', $startDate);
-            })
+            ->overlapping($startDate, $endDate)
             ->first();
 
         if ($hasOverlap) {

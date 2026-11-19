@@ -17,6 +17,9 @@ class UpdateAdjustmentRequest extends FormRequest
     public function rules()
     {
         return [
+            'weekly_schedule' => ['sometimes', 'boolean'],
+            'week_start' => ['required_if:weekly_schedule,1', 'nullable', 'date_format:Y-m-d'],
+            'week_count' => ['required_if:weekly_schedule,1', 'nullable', 'integer', 'min:1', 'max:520'],
             'name' => [
                 'string',
                 'required',
