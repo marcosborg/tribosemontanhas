@@ -362,3 +362,8 @@
     </div>
 </div>
 @endsection
+
+@section('scripts')
+@parent
+@include('admin.drivers.partials.formTabs')
+@endsection
