@@ -975,7 +975,7 @@ return [
             'swift_helper'           => ' ',
             'address'               => 'Endereço',
             'address_helper'        => ' ',
-            'zip'                   => 'C├│digo postal',
+            'zip'                   => 'Código postal',
             'zip_helper'            => ' ',
             'city'                  => 'Localidade',
             'city_helper'           => ' ',
