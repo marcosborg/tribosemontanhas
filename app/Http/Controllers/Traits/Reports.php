@@ -35,10 +35,10 @@ trait Reports
     public function getWeekReport($company_id, $tvde_week_id)
     {
 
-        $tvde_week = TvdeWeek::find($tvde_week_id);
+        $tvde_week = TvdeWeek::findOrFail($tvde_week_id);
 
         $drivers = Driver::where('company_id', $company_id)
-            ->where('state_id', 1)
+            ->activeDuring($tvde_week->getRawOriginal('start_date'), $tvde_week->getRawOriginal('end_date'))
             ->orderBy('name')
             ->get()
             ->load([

@@ -122,6 +122,18 @@ class Driver extends Model implements HasMedia
         return $this->belongsTo(ContractVat::class, 'contract_vat_id');
     }
 
+    /** Include anyone whose employment overlaps the selected period, regardless of today's status. */
+    public function scopeActiveDuring($query, string $startDate, string $endDate)
+    {
+        return $query
+            ->where(fn ($dates) => $dates->whereNull('start_date')->orWhereDate('start_date', '<=', $endDate))
+            ->where(fn ($dates) => $dates->whereNull('end_date')->orWhereDate('end_date', '>=', $startDate))
+            ->where(function ($dates) {
+                // Undated legacy records have no historical period: retain the existing status fallback.
+                $dates->whereNotNull('start_date')->orWhereNotNull('end_date')->orWhere('state_id', 1);
+            });
+    }
+
     public function getStartDateAttribute($value)
     {
         return $value ? Carbon::parse($value)->format(config('panel.date_format')) : null;
