@@ -67,6 +67,40 @@ class CompanyExpenseController extends Controller
                 });
             });
 
+            $table->filterColumn('date', function ($query, $keyword) {
+                $query->where(function ($dates) use ($keyword) {
+                    $dates->where(function ($accounting) use ($keyword) {
+                        $accounting->where('expense_mode', CompanyExpense::MODE_ACCOUNTING)
+                            ->where('date', 'like', '%' . $keyword . '%');
+                    })->orWhere(function ($recurring) use ($keyword) {
+                        $recurring->where('expense_mode', CompanyExpense::MODE_RECURRING)
+                            ->where(function ($period) use ($keyword) {
+                                $period->where('start_date', 'like', '%' . $keyword . '%')
+                                    ->orWhere('end_date', 'like', '%' . $keyword . '%');
+                            });
+                    });
+                });
+            });
+            $table->filterColumn('paid_at', function ($query, $keyword) {
+                $query->where('is_paid', true)->where('paid_at', 'like', '%' . $keyword . '%');
+            });
+            $table->filterColumn('files', function ($query, $keyword) {
+                $query->whereHas('media', function ($media) use ($keyword) {
+                    $media->where('collection_name', 'files')->where('file_name', 'like', '%' . $keyword . '%');
+                });
+            });
+            $table->filterColumn('vat_amount', function ($query, $keyword) {
+                if (!is_numeric(str_replace(',', '.', trim($keyword)))) return $query->whereRaw('1 = 0');
+                $query->where('expense_mode', CompanyExpense::MODE_ACCOUNTING)
+                    ->whereRaw('ROUND(COALESCE(value, 0) * COALESCE(vat, 0) / 100, 2) = CAST(? AS DECIMAL(15,2))', [str_replace(',', '.', trim($keyword))]);
+            });
+            $table->filterColumn('final_value', function ($query, $keyword) {
+                if (!is_numeric(str_replace(',', '.', trim($keyword)))) return $query->whereRaw('1 = 0');
+                $query->whereRaw('ROUND(CASE WHEN expense_mode = ? THEN COALESCE(final_value, invoice_value, ROUND(COALESCE(value, 0) * (1 + COALESCE(vat, 0) / 100), 2)) ELSE COALESCE(qty, 0) * COALESCE(weekly_value, 0) END, 2) = CAST(? AS DECIMAL(15,2))', [
+                    CompanyExpense::MODE_ACCOUNTING, str_replace(',', '.', trim($keyword)),
+                ]);
+            });
+
             $table->addColumn('placeholder', '&nbsp;');
             $table->addColumn('actions', '&nbsp;');
 

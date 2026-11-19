@@ -29,6 +29,30 @@ class ExpenseTotalsTest extends TestCase
         (require database_path('migrations/2026_10_15_120000_add_final_value_to_expenses.php'))->up();
     }
 
+    public function test_company_table_filters_match_displayed_totals_and_payment_dates(): void
+    {
+        \Illuminate\Support\Facades\Gate::define('company_expense_access', fn ($user = null) => true);
+        $filters = [];
+        $table = \Mockery::mock();
+        $table->shouldReceive('filterColumn')->andReturnUsing(function ($name, $callback) use (&$filters, $table) {
+            $filters[$name] = $callback;
+            return $table;
+        });
+        foreach (['addColumn', 'editColumn', 'rawColumns'] as $method) $table->shouldReceive($method)->andReturnSelf();
+        $table->shouldReceive('make')->andReturn(response()->json([]));
+        \Yajra\DataTables\Facades\DataTables::shouldReceive('of')->once()->andReturn($table);
+        $request = \Illuminate\Http\Request::create('/', 'GET', [], [], [], ['HTTP_X_REQUESTED_WITH' => 'XMLHttpRequest']);
+        app(CompanyExpenseController::class)->index($request);
+        $a = CompanyExpense::create(['expense_mode'=>'accounting','value'=>100,'vat'=>23,'final_value'=>122.99,'is_paid'=>true,'paid_at'=>'2026-11-19']);
+        $b = CompanyExpense::create(['expense_mode'=>'accounting','value'=>100,'vat'=>23,'invoice_value'=>120,'is_paid'=>false,'paid_at'=>'2026-11-19']);
+        $c = CompanyExpense::create(['expense_mode'=>'recurring','weekly_value'=>40,'qty'=>3]);
+        foreach ([['final_value','122,99',[$a->id]], ['final_value','120',[$b->id,$c->id]], ['final_value','123',[]], ['vat_amount','23',[$a->id,$b->id]], ['paid_at','2026-11-19',[$a->id]], ['final_value','invalid',[]]] as [$field,$value,$expected]) {
+            $query = CompanyExpense::query();
+            $filters[$field]($query, $value);
+            $this->assertSame($expected, $query->orderBy('id')->pluck('id')->all());
+        }
+    }
+
     public function test_vehicle_total_is_calculated_and_manual_cents_survive_update(): void
     {
         $data = ['value'=>100, 'vat'=>23, 'expense_type'=>'Outros'];

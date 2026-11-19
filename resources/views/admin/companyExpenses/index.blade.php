@@ -89,6 +89,7 @@
                                     {{ trans('cruds.companyExpense.fields.id') }}
                                 </th>
                                 <th>Rubrica</th>
+                                <th>Pagar a</th>
                                 <th>Data / período</th>
                                 <th>Estado</th>
                                 <th>Data de pagamento</th>
@@ -106,13 +107,15 @@
                                         <option value="{{ $key }}">{{ $label }}</option>
                                     @endforeach
                                 </select></td>
-                                <td></td>
+                                <td><input class="search" type="text" aria-label="Filtrar pagar a" placeholder="Procurar"></td>
+                                <td><input class="search" type="text" aria-label="Filtrar data" placeholder="AAAA-MM-DD"></td>
                                 <td><select class="search" aria-label="Filtrar estado"><option value="">{{ trans('global.all') }}</option><option value="1">Pago</option><option value="0">Por pagar</option></select></td>
-                                <td></td>
-                                <td></td>
+                                <td><input class="search" type="text" aria-label="Filtrar data de pagamento" placeholder="AAAA-MM-DD"></td>
+                                <td><input class="search" type="text" aria-label="Filtrar documentos" placeholder="Procurar"></td>
                                 <td><input class="search" type="text" aria-label="Filtrar valor" placeholder="{{ trans('global.search') }}"></td>
                                 <td><input class="search" type="text" aria-label="Filtrar IVA" placeholder="{{ trans('global.search') }}"></td>
-                                <td></td><td></td><td></td>
+                                <td><input class="search" type="text" aria-label="Filtrar IVA calculado" placeholder="Procurar"></td>
+                                <td><input class="search" type="text" aria-label="Filtrar valor final" placeholder="Procurar"></td><td></td>
                             </tr>
                         </thead>
                     </table>
@@ -124,6 +127,14 @@
         </div>
     </div>
 </div>
+@endsection
+@section('styles')
+@parent
+<style>
+.datatable-CompanyExpense .search { width: 100%; min-width: 0; box-sizing: border-box; }
+.datatable-CompanyExpense .expense-id { width: 45px !important; min-width: 45px; }
+.datatable-CompanyExpense input[aria-label="Filtrar ID"] { width: 45px; }
+</style>
 @endsection
 @section('scripts')
 @parent
@@ -160,7 +171,7 @@
   dtButtons.push(deleteButton)
 @endcan
 
-        const stateStorageKey = 'datatable-company-expenses-v2';
+        const stateStorageKey = 'datatable-company-expenses-v3';
         let savedState = null;
 
         try {
@@ -198,16 +209,17 @@
     },
     columns: [
       { data: 'placeholder', name: 'placeholder' },
-{ data: 'id', name: 'id' },
+{ data: 'id', name: 'id', width: '45px', className: 'expense-id' },
 { data: 'name', name: 'expense_type' },
+{ data: 'pay_to', name: 'pay_to', defaultContent: '' },
 { data: 'date', name: 'date' },
 { data: 'is_paid', name: 'is_paid' },
 { data: 'paid_at', name: 'paid_at' },
-{ data: 'files', name: 'files', orderable: false, searchable: false },
+{ data: 'files', name: 'files', orderable: false, searchable: true },
 { data: 'weekly_value', name: 'value' },
 { data: 'vat', name: 'vat' },
-{ data: 'vat_amount', name: 'vat_amount', orderable: false, searchable: false },
-{ data: 'final_value', name: 'final_value', orderable: false, searchable: false },
+{ data: 'vat_amount', name: 'vat_amount', orderable: false, searchable: true },
+{ data: 'final_value', name: 'final_value', orderable: false, searchable: true },
 { data: 'actions', name: '{{ trans('global.actions') }}' }
     ],
     orderCellsTop: true,
