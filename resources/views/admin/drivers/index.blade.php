@@ -47,7 +47,12 @@
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- email --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- code --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- contract_vat --}}
-                              <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- state --}}
+                              <th><select class="search form-control input-sm" aria-label="Filtrar estado">
+                                  <option value="">{{ trans('global.all') }}</option>
+                                  @foreach($states as $state)
+                                    <option value="{{ $state }}">{{ $state }}</option>
+                                  @endforeach
+                              </select></th> {{-- state --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- driver_vat --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- uber_uuid --}}
                               <th><input class="search form-control input-sm" type="text" placeholder="{{ trans('global.search') }}"></th> {{-- bolt_name --}}

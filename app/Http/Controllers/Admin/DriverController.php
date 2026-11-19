@@ -89,7 +89,7 @@ class DriverController extends Controller
                 $q->whereHas('contract_vat', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
             });
             $table->filterColumn('state_name', function ($q, $k) {
-                $q->whereHas('state', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
+                $q->whereHas('state', fn($qq) => $qq->where('name', $k));
             });
             $table->filterColumn('company_name', function ($q, $k) {
                 $q->whereHas('company', fn($qq) => $qq->where('name', 'like', "%{$k}%"));
@@ -104,7 +104,7 @@ class DriverController extends Controller
             return $table->make(true);
         }
 
-        return view('admin.drivers.index');
+        return view('admin.drivers.index', ['states' => State::orderBy('name')->pluck('name')]);
     }
 
     public function export(Request $request): StreamedResponse
@@ -375,7 +375,7 @@ class DriverController extends Controller
             'user.email' => fn (Builder $q, string $value) => $q->whereHas('user', fn (Builder $qq) => $qq->where('email', 'like', "%{$value}%")),
             'drivers.code' => 'drivers.code',
             'contract_vat_name' => fn (Builder $q, string $value) => $q->whereHas('contract_vat', fn (Builder $qq) => $qq->where('name', 'like', "%{$value}%")),
-            'state_name' => fn (Builder $q, string $value) => $q->whereHas('state', fn (Builder $qq) => $qq->where('name', 'like', "%{$value}%")),
+            'state_name' => fn (Builder $q, string $value) => $q->whereHas('state', fn (Builder $qq) => $qq->where('name', $value)),
             'drivers.driver_vat' => 'drivers.driver_vat',
             'drivers.uber_uuid' => 'drivers.uber_uuid',
             'drivers.bolt_name' => 'drivers.bolt_name',
